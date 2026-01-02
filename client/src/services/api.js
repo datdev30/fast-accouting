@@ -1,7 +1,34 @@
 import axios from 'axios';
 
+function normalizeApiBaseUrl(raw) {
+    const trimmed = String(raw || '').trim();
+    if (!trimmed) return '/api';
+
+    // Relative base URLs are allowed (e.g. '/api' for local proxy)
+    if (trimmed.startsWith('/')) {
+        return trimmed.replace(/\/+$/g, '');
+    }
+
+    // If user set only a host like 'fast-accounting-api.vercel.app', browsers treat it as a relative path.
+    // Prefix https:// to ensure it is an absolute URL.
+    const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+
+    try {
+        const url = new URL(withScheme);
+        // If only origin is provided, default to the API prefix.
+        if (!url.pathname || url.pathname === '/') {
+            url.pathname = '/api';
+        }
+        url.pathname = url.pathname.replace(/\/+$/g, '');
+        return url.toString().replace(/\/+$/g, '');
+    } catch {
+        // Fallback to relative '/api' rather than generating broken URLs.
+        return '/api';
+    }
+}
+
 // Use environment variable for API URL
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+const API_BASE_URL = normalizeApiBaseUrl(import.meta.env.VITE_API_URL || '/api');
 
 const api = axios.create({
     baseURL: API_BASE_URL,
