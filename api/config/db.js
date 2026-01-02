@@ -1,17 +1,34 @@
 import mongoose from 'mongoose';
 
-const connectDB = async () => {
-  try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI, {
-      // Mongoose 6+ không cần useNewUrlParser và useUnifiedTopology
-    });
+let connectionPromise = null;
 
-    console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
-    console.log(`📦 Database: ${conn.connection.name}`);
-  } catch (error) {
-    console.error(`❌ MongoDB Connection Error: ${error.message}`);
-    process.exit(1);
+const connectDB = async () => {
+  if (mongoose.connection.readyState === 1) {
+    return mongoose.connection;
   }
+
+  if (!process.env.MONGODB_URI) {
+    throw new Error('MONGODB_URI is not set');
+  }
+
+  if (!connectionPromise) {
+    connectionPromise = mongoose
+      .connect(process.env.MONGODB_URI, {
+        // Mongoose 6+ không cần useNewUrlParser và useUnifiedTopology
+      })
+      .then((conn) => {
+        console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
+        console.log(`📦 Database: ${conn.connection.name}`);
+        return conn.connection;
+      })
+      .catch((error) => {
+        connectionPromise = null;
+        console.error(`❌ MongoDB Connection Error: ${error.message}`);
+        throw error;
+      });
+  }
+
+  return connectionPromise;
 };
 
 export default connectDB;

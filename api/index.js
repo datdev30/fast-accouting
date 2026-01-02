@@ -29,7 +29,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Connect to MongoDB
-connectDB();
+// (serverless) DB connection is established lazily per request
 
 // Health check route
 app.get('/', (req, res) => {
@@ -38,6 +38,21 @@ app.get('/', (req, res) => {
         version: '1.0.0',
         status: 'running'
     });
+});
+
+// Ensure DB connection for requests that need it (skip CORS preflight)
+app.use(async (req, res, next) => {
+    if (req.method === 'OPTIONS') return next();
+
+    try {
+        await connectDB();
+        return next();
+    } catch (err) {
+        console.error('MongoDB connection failed:', err);
+        return res.status(500).json({
+            error: 'Database connection failed'
+        });
+    }
 });
 
 // API Routes
