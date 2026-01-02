@@ -1,0 +1,37 @@
+{
+    "name": "fastaccounting-api",
+    "version": "1.0.0",
+    "description": "FastAccounting Node.js Backend API",
+    "main": "index.js",
+    "type": "module",
+    "scripts": {
+        "dev": "node --watch index.js",
+        "start": "node index.js",
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "backup:export": "node scripts/backup-export.js",
+        "backup:import": "node scripts/backup-import.js"
+    },
+    "keywords": [
+        "accounting",
+        "loan",
+        "debt",
+        "interest"
+    ],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "archiver": "^7.0.1",
+        "bcryptjs": "^2.4.3",
+        "cors": "^2.8.5",
+        "dotenv": "^16.3.1",
+        "express": "^4.18.2",
+        "joi": "^17.11.0",
+        "jsonwebtoken": "^9.0.2",
+        "mongoose": "^8.0.0",
+        "pdfkit": "^0.14.0"
+    },
+    "devDependencies": {
+        "axios": "^1.13.2",
+        "nodemon": "^3.0.2"
+    }
+}

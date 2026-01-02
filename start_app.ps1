@@ -1,4 +1,4 @@
-$BackendPort = 8000
+$BackendPort = 3000
 $FrontendPort = 5173
 
 function Kill-Port {
@@ -24,12 +24,12 @@ Write-Host "Starting FastAccounting..." -ForegroundColor Cyan
 Kill-Port $BackendPort
 Kill-Port $FrontendPort
 
-# 2. Start Backend (FastAPI)
-Write-Host "Starting Backend (FastAPI)..." -ForegroundColor Cyan
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd server; .\venv\Scripts\activate; uvicorn main:app --reload" -WorkingDirectory "$PSScriptRoot"
+# 2. Start Backend (Node/Express API)
+Write-Host "Starting Backend (Node/Express API)..." -ForegroundColor Cyan
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd api; npm run dev" -WorkingDirectory "$PSScriptRoot"
 
 # 3. Start Frontend
 Write-Host "Starting Frontend (Vite)..." -ForegroundColor Cyan
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd client; npm run dev" -WorkingDirectory "$PSScriptRoot"
 
-Write-Host "App launching! Backend: http://localhost:8000, Frontend: http://localhost:5173" -ForegroundColor Green
+Write-Host "App launching! Backend: http://localhost:$BackendPort, Frontend: http://localhost:$FrontendPort" -ForegroundColor Green

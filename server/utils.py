@@ -15,9 +15,9 @@ def calculate_time_units(start_date: datetime, end_date: datetime) -> float:
     Calculate time units in months based on custom rules:
     1. Count full months.
     2. Remainder days:
-       - < 10 days: +0 month
-       - 10 <= days <= 19: +0.5 month
-       - >= 20 days: +1.0 month
+         - 1-10 days: +0 month
+         - 11-20 days: +0.5 month
+         - >= 21 days: +1.0 month
     """
     # Calculate total days inclusive
     # Example: 1/10 to 1/10 = 1 day?
@@ -36,7 +36,7 @@ def calculate_time_units(start_date: datetime, end_date: datetime) -> float:
         extra_units = 0.0
     elif 11 <= remainder_days <= 20:
         extra_units = 0.5
-    else: # > 20
+    else: # >= 21
         extra_units = 1.0
         
     return float(full_months) + extra_units
@@ -54,17 +54,8 @@ def calculate_interest_amount(principal: float, rate_per_month: float, start_dat
     # Unit digit 0-7: Round DOWN.
     # Unit digit 8-9: Round UP.
     
-    raw_int_val = int(raw_interest)
-    unit_digit = raw_int_val % 10
-    
-    if unit_digit >= 8:
-        # Round up to next 10
-        # e.g., 858 -> 860. (858 + (10-8)) = 860.
-        rounded_interest = raw_int_val + (10 - unit_digit)
-    else:
-        # Round down (truncate unit)
-        # e.g., 857 -> 850. (857 - 7) = 850.
-        rounded_interest = raw_int_val - unit_digit
+    # NOTE: Interest is NOT rounded; use exact computed interest.
+    rounded_interest = raw_interest
         
     return {
         "months": units,

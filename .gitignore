@@ -33,6 +33,13 @@ yarn-error.log*
 # Environment Variables
 .env
 server/.env
+api/.env
+
+# Node.js API Backend
+api/node_modules/
+
+# Local backup exports (may contain sensitive data)
+api/backups/
 
 # Artifacts
 *.exe

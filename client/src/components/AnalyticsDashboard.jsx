@@ -42,7 +42,7 @@ export default function AnalyticsDashboard({ report }) {
         return (
             <div className="flex flex-col items-center justify-center py-24 text-slate-400">
                 <Activity size={64} className="opacity-20 mb-4" />
-                <p className="text-lg font-medium">Chưa có dữ liệu để phân tích</p>
+                <p className="text-lg font-medium text-slate-500">Chưa có dữ liệu để phân tích</p>
             </div>
         );
     }

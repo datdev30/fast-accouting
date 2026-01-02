@@ -29,6 +29,118 @@ body {
   @apply bg-slate-50 text-slate-900 antialiased selection:bg-blue-100 selection:text-blue-900;
 }
 
+@layer components {
+  /* Typography */
+  .section-title {
+    @apply text-2xl sm:text-3xl font-bold tracking-tight text-slate-900;
+  }
+
+  .section-subtitle {
+    @apply text-slate-500 text-sm font-medium;
+  }
+
+  .section-kicker {
+    @apply font-bold text-slate-800 uppercase tracking-wider text-sm flex items-center gap-2;
+  }
+
+  /* Surfaces */
+  .card {
+    @apply bg-white rounded-2xl shadow-sm border border-slate-200;
+  }
+
+  .card-soft {
+    @apply bg-white rounded-2xl shadow-sm border border-slate-100;
+  }
+
+  .card-header {
+    @apply px-6 py-4 border-b border-slate-100 bg-slate-50/50;
+  }
+
+  /* Buttons */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100;
+  }
+
+  .btn-md {
+    @apply px-5 py-2.5 text-sm;
+  }
+
+  .btn-lg {
+    @apply px-6 py-3 text-sm sm:text-base font-bold;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100 bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-200;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-blue-600 hover:border-blue-200 shadow-sm;
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100 bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-200;
+  }
+
+  .icon-btn {
+    @apply p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed;
+  }
+
+  /* Inputs */
+  .input {
+    @apply w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm transition-all text-sm font-medium text-slate-700 placeholder:text-slate-400 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed;
+  }
+
+  .input-icon {
+    @apply pl-10;
+  }
+
+  .select {
+    @apply w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm transition-all text-sm font-medium text-slate-700 placeholder:text-slate-400 appearance-none cursor-pointer disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed;
+  }
+
+  .textarea {
+    @apply w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm transition-all text-sm font-medium text-slate-700 placeholder:text-slate-400 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed resize-none;
+  }
+
+  /* Tables */
+  .table {
+    @apply w-full text-left;
+  }
+
+  .table-head {
+    @apply bg-white border-b border-slate-100 text-xs font-bold text-slate-400 uppercase tracking-wider;
+  }
+
+  .table-th {
+    @apply px-6 py-4;
+  }
+
+  .table-td {
+    @apply px-6 py-4;
+  }
+
+  .table-row {
+    @apply hover:bg-slate-50/80 transition-colors;
+  }
+
+  /* Badges */
+  .badge {
+    @apply inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full border;
+  }
+
+  .badge-success {
+    @apply inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full border text-emerald-600 bg-emerald-50 border-emerald-100;
+  }
+
+  .badge-warning {
+    @apply inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full border text-amber-600 bg-amber-50 border-amber-100;
+  }
+
+  .badge-neutral {
+    @apply inline-flex items-center gap-1 text-xs font-semibold bg-slate-100 text-slate-600 px-2 py-1 rounded-md;
+  }
+}
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;

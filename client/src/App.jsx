@@ -9,6 +9,9 @@ import Transactions from './pages/Transactions';
 import Reports from './pages/Reports';
 import Analytics from './pages/Analytics';
 import Login from './pages/Login';
+import UserManagement from './pages/UserManagement';
+import Info from './pages/Info';
+import Guide from './pages/Guide';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import BackupModal from './components/BackupModal';
@@ -89,6 +92,9 @@ function AppContent() {
           <Route path="interest-configs" element={<InterestConfigs />} />
           <Route path="reports" element={<Analytics />} />
           <Route path="overview" element={<Reports />} />
+          <Route path="users" element={<UserManagement />} />
+          <Route path="info" element={<Info />} />
+          <Route path="guide" element={<Guide />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

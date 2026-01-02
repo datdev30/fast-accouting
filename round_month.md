@@ -9,7 +9,7 @@ Thuật toán này giúp tính số tháng giữa hai ngày (ngày bắt đầu 
 #### **Giả định một tháng là 30 ngày**
 
 1. **Tính số ngày giữa ngày bắt đầu và ngày kết thúc**:
-   - Tính toán số ngày giữa hai ngày nhập vào: ngày bắt đầu và ngày kết thúc.
+  - Tính tổng số ngày giữa hai ngày nhập vào (tính cả ngày bắt đầu và ngày kết thúc).
 
 2. **Chia số ngày cho 30 để tính số tháng**:
    - Một tháng được giả định là **30 ngày**.
@@ -19,18 +19,18 @@ Thuật toán này giúp tính số tháng giữa hai ngày (ngày bắt đầu 
    - Tính phần dư sau khi chia số ngày cho 30. Phần dư này đại diện cho số ngày chưa đủ để hoàn thành một tháng.
 
 4. **Làm tròn số tháng dựa trên phần dư**:
-   - Nếu phần dư từ 0 đến 10 ngày, làm tròn xuống **0 tháng**.
-   - Nếu phần dư từ 10 đến 20 ngày, làm tròn lên **0.5 tháng**.
-   - Nếu phần dư lớn hơn 20 ngày, làm tròn lên **1 tháng**.
+  - Nếu phần dư từ 1 đến 10 ngày, làm tròn xuống **0 tháng**.
+  - Nếu phần dư từ 11 đến 20 ngày, làm tròn lên **0.5 tháng**.
+  - Nếu phần dư từ 21 ngày trở lên, làm tròn lên **1 tháng**.
 
 5. **Cộng phần dư vào số tháng đã tính**:
    - Sau khi làm tròn phần dư, cộng giá trị đó vào số tháng đã tính được để ra kết quả cuối cùng.
 
 ### **Các mức làm tròn phần dư**
 
-- **0 - 10 ngày**: Làm tròn thành **0 tháng**.
-- **10 - 20 ngày**: Làm tròn thành **0.5 tháng**.
-- **Trên 20 ngày**: Làm tròn thành **1 tháng**.
+- **1 - 10 ngày**: Làm tròn thành **0 tháng**.
+- **11 - 20 ngày**: Làm tròn thành **0.5 tháng**.
+- **Từ 21 ngày trở lên**: Làm tròn thành **1 tháng**.
 
 ### **Ví dụ**
 
@@ -59,7 +59,7 @@ Thuật toán này giúp tính số tháng giữa hai ngày (ngày bắt đầu 
    - **Tính số tháng**:
      - 15 ngày ÷ 30 ngày/tháng = **0 tháng dư 15 ngày**
    - **Làm tròn phần dư**:
-     - 15 ngày nằm trong khoảng từ 10 đến 20 ngày, do đó làm tròn thành **0.5 tháng**.
+    - 15 ngày nằm trong khoảng từ 11 đến 20 ngày, do đó làm tròn thành **0.5 tháng**.
    - **Kết quả cuối cùng**:
      - 0 tháng + 0.5 tháng = **0.5 tháng**.
 

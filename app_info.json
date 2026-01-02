@@ -1,0 +1,13 @@
+{
+  "name": "FastAccounting",
+  "version": "1.0.1",
+  "updated_at": "2026-01-02",
+  "author": "Nguyễn Thành Đạt (DatDev)",
+  "description": "Hệ thống quản lý khách hàng, giao dịch vay/mua hàng, lãi suất và xuất báo cáo/PDF.",
+  "summary": [
+    "Frontend: React + Vite + TailwindCSS, UI đồng bộ, in trước & tải PDF.",
+    "Backend: Node.js + Express + MongoDB (Mongoose), JWT auth.",
+    "Tính lãi: theo quy tắc làm tròn theo ngày/tháng, hỗ trợ trạng thái OPEN/PAID.",
+    "Báo cáo: xuất PDF theo format 'Xem bản in trước', hỗ trợ batch-export ZIP."
+  ]
+}

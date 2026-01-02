@@ -18,7 +18,11 @@ export const AuthProvider = ({ children }) => {
                     // Set default header
                     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
                     const res = await api.get('/auth/me');
-                    setUser({ username: res.data.username });
+                    setUser({
+                        username: res.data.username,
+                        displayName: res.data.display_name || res.data.username,
+                        role: res.data.role || null
+                    });
                 } catch (error) {
                     console.error("Auth check failed", error);
                     localStorage.removeItem('token');
@@ -32,11 +36,15 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (username, password) => {
         const res = await api.post('/auth/login', { username, password });
-        const { token, username: userField } = res.data;
+        const { token, username: userField, display_name, role } = res.data;
 
         localStorage.setItem('token', token);
         api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        setUser({ username: userField });
+        setUser({
+            username: userField,
+            displayName: display_name || userField,
+            role: role || null
+        });
         return true;
     };
 
@@ -50,7 +58,31 @@ export const AuthProvider = ({ children }) => {
         try {
             // Artificial delay to let the modal show up nicely and user to see it
             await new Promise(r => setTimeout(r, 800));
-            await api.post('/reports/batch-export', { output_path: customPath });
+
+            if (customPath) {
+                await api.post('/reports/batch-export', { output_path: customPath });
+                return true;
+            }
+
+            const res = await api.post(
+                '/reports/batch-export',
+                { output_path: null },
+                { responseType: 'blob' }
+            );
+
+            const contentDisposition = res.headers?.['content-disposition'] || '';
+            const match = /filename="?([^";]+)"?/i.exec(contentDisposition);
+            const fileName = match?.[1] || 'reports.zip';
+
+            const blob = res.data instanceof Blob ? res.data : new Blob([res.data], { type: 'application/zip' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
             return true;
         } catch (e) {
             console.error("Backup failed", e);
@@ -62,15 +94,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     const logout = async () => {
-        // Auto-backup on logout
-        if (user) {
-            const success = await performBackup();
-            if (!success) {
-                // Abort logout
-                return;
-            }
-        }
-
+        // Removed auto-backup on logout as per user request
         try {
             await api.post('/auth/logout');
         } catch (e) {
