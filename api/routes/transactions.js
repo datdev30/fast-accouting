@@ -14,6 +14,13 @@ import { deleteDriveFile, downloadDriveFileStream, getDriveAccountDebugInfo, get
 
 const router = express.Router();
 
+function buildTransactionLookupQuery(idParam) {
+    // Transaction schema uses `_id: Mixed` (PROD may store business key in `_id`, e.g. "GD0001").
+    // So we can safely query `_id` as a string without ObjectId casting issues.
+    const or = [{ id: idParam }, { _id: idParam }];
+    return { $or: or };
+}
+
 const upload = multer({
     storage: multer.memoryStorage(),
     limits: {
@@ -39,7 +46,7 @@ const handleTransactionImageUpload = (req, res, next) => {
  */
 router.post('/:id/image', authMiddleware, handleTransactionImageUpload, async (req, res) => {
     try {
-        const tx = await Transaction.findOne({ $or: [{ id: req.params.id }, { _id: req.params.id }] });
+        const tx = await Transaction.findOne(buildTransactionLookupQuery(req.params.id));
         if (!tx) {
             return res.status(404).json({ error: 'Transaction not found' });
         }
@@ -137,7 +144,7 @@ router.post('/:id/image', authMiddleware, handleTransactionImageUpload, async (r
  */
 router.get('/:id/image', authMiddleware, async (req, res) => {
     try {
-        const tx = await Transaction.findOne({ $or: [{ id: req.params.id }, { _id: req.params.id }] });
+        const tx = await Transaction.findOne(buildTransactionLookupQuery(req.params.id));
         if (!tx) {
             return res.status(404).json({ error: 'Transaction not found' });
         }
@@ -216,7 +223,7 @@ router.get('/:id/image', authMiddleware, async (req, res) => {
  */
 router.delete('/:id/image', authMiddleware, async (req, res) => {
     try {
-        const tx = await Transaction.findOne({ $or: [{ id: req.params.id }, { _id: req.params.id }] });
+        const tx = await Transaction.findOne(buildTransactionLookupQuery(req.params.id));
         if (!tx) {
             return res.status(404).json({ error: 'Transaction not found' });
         }
