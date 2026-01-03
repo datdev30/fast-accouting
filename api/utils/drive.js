@@ -65,6 +65,17 @@ export async function getDriveClient() {
     return cachedDrive;
 }
 
+export async function getDriveAccountDebugInfo() {
+    const drive = await getDriveClient();
+    const resp = await drive.about.get({
+        fields: 'user(emailAddress,displayName)'
+    });
+    return {
+        emailAddress: resp?.data?.user?.emailAddress || '',
+        displayName: resp?.data?.user?.displayName || ''
+    };
+}
+
 export async function uploadTransactionImageToDrive({
     buffer,
     mimeType,

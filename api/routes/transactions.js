@@ -10,7 +10,7 @@ import { calculateInterestAmount } from '../utils/interest.js';
 import { verifyAdminPin } from '../utils/helpers.js';
 import { authMiddleware, requireAdmin } from '../middleware/auth.js';
 import multer from 'multer';
-import { deleteDriveFile, downloadDriveFileStream, getDriveEnvDebugContext, uploadTransactionImageToDrive } from '../utils/drive.js';
+import { deleteDriveFile, downloadDriveFileStream, getDriveAccountDebugInfo, getDriveEnvDebugContext, uploadTransactionImageToDrive } from '../utils/drive.js';
 
 const router = express.Router();
 
@@ -81,6 +81,10 @@ router.post('/:id/image', authMiddleware, handleTransactionImageUpload, async (r
         console.error('Upload transaction image error:', error);
 
         const driveDebug = process.env.NODE_ENV === 'development' || process.env.DRIVE_DEBUG === '1';
+        const driveAccount = driveDebug
+            ? await getDriveAccountDebugInfo().catch(() => null)
+            : null;
+
         const driveErrorDetails = driveDebug
             ? {
                 drive_error: {
@@ -90,7 +94,8 @@ router.post('/:id/image', authMiddleware, handleTransactionImageUpload, async (r
                     domain: error?.errors?.[0]?.domain,
                     errors: error?.errors
                 },
-                drive_env: getDriveEnvDebugContext()
+                drive_env: getDriveEnvDebugContext(),
+                drive_account: driveAccount
             }
             : {};
 
@@ -161,6 +166,10 @@ router.get('/:id/image', authMiddleware, async (req, res) => {
         console.error('Get transaction image error:', error);
 
         const driveDebug = process.env.NODE_ENV === 'development' || process.env.DRIVE_DEBUG === '1';
+        const driveAccount = driveDebug
+            ? await getDriveAccountDebugInfo().catch(() => null)
+            : null;
+
         const driveErrorDetails = driveDebug
             ? {
                 drive_error: {
@@ -170,7 +179,8 @@ router.get('/:id/image', authMiddleware, async (req, res) => {
                     domain: error?.errors?.[0]?.domain,
                     errors: error?.errors
                 },
-                drive_env: getDriveEnvDebugContext()
+                drive_env: getDriveEnvDebugContext(),
+                drive_account: driveAccount
             }
             : {};
 
