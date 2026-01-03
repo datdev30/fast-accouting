@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BookOpen, Users, FileText, Calculator, ShieldAlert, ChevronDown, Zap, CheckCircle2, AlertTriangle, Lightbulb, BarChart3, Settings } from 'lucide-react';
+import { BookOpen, Users, FileText, Calculator, ShieldAlert, ChevronDown, Zap, CheckCircle2, AlertTriangle, Lightbulb, BarChart3, Settings, Image as ImageIcon } from 'lucide-react';
 import { clsx } from 'clsx';
 
 function GuideItem({ title, icon: Icon, children, isOpen, onToggle, color = 'blue' }) {
@@ -10,6 +10,7 @@ function GuideItem({ title, icon: Icon, children, isOpen, onToggle, color = 'blu
         purple: 'bg-purple-100 text-purple-600',
         rose: 'bg-red-100 text-red-600',
         indigo: 'bg-indigo-100 text-indigo-600',
+        sky: 'bg-sky-100 text-sky-600',
     };
 
     return (
@@ -148,10 +149,37 @@ export default function Guide() {
                 </GuideItem>
 
                 <GuideItem
-                    title="3. Quản Lý Khách Hàng & Nợ"
-                    icon={Users}
+                    title="3. Lưu Trữ Hình Ảnh Chứng Từ"
+                    icon={ImageIcon}
                     isOpen={openIndex === 3}
                     onToggle={() => setOpenIndex(3)}
+                    color="sky"
+                >
+                    <p>Mỗi giao dịch đều có thể đính kèm một hình ảnh chứng từ (hóa đơn, biên lai, ảnh chụp hiện trường...).</p>
+
+                    <SectionTitle>Thao tác linh hoạt:</SectionTitle>
+                    <ul className="space-y-2">
+                        <Bullet type="check"><strong>Tải lên dễ dàng</strong>: Bấm vào biểu tượng <strong>Hình ảnh</strong> trên thanh tiêu đề khi tạo/sửa giao dịch.</Bullet>
+                        <Bullet type="check"><strong>Chụp ảnh trực tiếp</strong>: Trên điện thoại, bạn có thể chọn chụp ảnh ngay lập tức.</Bullet>
+                        <Bullet type="info"><strong>Xem chi tiết chuyên nghiệp</strong>:
+                            <ul className="pl-6 mt-1 space-y-1 list-disc text-slate-500">
+                                <li>Phóng to/Thu nhỏ bằng lăn chuột hoặc phím (+/-)</li>
+                                <li>Kéo thả để di chuyển vùng nhìn (Pan)</li>
+                                <li>Xoay ảnh để đọc dễ hơn</li>
+                            </ul>
+                        </Bullet>
+                    </ul>
+
+                    <ProTip>
+                        <strong>Mẹo:</strong> Biểu tượng <strong>Màu Xám</strong> nghĩa là chưa có ảnh. Biểu tượng <strong>Màu Xanh</strong> nghĩa là đã có ảnh được lưu trữ an toàn.
+                    </ProTip>
+                </GuideItem>
+
+                <GuideItem
+                    title="4. Quản Lý Khách Hàng & Nợ"
+                    icon={Users}
+                    isOpen={openIndex === 4}
+                    onToggle={() => setOpenIndex(4)}
                     color="blue"
                 >
                     <p>Hồ sơ khách hàng là nơi lưu trữ "Sổ cái" của từng người.</p>
@@ -162,10 +190,10 @@ export default function Guide() {
                 </GuideItem>
 
                 <GuideItem
-                    title="4. Báo Cáo & Thống Kê"
+                    title="5. Báo Cáo & Thống Kê"
                     icon={BarChart3}
-                    isOpen={openIndex === 4}
-                    onToggle={() => setOpenIndex(4)}
+                    isOpen={openIndex === 5}
+                    onToggle={() => setOpenIndex(5)}
                     color="amber"
                 >
                     <p>Theo dõi sức khỏe tài chính của bạn qua các con số thực tế.</p>
@@ -178,10 +206,10 @@ export default function Guide() {
                 </GuideItem>
 
                 <GuideItem
-                    title="5. Phân Quyền & Bảo Mật"
+                    title="6. Phân Quyền & Bảo Mật"
                     icon={ShieldAlert}
-                    isOpen={openIndex === 5}
-                    onToggle={() => setOpenIndex(5)}
+                    isOpen={openIndex === 6}
+                    onToggle={() => setOpenIndex(6)}
                     color="rose"
                 >
                     <p>Hệ thống phân chia quyền hạn rõ ràng để bảo vệ dữ liệu nhạy cảm.</p>
