@@ -11,6 +11,7 @@ import interestRoutes from './routes/interest.js';
 import reportRoutes from './routes/reports.js';
 import userRoutes from './routes/users.js';
 import infoRoutes from './routes/info.js';
+import backupRoutes from './routes/backup.js';
 
 // Load environment variables
 dotenv.config();
@@ -63,6 +64,7 @@ app.use('/api/interest-configs', interestRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/info', infoRoutes);
+app.use('/api/backup', backupRoutes);
 
 // 404 handler
 app.use((req, res) => {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Calculator, FileText, Menu, X, ChevronLeft, ChevronRight, LogOut, BarChart3, Info, BookOpen } from 'lucide-react';
+import { LayoutDashboard, Users, Calculator, FileText, Menu, X, ChevronLeft, ChevronRight, LogOut, BarChart3, Info, BookOpen, DatabaseBackup } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
@@ -148,7 +148,10 @@ export default function Layout() {
                     <NavItem to="/interest-configs" icon={Calculator} label="Cấu hình lãi suất" collapsed={!isSidebarOpen} onClick={closeMobileSidebar} />
                     <NavItem to="/reports" icon={BarChart3} label="Báo cáo" collapsed={!isSidebarOpen} onClick={closeMobileSidebar} />
                     {user?.role === 'ADMIN' && (
-                        <NavItem to="/users" icon={Users} label="Người dùng" collapsed={!isSidebarOpen} onClick={closeMobileSidebar} />
+                        <>
+                            <NavItem to="/users" icon={Users} label="Người dùng" collapsed={!isSidebarOpen} onClick={closeMobileSidebar} />
+                            <NavItem to="/backup-data" icon={DatabaseBackup} label="Backup Data" collapsed={!isSidebarOpen} onClick={closeMobileSidebar} />
+                        </>
                     )}
                     <NavItem to="/info" icon={Info} label="Thông tin" collapsed={!isSidebarOpen} onClick={closeMobileSidebar} />
                     <NavItem to="/guide" icon={BookOpen} label="Hướng dẫn" collapsed={!isSidebarOpen} onClick={closeMobileSidebar} />

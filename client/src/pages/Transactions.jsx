@@ -533,8 +533,8 @@ export default function Transactions() {
                                             selectedCustomerId === customer.id && "bg-blue-50/50"
                                         )}
                                     >
-                                        <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs shrink-0">
-                                            {customer.name.substring(0, 2).toUpperCase()}
+                                        <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+                                            <User size={16} />
                                         </div>
                                         <div>
                                             <p className="text-sm font-medium text-slate-700">{customer.name}</p>
@@ -699,8 +699,8 @@ export default function Transactions() {
                                                                     highlightedIndex === index ? "bg-blue-50" : "hover:bg-slate-50"
                                                                 )}
                                                             >
-                                                                <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
-                                                                    {customer.name.substring(0, 2).toUpperCase()}
+                                                                <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+                                                                    <User size={16} />
                                                                 </div>
                                                                 <span className="text-sm font-medium text-slate-700">{customer.name}</span>
                                                             </div>
@@ -888,8 +888,23 @@ export default function Transactions() {
                                 </div>
                             )}
 
-                            <div className="p-6 sm:p-8 bg-slate-50/50 border-t border-slate-100">
-                                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3">
+                            <div className="p-6 sm:p-8 bg-slate-50/50 border-t border-slate-100 flex flex-col-reverse sm:flex-row items-center justify-between gap-4 sm:gap-0">
+                                {/* Left Side: Delete (or empty if not eligible) */}
+                                <div className="w-full sm:w-auto mt-2 sm:mt-0">
+                                    {editingId && isAdmin && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsDeleteModalOpen(true)}
+                                            className="btn-danger btn-md w-full sm:w-auto flex items-center justify-center gap-2"
+                                        >
+                                            <Trash2 size={16} />
+                                            Xóa giao dịch
+                                        </button>
+                                    )}
+                                </div>
+
+                                {/* Right Side: Actions */}
+                                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 w-full sm:w-auto">
                                     <button
                                         type="button"
                                         onClick={handleClose}
@@ -908,19 +923,6 @@ export default function Transactions() {
                                         <ChevronRight size={18} />
                                     </button>
                                 </div>
-
-                                {editingId && isAdmin && (
-                                    <div className="mt-5 pt-5 border-t border-slate-100">
-                                        <button
-                                            type="button"
-                                            onClick={() => setIsDeleteModalOpen(true)}
-                                            className="btn-danger btn-md w-full sm:w-auto"
-                                        >
-                                            <Trash2 size={16} />
-                                            Xóa bản ghi này
-                                        </button>
-                                    </div>
-                                )}
                             </div>
                         </form>
                     </div>
@@ -990,7 +992,10 @@ export default function Transactions() {
                                     return (
                                         <tr
                                             key={tx._id}
-                                            className="table-row"
+                                            className={clsx(
+                                                "table-row",
+                                                tx.status === 'PAID' && "!bg-emerald-50 hover:!bg-emerald-100/60"
+                                            )}
                                             onClick={() => handleEdit(tx)}
                                         >
                                             <td className="table-td whitespace-nowrap">
@@ -1027,7 +1032,7 @@ export default function Transactions() {
                                                     </span>
                                                 ) : <span className="text-slate-300">-</span>}
                                             </td>
-                                            <td className="table-td whitespace-nowrap text-right font-mono font-medium text-orange-600">
+                                            <td className="table-td whitespace-nowrap text-right font-mono font-medium text-blue-600">
                                                 {calc ? `+ ${calc?.rounded_interest.toLocaleString('vi-VN')}` : '-'}
                                             </td>
                                             <td className="table-td whitespace-nowrap text-right font-mono font-semibold text-slate-900">

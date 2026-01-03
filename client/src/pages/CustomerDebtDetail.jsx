@@ -489,7 +489,7 @@ const CustomerDebtDetail = () => {
                                                                     {(calc?.months || 0).toFixed(1)} tháng
                                                                 </span>
                                                             </td>
-                                                            <td className="px-6 py-4 text-right font-mono text-orange-600 font-medium">
+                                                            <td className="px-6 py-4 text-right font-mono text-blue-600 font-medium">
                                                                 +{(calc?.rounded_interest || 0).toLocaleString('vi-VN')}
                                                             </td>
                                                             <td className="px-6 py-4 text-right font-mono font-semibold text-slate-900 text-base">

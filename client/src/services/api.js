@@ -96,6 +96,31 @@ export const batchExportReports = () => api.post('/reports/batch-export').then(r
 export const getAppInfo = () => api.get('/info').then(res => res.data);
 export const updateAppInfo = (data) => api.put('/info', data).then(res => res.data);
 
+// Backup (Admin)
+export const exportBackupBundle = async () => {
+    const res = await api.get('/backup/export', { responseType: 'blob' });
+    const contentDisposition = res.headers?.['content-disposition'];
+    let filename = null;
+    if (contentDisposition) {
+        const match = /filename\*=UTF-8''([^;]+)|filename="([^"]+)"|filename=([^;]+)/i.exec(contentDisposition);
+        const raw = match?.[1] || match?.[2] || match?.[3];
+        if (raw) {
+            try {
+                filename = decodeURIComponent(String(raw).trim());
+            } catch {
+                filename = String(raw).trim();
+            }
+        }
+    }
+    return { blob: res.data, filename };
+};
+
+export const importBackupBundle = (ejsonText) =>
+    api.post('/backup/import', ejsonText, {
+        headers: { 'Content-Type': 'application/json' },
+        transformRequest: [(data) => data]
+    }).then(res => res.data);
+
 
 // Secure Delete Functions
 export const deleteTransactionSecure = (id, pin) => api.post('/transactions/delete-secure', { id, pin }).then(res => res.data);

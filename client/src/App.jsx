@@ -12,6 +12,7 @@ import Login from './pages/Login';
 import UserManagement from './pages/UserManagement';
 import Info from './pages/Info';
 import Guide from './pages/Guide';
+import BackupData from './pages/BackupData';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import BackupModal from './components/BackupModal';
@@ -93,6 +94,7 @@ function AppContent() {
           <Route path="reports" element={<Analytics />} />
           <Route path="overview" element={<Reports />} />
           <Route path="users" element={<UserManagement />} />
+          <Route path="backup-data" element={<BackupData />} />
           <Route path="info" element={<Info />} />
           <Route path="guide" element={<Guide />} />
         </Route>
