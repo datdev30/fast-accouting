@@ -44,6 +44,16 @@ api.interceptors.request.use(
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
+
+        // If sending FormData, let the browser/axios set the correct multipart boundary.
+        if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+            try {
+                delete config.headers['Content-Type'];
+                delete config.headers['content-type'];
+            } catch {
+                // ignore
+            }
+        }
         return config;
     },
     (error) => {
@@ -90,6 +100,16 @@ export const getTransactions = async (customerId, startDate, endDate) => {
 export const createTransaction = (data) => api.post('/transactions', data).then(res => res.data);
 export const updateTransaction = (id, data) => api.patch(`/transactions/${id}`, data).then(res => res.data);
 
+// Transaction Image (Google Drive via backend)
+export const fetchTransactionImageBlob = (id) =>
+    api.get(`/transactions/${id}/image`, { responseType: 'blob' }).then(res => res.data);
+
+export const uploadTransactionImage = (id, file) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    return api.post(`/transactions/${id}/image`, formData).then(res => res.data);
+};
+
 export const getDebtReport = () => api.get('/transactions/reports/debt').then(res => res.data);
 export const batchExportReports = () => api.post('/reports/batch-export').then(res => res.data);
 
@@ -132,5 +152,8 @@ export const getUsers = () => api.get('/users').then(res => res.data);
 export const createUser = (data) => api.post('/users', data).then(res => res.data);
 export const updateUser = (id, data) => api.patch(`/users/${id}`, data).then(res => res.data);
 export const deleteUserSecure = (id, pin) => api.post('/users/delete-secure', { id, pin }).then(res => res.data);
+
+
+export const deleteTransactionImage = (id) => api.delete(`/transactions/${id}/image`).then(res => res.data);
 
 export default api;

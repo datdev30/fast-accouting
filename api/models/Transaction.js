@@ -58,6 +58,22 @@ const transactionSchema = new mongoose.Schema({
         type: Number,
         default: null
     },
+    image_drive_file_id: {
+        type: String,
+        default: null
+    },
+    image_mime_type: {
+        type: String,
+        default: null
+    },
+    image_original_name: {
+        type: String,
+        default: null
+    },
+    image_uploaded_at: {
+        type: Date,
+        default: null
+    },
     created_at: {
         type: Date,
         default: Date.now

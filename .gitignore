@@ -35,6 +35,9 @@ yarn-error.log*
 server/.env
 api/.env
 
+# Service account keys (DO NOT COMMIT)
+strange-tome-478807-q2-bc8ad8e5225e.json
+
 # Node.js API Backend
 api/node_modules/
 

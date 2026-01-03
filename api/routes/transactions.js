@@ -9,8 +9,228 @@ import { getNextId } from '../utils/counter.js';
 import { calculateInterestAmount } from '../utils/interest.js';
 import { verifyAdminPin } from '../utils/helpers.js';
 import { authMiddleware, requireAdmin } from '../middleware/auth.js';
+import multer from 'multer';
+import { deleteDriveFile, downloadDriveFileStream, uploadTransactionImageToDrive } from '../utils/drive.js';
 
 const router = express.Router();
+
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+        fileSize: 5 * 1024 * 1024 // 5MB
+    }
+});
+
+const handleTransactionImageUpload = (req, res, next) => {
+    upload.single('image')(req, res, (err) => {
+        if (!err) return next();
+
+        if (err.code === 'LIMIT_FILE_SIZE') {
+            return res.status(413).json({ error: 'Ảnh quá dung lượng (tối đa 5MB)' });
+        }
+
+        return res.status(400).json({ error: err.message || 'Upload ảnh không hợp lệ' });
+    });
+};
+
+/**
+ * POST /api/transactions/:id/image
+ * Upload/replace transaction image (stored in Google Drive)
+ */
+router.post('/:id/image', authMiddleware, handleTransactionImageUpload, async (req, res) => {
+    try {
+        const tx = await Transaction.findOne({ $or: [{ id: req.params.id }, { _id: req.params.id }] });
+        if (!tx) {
+            return res.status(404).json({ error: 'Transaction not found' });
+        }
+
+        const file = req.file;
+        if (!file) {
+            return res.status(400).json({ error: 'Missing image file (field name: image)' });
+        }
+
+        if (!file.mimetype || !file.mimetype.startsWith('image/')) {
+            return res.status(400).json({ error: 'File phải là hình ảnh' });
+        }
+
+        const driveFileId = await uploadTransactionImageToDrive({
+            buffer: file.buffer,
+            mimeType: file.mimetype,
+            originalName: file.originalname,
+            transactionId: tx.id ?? String(tx._id)
+        });
+
+        if (!driveFileId) {
+            return res.status(500).json({ error: 'Upload to Drive failed' });
+        }
+
+        tx.image_drive_file_id = driveFileId;
+        tx.image_mime_type = file.mimetype;
+        tx.image_original_name = file.originalname;
+        tx.image_uploaded_at = new Date();
+        await tx.save();
+
+        return res.json({
+            ok: true,
+            image_drive_file_id: tx.image_drive_file_id,
+            image_mime_type: tx.image_mime_type,
+            image_original_name: tx.image_original_name,
+            image_uploaded_at: tx.image_uploaded_at
+        });
+    } catch (error) {
+        console.error('Upload transaction image error:', error);
+
+        const driveDebug = process.env.NODE_ENV === 'development';
+        const driveErrorDetails = driveDebug
+            ? {
+                drive_error: {
+                    message: error?.message,
+                    code: error?.code,
+                    reason: error?.errors?.[0]?.reason,
+                    domain: error?.errors?.[0]?.domain,
+                    errors: error?.errors
+                }
+            }
+            : {};
+
+        // googleapis errors often have `code`
+        if (error?.code === 403) {
+            const reason = error?.errors?.[0]?.reason;
+            const domain = error?.errors?.[0]?.domain;
+
+            if (reason === 'storageQuotaExceeded' || domain === 'usageLimits') {
+                return res.status(502).json({
+                    error:
+                        'Google Drive storage quota exceeded (check Drive storage, folder permissions, and OAuth account).',
+                    ...driveErrorDetails
+                });
+            }
+
+            return res.status(502).json({
+                error: 'Drive permission denied (check folder sharing/permissions for service account)',
+                ...driveErrorDetails
+            });
+        }
+        if (error?.code === 404) {
+            return res.status(502).json({
+                error: 'Drive folder/file not found (check DRIVE_TRANSACTION_IMAGES_FOLDER_ID)',
+                ...driveErrorDetails
+            });
+        }
+
+        return res.status(500).json({
+            error: error.message,
+            ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
+        });
+    }
+});
+
+/**
+ * GET /api/transactions/:id/image
+ * Stream transaction image from Google Drive
+ */
+router.get('/:id/image', authMiddleware, async (req, res) => {
+    try {
+        const tx = await Transaction.findOne({ $or: [{ id: req.params.id }, { _id: req.params.id }] });
+        if (!tx) {
+            return res.status(404).json({ error: 'Transaction not found' });
+        }
+
+        if (!tx.image_drive_file_id) {
+            return res.status(404).json({ error: 'Transaction has no image' });
+        }
+
+        const driveResp = await downloadDriveFileStream(tx.image_drive_file_id);
+
+        const contentType = tx.image_mime_type || driveResp?.headers?.['content-type'] || 'application/octet-stream';
+        res.setHeader('Content-Type', contentType);
+
+        // Stream response
+        driveResp.data.on('error', (err) => {
+            console.error('Drive stream error:', err);
+            if (!res.headersSent) {
+                res.status(502).json({ error: 'Failed to download image from Drive' });
+            } else {
+                res.end();
+            }
+        });
+
+        return driveResp.data.pipe(res);
+    } catch (error) {
+        console.error('Get transaction image error:', error);
+
+        const driveDebug = process.env.NODE_ENV === 'development';
+        const driveErrorDetails = driveDebug
+            ? {
+                drive_error: {
+                    message: error?.message,
+                    code: error?.code,
+                    reason: error?.errors?.[0]?.reason,
+                    domain: error?.errors?.[0]?.domain,
+                    errors: error?.errors
+                }
+            }
+            : {};
+
+        // googleapis errors often have `code`
+        if (error?.code === 404) {
+            return res.status(404).json({ error: 'Image not found on Drive', ...driveErrorDetails });
+        }
+        if (error?.code === 403) {
+            const reason = error?.errors?.[0]?.reason;
+            const domain = error?.errors?.[0]?.domain;
+
+            if (reason === 'storageQuotaExceeded' || domain === 'usageLimits') {
+                return res.status(502).json({
+                    error:
+                        'Google Drive storage quota exceeded (check Drive storage, file permissions, and OAuth account).',
+                    ...driveErrorDetails
+                });
+            }
+
+            return res.status(502).json({ error: 'Drive permission denied (check folder sharing/permissions)', ...driveErrorDetails });
+        }
+
+        return res.status(500).json({
+            error: error.message,
+            ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
+        });
+    }
+});
+
+/**
+ * DELETE /api/transactions/:id/image
+ * Remove transaction image (clears DB fields; attempts to delete Drive file)
+ */
+router.delete('/:id/image', authMiddleware, async (req, res) => {
+    try {
+        const tx = await Transaction.findOne({ $or: [{ id: req.params.id }, { _id: req.params.id }] });
+        if (!tx) {
+            return res.status(404).json({ error: 'Transaction not found' });
+        }
+
+        const fileId = tx.image_drive_file_id;
+        if (!fileId) {
+            return res.json({ ok: true, removed: false });
+        }
+
+        const driveDeleted = await deleteDriveFile(fileId);
+
+        tx.image_drive_file_id = null;
+        tx.image_mime_type = null;
+        tx.image_original_name = null;
+        tx.image_uploaded_at = null;
+        await tx.save();
+
+        return res.json({ ok: true, removed: true, drive_deleted: driveDeleted });
+    } catch (error) {
+        console.error('Delete transaction image error:', error);
+        return res.status(500).json({
+            error: error.message,
+            ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
+        });
+    }
+});
 
 /**
  * POST /api/transactions

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { getCustomers, createCustomer, updateCustomer, deleteCustomerSecure, getTransactions, getInterestConfigs, updateTransaction, deleteTransactionSecure } from '../services/api';
-import { Plus, Search, Edit2, Trash2, User, MapPin, ChevronRight, Users, Check, Award, X, History, Clock, FileText, Calendar, Tag } from 'lucide-react';
+import { getCustomers, createCustomer, updateCustomer, deleteCustomerSecure, getTransactions, getInterestConfigs, updateTransaction, deleteTransactionSecure, fetchTransactionImageBlob } from '../services/api';
+import { Plus, Search, Edit2, Trash2, User, MapPin, ChevronRight, Users, Check, Award, X, History, Clock, FileText, Calendar, Tag, Image as ImageIcon } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
@@ -42,6 +42,11 @@ export default function Customers() {
     const [isTxModalOpen, setIsTxModalOpen] = useState(false);
     const [editingTxId, setEditingTxId] = useState(null);
     const [isTxDeleteModalOpen, setIsTxDeleteModalOpen] = useState(false);
+    const [txHasImage, setTxHasImage] = useState(false);
+    const [isTxImageModalOpen, setIsTxImageModalOpen] = useState(false);
+    const [txImageUrl, setTxImageUrl] = useState(null);
+    const [txImageLoading, setTxImageLoading] = useState(false);
+    const [txImageError, setTxImageError] = useState('');
     const [txFormData, setTxFormData] = useState({
         customer_id: '',
         type: '',
@@ -208,6 +213,54 @@ export default function Customers() {
         return () => document.removeEventListener('keydown', handleEscKey);
     }, [isTxModalOpen]);
 
+
+    const revokeTxImageUrl = () => {
+        if (txImageUrl) {
+            try {
+                URL.revokeObjectURL(txImageUrl);
+            } catch {
+                // ignore
+            }
+        }
+        setTxImageUrl(null);
+    };
+
+    const handleOpenTxImage = async () => {
+        if (!editingTxId) return;
+
+        // Use backend metadata to indicate presence; avoid slow "try to load" behavior.
+        if (!txHasImage) {
+            showToast('Thông báo', 'Giao dịch chưa có ảnh', 'info');
+            return;
+        }
+
+        setIsTxImageModalOpen(true);
+        setTxImageError('');
+
+        // If already loaded for current tx, just show it.
+        if (txImageUrl) return;
+
+        setTxImageLoading(true);
+        try {
+            const blob = await fetchTransactionImageBlob(editingTxId);
+            const url = URL.createObjectURL(blob);
+            setTxImageUrl(url);
+        } catch (err) {
+            const message = err?.response?.data?.error || 'Không thể tải ảnh giao dịch';
+            setTxImageError(message);
+            showToast('Lỗi', message, 'error');
+        } finally {
+            setTxImageLoading(false);
+        }
+    };
+
+    const handleCloseTxImage = () => {
+        setIsTxImageModalOpen(false);
+        setTxImageLoading(false);
+        setTxImageError('');
+        revokeTxImageUrl();
+    };
+
     // Focus trap for transaction modal
     useEffect(() => {
         if (!isTxModalOpen || !txModalRef.current) return;
@@ -226,6 +279,7 @@ export default function Customers() {
 
     const handleTxEdit = (tx) => {
         setEditingTxId(tx._id);
+        setTxHasImage(tx.image_drive_file_id !== undefined ? Boolean(tx.image_drive_file_id) : false);
         setTxFormData({
             customer_id: tx.customer_id,
             type: tx.type,
@@ -235,12 +289,21 @@ export default function Customers() {
             status: tx.status,
             closed_at: tx.closed_at ? tx.closed_at.split('T')[0] : new Date().toISOString().split('T')[0]
         });
+        setIsTxImageModalOpen(false);
+        setTxImageLoading(false);
+        setTxImageError('');
+        revokeTxImageUrl();
         setIsTxModalOpen(true);
     };
 
     const handleTxClose = () => {
         setIsTxModalOpen(false);
         setEditingTxId(null);
+        setTxHasImage(false);
+        setIsTxImageModalOpen(false);
+        setTxImageLoading(false);
+        setTxImageError('');
+        revokeTxImageUrl();
     };
 
     const handleTxSubmit = (e) => {
@@ -523,9 +586,28 @@ export default function Customers() {
                                     <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mt-0.5">Cập nhật thông tin chi tiết</p>
                                 </div>
                             </div>
-                            <button onClick={handleTxClose} className="p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-2xl transition-all">
-                                <X size={24} />
-                            </button>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={handleOpenTxImage}
+                                    title="Xem ảnh giao dịch"
+                                    aria-label="Xem ảnh giao dịch"
+                                    className={clsx(
+                                        "p-2.5 rounded-2xl transition-all border",
+                                        txImageLoading && "opacity-60 cursor-not-allowed",
+                                        txHasImage
+                                            ? "bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100"
+                                            : "bg-white text-slate-300 border-slate-200"
+                                    )}
+                                    disabled={txImageLoading}
+                                >
+                                    <ImageIcon size={22} />
+                                </button>
+
+                                <button onClick={handleTxClose} className="p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-2xl transition-all">
+                                    <X size={24} />
+                                </button>
+                            </div>
                         </div>
 
                         <form onSubmit={handleTxSubmit} className="p-8 space-y-6 flex-1 overflow-y-auto">
@@ -640,6 +722,57 @@ export default function Customers() {
                                 )}
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Transaction Image Viewer (lazy-load on click) */}
+            {isTxImageModalOpen && (
+                <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center z-[70] p-0 sm:p-4">
+                    <div className="bg-white w-full h-full sm:h-auto sm:max-w-3xl sm:rounded-[2rem] shadow-2xl overflow-hidden flex flex-col">
+                        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-blue-50 text-blue-600 rounded-2xl">
+                                    <ImageIcon size={20} />
+                                </div>
+                                <div>
+                                    <h4 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">Ảnh giao dịch</h4>
+                                    <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mt-0.5">Chỉ tải khi bấm xem</p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={handleCloseTxImage}
+                                className="p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-2xl transition-all"
+                                aria-label="Đóng"
+                            >
+                                <X size={22} />
+                            </button>
+                        </div>
+
+                        <div className="p-6 flex-1 overflow-auto bg-slate-50">
+                            {txImageLoading && (
+                                <div className="h-full min-h-[220px] flex items-center justify-center text-slate-400">
+                                    <div className="text-sm font-medium">Đang tải ảnh...</div>
+                                </div>
+                            )}
+
+                            {!txImageLoading && txImageError && (
+                                <div className="h-full min-h-[220px] flex items-center justify-center">
+                                    <div className="text-sm font-medium text-slate-500">{txImageError}</div>
+                                </div>
+                            )}
+
+                            {!txImageLoading && !txImageError && txImageUrl && (
+                                <div className="flex items-center justify-center">
+                                    <img
+                                        src={txImageUrl}
+                                        alt="Ảnh giao dịch"
+                                        className="max-h-[calc(100vh-160px)] sm:max-h-[70vh] w-auto max-w-full rounded-2xl border border-slate-200 shadow-sm"
+                                    />
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}

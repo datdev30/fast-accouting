@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getTransactions, createTransaction, updateTransaction, getCustomers, getInterestConfigs, createCustomer } from '../services/api';
-import { Plus, Edit2, Search, Calendar, Tag, Filter, X, ChevronRight, Check, Clock, User, UserPlus, ArrowUpDown, ArrowUp, ArrowDown, Trash2 } from 'lucide-react';
+import { getTransactions, createTransaction, updateTransaction, getCustomers, getInterestConfigs, createCustomer, uploadTransactionImage, fetchTransactionImageBlob, deleteTransactionImage } from '../services/api';
+import { Plus, Edit2, Search, Calendar, Tag, Filter, X, ChevronRight, Check, Clock, User, UserPlus, ArrowUpDown, ArrowUp, ArrowDown, Trash2, Camera, Image as ImageIcon, Loader2, ZoomIn, ZoomOut, RotateCw, Download } from 'lucide-react';
 import { clsx } from 'clsx';
 import DateInput from '../components/DateInput';
 import { formatDate } from '../utils/dateUtils';
@@ -21,6 +21,14 @@ export default function Transactions() {
     const isAdmin = user?.role === 'ADMIN';
     const [isOpen, setIsOpen] = useState(false);
     const [editingId, setEditingId] = useState(null);
+    const [editingHasImage, setEditingHasImage] = useState(true);
+    const [txImageUrl, setTxImageUrl] = useState(null);
+    const [txImageLoading, setTxImageLoading] = useState(false);
+    const [txImageError, setTxImageError] = useState('');
+    const [pendingUploadFile, setPendingUploadFile] = useState(null);
+    const [isImageDetailOpen, setIsImageDetailOpen] = useState(false);
+    const [isDeleteImageModalOpen, setIsDeleteImageModalOpen] = useState(false);
+    const [isImagePickerOpen, setIsImagePickerOpen] = useState(false);
     const [customerSearchTerm, setCustomerSearchTerm] = useState('');
     const [selectedCustomerId, setSelectedCustomerId] = useState('');
     const [startDate, setStartDate] = useState('');
@@ -49,6 +57,8 @@ export default function Transactions() {
     const quickCreateModalRef = useRef(null);
     const dateInputRef = useRef(null);
     const quickCreateNameRef = useRef(null);
+    const fileInputRef = useRef(null);
+    const fileUploadInputRef = useRef(null);
 
     // Quick Create Customer State
     const [isQuickCreateOpen, setIsQuickCreateOpen] = useState(false);
@@ -66,6 +76,25 @@ export default function Transactions() {
         status: 'OPEN',
         closed_at: new Date().toISOString().split('T')[0]
     });
+
+    const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    async function fetchImageBlobWithRetry(id, { retries = 4, baseDelayMs = 350 } = {}) {
+        let lastError;
+        for (let attempt = 0; attempt <= retries; attempt++) {
+            try {
+                return await fetchTransactionImageBlob(id);
+            } catch (e) {
+                lastError = e;
+                const status = e?.response?.status;
+                // 404 can happen briefly right after Drive upload; 502 may happen while backend retries Drive.
+                const retryable = status === 404 || status === 502;
+                if (!retryable || attempt === retries) throw e;
+                await sleep(baseDelayMs * Math.pow(2, attempt));
+            }
+        }
+        throw lastError;
+    }
 
     // Queries
     const { data: customers } = useQuery({ queryKey: ['customers'], queryFn: getCustomers });
@@ -208,6 +237,80 @@ export default function Transactions() {
     }, [isQuickCreateOpen]);
 
 
+    const uploadImageMutation = useMutation({
+        mutationFn: ({ id, file }) => uploadTransactionImage(id, file),
+        onSuccess: async (data, variables) => {
+            queryClient.invalidateQueries(['transactions']);
+            setEditingHasImage(true);
+            // Refresh image url
+            try {
+                const blob = await fetchImageBlobWithRetry(variables.id);
+                const nextUrl = URL.createObjectURL(blob);
+                setTxImageUrl(prev => {
+                    if (prev) URL.revokeObjectURL(prev);
+                    return nextUrl;
+                });
+            } catch (error) {
+                console.warn('Failed to refresh image immediately:', error?.response?.status || error?.message);
+            }
+            showToast('Thành công', 'Đổi ảnh thành công', 'success');
+        },
+        onError: (error) => {
+            const msg = error?.response?.data?.error || error?.message || 'Lỗi upload ảnh';
+            setTxImageError(msg);
+            showToast('Lỗi', `Không thể upload ảnh: ${msg}`, 'error');
+        }
+    });
+
+    const handleSelectedImageFile = (file) => {
+        if (!file) return;
+        setTxImageError('');
+
+        if (file.size > 5 * 1024 * 1024) {
+            const msg = 'Ảnh quá lớn (>5MB). Vui lòng chọn ảnh nhỏ hơn.';
+            setTxImageError(msg);
+            showToast('Cảnh báo', msg, 'warning');
+            return;
+        }
+
+        if (editingId) {
+            uploadImageMutation.mutate({ id: editingId, file });
+        } else {
+            // Create mode: store file to upload later
+            setPendingUploadFile(file);
+            // Preview immediatly
+            setTxImageUrl(prev => {
+                if (prev) URL.revokeObjectURL(prev);
+                return URL.createObjectURL(file);
+            });
+            setIsImageDetailOpen(true);
+        }
+    };
+
+    const openImagePicker = () => setIsImagePickerOpen(true);
+    const closeImagePicker = () => setIsImagePickerOpen(false);
+    const pickFromCamera = () => {
+        closeImagePicker();
+        fileInputRef.current?.click();
+    };
+    const pickFromFile = () => {
+        closeImagePicker();
+        fileUploadInputRef.current?.click();
+    };
+
+    const deleteImageMutation = useMutation({
+        mutationFn: () => deleteTransactionImage(editingId),
+        onSuccess: () => {
+            setTxImageUrl(null);
+            setIsImageDetailOpen(false);
+            setIsDeleteImageModalOpen(false);
+            setEditingHasImage(false);
+            queryClient.invalidateQueries(['transactions']);
+            showToast('Thành công', 'Xóa ảnh thành công', 'success');
+        },
+        onError: (error) => showToast('Lỗi', `Không thể xóa ảnh: ${error.message}`, 'error')
+    });
+
     const createMutation = useMutation({
         mutationFn: (data) => {
             const payload = { ...data };
@@ -216,30 +319,62 @@ export default function Transactions() {
             }
             return createTransaction(payload);
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries(['transactions']);
-            if (createAnother) {
-                // Keep modal open, keep customer, reset other fields
-                setFormData(prev => ({
-                    ...prev,
-                    amount: '',
-                    content: '',
-                    transaction_date: '', // Clear date as requested
-                    status: 'OPEN'
-                }));
-                // Focus on date input if possible, or amount since date is cleared?
-                // User asked to "clear transaction date".
-                setTimeout(() => {
-                    dateInputRef.current?.querySelector('input')?.focus();
-                }, 100);
-                showToast('Thành công', 'Đã tạo giao dịch mới', 'success');
+        onSuccess: (newTx) => {
+            const txId = newTx.id || newTx._id;
+
+            // Should we upload image?
+            if (pendingUploadFile && txId) {
+                uploadImageMutation.mutate({ id: txId, file: pendingUploadFile }, {
+                    onSuccess: () => {
+                        queryClient.invalidateQueries(['transactions']);
+                        showToast('Thành công', 'Đã tạo giao dịch và upload ảnh', 'success');
+                        if (createAnother) {
+                            // Reset form but keep createAnother logic (which is handled below in a slightly complex way in original code, simplifying here)
+                            // The original code reset form inside onSuccess. We should do it after image upload is done.
+                            setFormData(prev => ({
+                                ...prev,
+                                type: '',
+                                amount: '',
+                                content: '',
+                                transaction_date: new Date().toISOString().split('T')[0],
+                                status: 'OPEN',
+                                closed_at: new Date().toISOString().split('T')[0]
+                            }));
+                            setPendingUploadFile(null);
+                            setTxImageUrl(null);
+                        } else {
+                            handleClose();
+                        }
+                    },
+                    onError: (err) => {
+                        const msg = err?.response?.data?.error || err?.message || 'Upload ảnh thất bại';
+                        showToast('Cảnh báo', 'Tạo giao dịch thành công nhưng lỗi upload ảnh: ' + msg, 'warning');
+                        if (!createAnother) handleClose();
+                    }
+                });
             } else {
-                handleClose();
-                showToast('Thành công', 'Đã tạo giao dịch mới', 'success');
+                queryClient.invalidateQueries(['transactions']);
+                showToast('Thành công', 'Đã tạo giao dịch', 'success');
+
+                if (createAnother) {
+                    setFormData(prev => ({
+                        ...prev,
+                        type: '',
+                        amount: '',
+                        content: '',
+                        transaction_date: new Date().toISOString().split('T')[0],
+                        status: 'OPEN',
+                        closed_at: new Date().toISOString().split('T')[0]
+                    }));
+                    setPendingUploadFile(null);
+                    setTxImageUrl(null);
+                } else {
+                    handleClose();
+                }
             }
         },
         onError: (err) => {
-            showToast('Lỗi', err.response?.data?.error || "Lỗi tạo giao dịch", 'error');
+            showToast('Lỗi', err.response?.data?.error || 'Lỗi tạo giao dịch', 'error');
         }
     });
 
@@ -259,7 +394,7 @@ export default function Transactions() {
             showToast('Thành công', 'Đã cập nhật giao dịch', 'success');
         },
         onError: (err) => {
-            showToast('Lỗi', err.response?.data?.error || "Lỗi cập nhật giao dịch", 'error');
+            showToast('Lỗi', err.response?.data?.error || 'Lỗi cập nhật giao dịch', 'error');
         }
     });
 
@@ -280,8 +415,18 @@ export default function Transactions() {
         }
     });
 
+
+
     const handleEdit = (tx) => {
         setEditingId(tx._id);
+        setEditingHasImage(tx.image_drive_file_id !== undefined ? Boolean(tx.image_drive_file_id) : true);
+        // Do not auto-load image when opening edit modal. Only load when user clicks view.
+        setTxImageLoading(false);
+        setTxImageError('');
+        setTxImageUrl(prev => {
+            if (prev) URL.revokeObjectURL(prev);
+            return null;
+        });
         const customerId = tx.customer_id || tx.customer?.id || tx.customer;
         const selectedCustomer = customers?.find(c => c.id === customerId);
 
@@ -297,6 +442,49 @@ export default function Transactions() {
         setCustomerSearch(selectedCustomer ? selectedCustomer.name : '');
         setIsOpen(true);
     };
+
+    // Lazy-load image ONLY when user opens the viewer.
+    useEffect(() => {
+        let cancelled = false;
+
+        async function loadImageForViewer() {
+            if (!isOpen || !editingId) return;
+            if (!isImageDetailOpen) return;
+            if (!editingHasImage) return;
+            if (txImageUrl) return; // already loaded (or create-mode preview)
+
+            setTxImageError('');
+            setTxImageLoading(true);
+            try {
+                const blob = await fetchImageBlobWithRetry(editingId);
+                if (cancelled) return;
+                const url = URL.createObjectURL(blob);
+                setTxImageUrl(url);
+            } catch (e) {
+                const status = e?.response?.status;
+                if (status === 404) {
+                    setEditingHasImage(false);
+                    setTxImageError('Giao dịch chưa có ảnh');
+                } else {
+                    setTxImageError(e?.response?.data?.error || 'Không thể tải ảnh');
+                }
+            } finally {
+                if (!cancelled) setTxImageLoading(false);
+            }
+        }
+
+        loadImageForViewer();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [isOpen, editingId, editingHasImage, isImageDetailOpen, txImageUrl]);
+
+    useEffect(() => {
+        return () => {
+            if (txImageUrl) URL.revokeObjectURL(txImageUrl);
+        };
+    }, [txImageUrl]);
 
     const handleStatusToggle = (e, tx) => {
         e.stopPropagation(); // Prevent row click
@@ -343,13 +531,24 @@ export default function Transactions() {
     const handleClose = () => {
         setIsOpen(false);
         setEditingId(null);
+        setEditingHasImage(true);
+        setTxImageLoading(false);
+        setTxImageError('');
+        setTxImageUrl(prev => {
+            if (prev) URL.revokeObjectURL(prev);
+            return null;
+        });
+        setPendingUploadFile(null); // Clear pending file on close
+        setIsImageDetailOpen(false);
+        setIsImagePickerOpen(false);
         setFormData({
             customer_id: '',
             type: '',
             amount: '',
             content: '',
             transaction_date: new Date().toISOString().split('T')[0],
-            status: 'OPEN'
+            status: 'OPEN',
+            closed_at: new Date().toISOString().split('T')[0]
         });
         setCustomerSearch('');
     };
@@ -617,13 +816,13 @@ export default function Transactions() {
                 <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all">
                     <div
                         ref={txModalRef}
-                        className="bg-white w-full sm:max-w-3xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-300"
+                        className="bg-white w-full sm:max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-300"
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="tx-modal-title"
                     >
-                        <div className="p-6 sm:p-8 border-b border-slate-100 bg-slate-50/50">
-                            <div className="flex items-start gap-4">
+                        <div className="p-6 sm:p-8 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                            <div className="flex items-center gap-4">
                                 <div className="w-11 h-11 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-200 shrink-0">
                                     {editingId ? <Edit2 size={20} /> : <Plus size={22} />}
                                 </div>
@@ -636,13 +835,51 @@ export default function Transactions() {
                                     </p>
                                 </div>
                             </div>
+                            <div className="flex items-center gap-2">
+                                {(() => {
+                                    const hasImageIndicator = editingId ? editingHasImage : Boolean(pendingUploadFile);
+                                    return (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (txImageLoading) return;
+
+                                                // Use backend metadata to decide UI. Do not fetch image unless user opens viewer.
+                                                if (hasImageIndicator) {
+                                                    setIsImageDetailOpen(true);
+                                                } else {
+                                                    openImagePicker();
+                                                }
+                                            }}
+                                            title={hasImageIndicator ? "Xem ảnh giao dịch" : "Thêm ảnh giao dịch"}
+                                            className={clsx(
+                                                "p-2.5 rounded-2xl transition-all border",
+                                                txImageLoading && "opacity-60 cursor-not-allowed",
+                                                hasImageIndicator
+                                                    ? "bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100"
+                                                    : "bg-white text-slate-400 border-slate-200 hover:text-blue-500 hover:border-blue-200"
+                                            )}
+                                            disabled={txImageLoading}
+                                        >
+                                            <ImageIcon size={20} />
+                                        </button>
+                                    );
+                                })()}
+                                <button
+                                    onClick={handleClose}
+                                    className="p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-2xl transition-all"
+                                >
+                                    <X size={24} />
+                                </button>
+                            </div>
                         </div>
 
-                        <form onSubmit={handleSubmit} className="flex flex-col flex-1">
-                            <div className="flex-1 overflow-y-auto p-6 sm:p-8 custom-scrollbar">
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
-                                    {/* Column 1: Date & Customer */}
-                                    <div className="space-y-6">
+                        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+                            <div className="flex-1 overflow-y-auto p-6 sm:p-8 custom-scrollbar min-h-0">
+                                <div className="space-y-6">
+                                    {/* Row 1: Date & Customer */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                        {/* Date Input */}
                                         <div className="space-y-2">
                                             <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Ngày giao dịch</label>
                                             <div className="relative group">
@@ -660,6 +897,7 @@ export default function Transactions() {
                                             </div>
                                         </div>
 
+                                        {/* Customer Input */}
                                         <div className="space-y-2">
                                             <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Khách hàng</label>
                                             <div className="relative" ref={comboboxRef}>
@@ -729,18 +967,49 @@ export default function Transactions() {
                                         </div>
                                     </div>
 
-                                    {/* Column 2: Content */}
-                                    <div className="space-y-2 h-full">
+                                    {/* Content (Full Width) */}
+                                    <div className="space-y-2">
                                         <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Nội dung chi tiết</label>
                                         <textarea
                                             required
-                                            className="w-full h-[142px] sm:h-[168px] bg-slate-50 border border-slate-100 rounded-[1.25rem] px-6 py-4 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all text-base font-medium text-slate-800 shadow-inner resize-none placeholder:text-slate-300 leading-relaxed"
+                                            className="w-full min-h-[140px] bg-slate-50 border border-slate-100 rounded-[1.25rem] px-6 py-4 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all text-base font-medium text-slate-800 shadow-inner resize-none placeholder:text-slate-300 leading-relaxed"
                                             value={formData.content}
                                             onChange={e => setFormData({ ...formData, content: e.target.value })}
                                             placeholder="Nhập nội dung vay/trả chi tiết..."
                                         />
                                     </div>
+
+                                    {/* Hidden File Input (triggered from header) */}
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        capture="environment"
+                                        disabled={!!editingId && uploadImageMutation.isPending}
+                                        ref={fileInputRef}
+                                        className="hidden"
+                                        onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            handleSelectedImageFile(file);
+                                            e.target.value = '';
+                                        }}
+                                    />
+
+                                    {/* Hidden File Input (upload from gallery/files - no capture) */}
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        disabled={!!editingId && uploadImageMutation.isPending}
+                                        ref={fileUploadInputRef}
+                                        className="hidden"
+                                        onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            handleSelectedImageFile(file);
+                                            e.target.value = '';
+                                        }}
+                                    />
                                 </div>
+
+
 
                                 {/* Section: Loại giao dịch (Full Width Row) */}
                                 <div className="space-y-2 mt-8">
@@ -1072,6 +1341,289 @@ export default function Transactions() {
                     </div>
                 )}
             </div>
+            {isImageDetailOpen && (
+                <ImageDetailModal
+                    isOpen={isImageDetailOpen}
+                    imageUrl={txImageUrl}
+                    onClose={() => setIsImageDetailOpen(false)}
+                    onUpdate={() => {
+                        setIsImageDetailOpen(false);
+                        openImagePicker();
+                    }}
+                    onDelete={() => {
+                        setIsImageDetailOpen(false);
+                        setIsDeleteImageModalOpen(true);
+                    }}
+                    isDeleting={deleteImageMutation.isPending}
+                    isLoadingImage={txImageLoading}
+                    error={txImageError}
+                    hasImage={editingId ? editingHasImage : Boolean(pendingUploadFile)}
+                />
+            )}
+
+            {isImagePickerOpen && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+                    <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-200">
+                                    <ImageIcon size={18} />
+                                </div>
+                                <div>
+                                    <div className="text-lg font-bold text-slate-900 leading-tight">
+                                        {txImageUrl ? 'Đổi ảnh giao dịch' : 'Thêm ảnh giao dịch'}
+                                    </div>
+                                    <div className="text-xs text-slate-500 font-medium mt-1">Chọn nguồn ảnh</div>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={closeImagePicker}
+                                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-2xl transition-all"
+                                aria-label="Đóng"
+                            >
+                                <X size={22} />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-3">
+                            <button
+                                type="button"
+                                onClick={pickFromCamera}
+                                disabled={!!editingId && uploadImageMutation.isPending}
+                                className="w-full btn btn-primary btn-lg"
+                            >
+                                <Camera size={18} />
+                                Chụp từ camera
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={pickFromFile}
+                                disabled={!!editingId && uploadImageMutation.isPending}
+                                className="w-full btn btn-secondary btn-lg"
+                            >
+                                <ImageIcon size={18} />
+                                Tải ảnh lên
+                            </button>
+
+                            {txImageError && (
+                                <div className="text-sm text-red-600 font-medium pt-1">{txImageError}</div>
+                            )}
+
+                            <div className="text-xs text-slate-400 pt-1">Giới hạn dung lượng: 5MB</div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <DeleteConfirmationModal
+                isOpen={isDeleteImageModalOpen}
+                onClose={() => setIsDeleteImageModalOpen(false)}
+                onConfirm={() => deleteImageMutation.mutate()}
+                title="Xóa Ảnh Giao Dịch"
+                warningMessage="Bạn có chắc chắn muốn xóa ảnh này không? Hành động này không thể hoàn tác."
+            />
         </div >
+    );
+}
+
+function ImageDetailModal({ isOpen, imageUrl, onClose, onDelete, onUpdate, isDeleting, isLoadingImage, error, hasImage }) {
+    const [zoom, setZoom] = useState(1);
+    const [rotation, setRotation] = useState(0);
+    const [pan, setPan] = useState({ x: 0, y: 0 });
+    const [isDragging, setIsDragging] = useState(false);
+    const [startPan, setStartPan] = useState({ x: 0, y: 0 });
+
+    const showLoading = isLoadingImage;
+    const showError = !!error;
+    const canShowImage = !!imageUrl && !showLoading && !showError;
+
+    // Reset pan when zooming out to 1 or changing image
+    useEffect(() => {
+        if (zoom <= 1) {
+            setPan({ x: 0, y: 0 });
+        }
+    }, [zoom]);
+
+    // Keyboard shortcuts
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (!isOpen) return;
+
+            // Zoom with + / -
+            if (e.key === '=' || e.key === '+') {
+                e.preventDefault(); // Prevent browser zoom
+                setZoom(z => Math.min(5, z + 0.5));
+            }
+            if (e.key === '-' || e.key === '_') {
+                e.preventDefault();
+                setZoom(z => Math.max(0.5, z - 0.5));
+            }
+            // Reset with 0
+            if (e.key === '0') {
+                e.preventDefault();
+                setZoom(1);
+                setPan({ x: 0, y: 0 });
+                setRotation(0);
+            }
+            // Pan with arrows
+            const STEP = 50;
+            if (e.key === 'ArrowUp') setPan(p => ({ ...p, y: p.y + STEP }));
+            if (e.key === 'ArrowDown') setPan(p => ({ ...p, y: p.y - STEP }));
+            if (e.key === 'ArrowLeft') setPan(p => ({ ...p, x: p.x + STEP }));
+            if (e.key === 'ArrowRight') setPan(p => ({ ...p, x: p.x - STEP }));
+
+            // Close with Esc
+            if (e.key === 'Escape') onClose();
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, onClose]);
+
+    // Prevent scrolling when modal is open
+    useEffect(() => {
+        if (isOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+        return () => { document.body.style.overflow = 'unset'; };
+    }, [isOpen]);
+
+    const handleWheel = (e) => {
+        // Ctrl + Wheel to zoom, or just Wheel if user prefers standard map-like zoom
+        // Standard behavior: Wheel up = Zoom in, Wheel down = Zoom out
+        e.preventDefault();
+        const delta = e.deltaY * -0.01;
+        const newZoom = Math.min(Math.max(0.5, zoom + delta), 5); // Limit zoom 0.5x to 5x
+        setZoom(newZoom);
+    };
+
+    // Pan Handlers
+    const handleMouseDown = (e) => {
+        if (zoom > 1) {
+            setIsDragging(true);
+            setStartPan({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+        }
+    };
+
+    const handleMouseMove = (e) => {
+        if (isDragging && zoom > 1) {
+            e.preventDefault();
+            setPan({
+                x: e.clientX - startPan.x,
+                y: e.clientY - startPan.y
+            });
+        }
+    };
+
+    const handleMouseUp = () => {
+        setIsDragging(false);
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div
+            className="fixed inset-0 bg-black/95 z-[70] flex flex-col animate-in fade-in duration-200"
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+        >
+            {/* Toolbar */}
+            <div className="flex items-center justify-between p-4 text-white/90 absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/50 to-transparent pointer-events-none">
+                <div className="flex items-center gap-4 pointer-events-auto">
+                    <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                        <X size={24} />
+                    </button>
+                    <span className="font-medium text-sm hidden sm:inline">Chi tiết ảnh</span>
+                </div>
+
+                {/* Center Controls */}
+                <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 pointer-events-auto shadow-xl">
+                    <button onClick={() => setZoom(z => Math.max(0.5, z - 0.5))} className="p-2 hover:bg-white/10 rounded-full transition-colors" title="Thu nhỏ (-)">
+                        <ZoomOut size={18} />
+                    </button>
+                    <span className="text-xs font-mono w-10 text-center select-none">{Math.round(zoom * 100)}%</span>
+                    <button onClick={() => setZoom(z => Math.min(5, z + 0.5))} className="p-2 hover:bg-white/10 rounded-full transition-colors" title="Phóng to (+)">
+                        <ZoomIn size={18} />
+                    </button>
+                    <div className="w-px h-5 bg-white/20 mx-2" />
+                    <button onClick={() => setRotation(r => r + 90)} className="p-2 hover:bg-white/10 rounded-full transition-colors" title="Xoay">
+                        <RotateCw size={18} />
+                    </button>
+                </div>
+
+                {/* Right Controls */}
+                <div className="flex items-center gap-2 pointer-events-auto">
+                    <button
+                        type="button"
+                        onClick={onUpdate}
+                        className="px-3 py-2 rounded-full bg-white/10 hover:bg-white/15 transition-colors text-xs font-semibold"
+                    >
+                        {hasImage ? 'Đổi ảnh' : 'Thêm ảnh'}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={onDelete}
+                        disabled={!hasImage || isDeleting}
+                        className={clsx(
+                            "px-3 py-2 rounded-full transition-colors text-xs font-semibold",
+                            !hasImage || isDeleting ? "bg-white/5 text-white/40" : "bg-red-500/20 hover:bg-red-500/30 text-red-200"
+                        )}
+                    >
+                        {isDeleting ? 'Đang xóa...' : 'Xóa ảnh'}
+                    </button>
+                    {canShowImage && (
+                        <a
+                            href={imageUrl}
+                            download="transaction-image"
+                            className="p-2 hover:bg-white/10 rounded-full transition-colors"
+                            title="Tải xuống"
+                        >
+                            <Download size={20} />
+                        </a>
+                    )}
+                </div>
+            </div>
+
+            {/* Content */}
+            <div
+                className="flex-1 flex items-center justify-center pt-16"
+                onWheel={handleWheel}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+            >
+                {showLoading && (
+                    <div className="flex items-center gap-2 text-white/70 text-sm font-medium">
+                        <Loader2 size={18} className="animate-spin" />
+                        Đang tải ảnh...
+                    </div>
+                )}
+
+                {showError && (
+                    <div className="text-white/70 text-sm font-medium">{error}</div>
+                )}
+
+                {!showLoading && !showError && !canShowImage && !hasImage && (
+                    <div className="text-white/70 text-sm font-medium">Giao dịch chưa có ảnh</div>
+                )}
+
+                {canShowImage && (
+                    <img
+                        src={imageUrl}
+                        alt="Transaction"
+                        draggable={false}
+                        style={{
+                            transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom}) rotate(${rotation}deg)`,
+                            transition: isDragging ? 'none' : 'transform 0.15s ease',
+                            cursor: zoom > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default'
+                        }}
+                        className="max-w-full max-h-[calc(100vh-80px)] select-none"
+                    />
+                )}
+            </div>
+        </div>
     );
 }
