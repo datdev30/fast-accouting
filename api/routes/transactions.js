@@ -10,7 +10,7 @@ import { calculateInterestAmount } from '../utils/interest.js';
 import { verifyAdminPin } from '../utils/helpers.js';
 import { authMiddleware, requireAdmin } from '../middleware/auth.js';
 import multer from 'multer';
-import { deleteDriveFile, downloadDriveFileStream, uploadTransactionImageToDrive } from '../utils/drive.js';
+import { deleteDriveFile, downloadDriveFileStream, getDriveEnvDebugContext, uploadTransactionImageToDrive } from '../utils/drive.js';
 
 const router = express.Router();
 
@@ -80,7 +80,7 @@ router.post('/:id/image', authMiddleware, handleTransactionImageUpload, async (r
     } catch (error) {
         console.error('Upload transaction image error:', error);
 
-        const driveDebug = process.env.NODE_ENV === 'development';
+        const driveDebug = process.env.NODE_ENV === 'development' || process.env.DRIVE_DEBUG === '1';
         const driveErrorDetails = driveDebug
             ? {
                 drive_error: {
@@ -89,7 +89,8 @@ router.post('/:id/image', authMiddleware, handleTransactionImageUpload, async (r
                     reason: error?.errors?.[0]?.reason,
                     domain: error?.errors?.[0]?.domain,
                     errors: error?.errors
-                }
+                },
+                drive_env: getDriveEnvDebugContext()
             }
             : {};
 
@@ -159,7 +160,7 @@ router.get('/:id/image', authMiddleware, async (req, res) => {
     } catch (error) {
         console.error('Get transaction image error:', error);
 
-        const driveDebug = process.env.NODE_ENV === 'development';
+        const driveDebug = process.env.NODE_ENV === 'development' || process.env.DRIVE_DEBUG === '1';
         const driveErrorDetails = driveDebug
             ? {
                 drive_error: {
@@ -168,7 +169,8 @@ router.get('/:id/image', authMiddleware, async (req, res) => {
                     reason: error?.errors?.[0]?.reason,
                     domain: error?.errors?.[0]?.domain,
                     errors: error?.errors
-                }
+                },
+                drive_env: getDriveEnvDebugContext()
             }
             : {};
 

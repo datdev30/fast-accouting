@@ -2,11 +2,25 @@ import { google } from 'googleapis';
 
 let cachedDrive = null;
 
+function redactTail(value, keepTail = 6) {
+    if (!value) return '';
+    const str = String(value);
+    if (str.length <= keepTail) return str;
+    return `***${str.slice(-keepTail)}`;
+}
+
+function cleanEnvValue(value) {
+    if (value === undefined || value === null) return '';
+    const trimmed = String(value).trim();
+    // Vercel UI copy/paste sometimes includes wrapping quotes
+    return trimmed.replace(/^"(.+)"$/s, '$1').replace(/^'(.+)'$/s, '$1').trim();
+}
+
 function loadOAuthCredentialsFromEnv() {
-    const clientId = process.env.GOOGLE_DRIVE_OAUTH_CLIENT_ID;
-    const clientSecret = process.env.GOOGLE_DRIVE_OAUTH_CLIENT_SECRET;
-    const refreshToken = process.env.GOOGLE_DRIVE_OAUTH_REFRESH_TOKEN;
-    const redirectUri = process.env.GOOGLE_DRIVE_OAUTH_REDIRECT_URI || 'http://localhost:53682/oauth2callback';
+    const clientId = cleanEnvValue(process.env.GOOGLE_DRIVE_OAUTH_CLIENT_ID);
+    const clientSecret = cleanEnvValue(process.env.GOOGLE_DRIVE_OAUTH_CLIENT_SECRET);
+    const refreshToken = cleanEnvValue(process.env.GOOGLE_DRIVE_OAUTH_REFRESH_TOKEN);
+    const redirectUri = cleanEnvValue(process.env.GOOGLE_DRIVE_OAUTH_REDIRECT_URI) || 'http://localhost:53682/oauth2callback';
 
     if (!clientId || !clientSecret || !refreshToken) {
         throw new Error(
@@ -15,6 +29,25 @@ function loadOAuthCredentialsFromEnv() {
     }
 
     return { clientId, clientSecret, refreshToken, redirectUri };
+}
+
+export function getDriveEnvDebugContext() {
+    const folderId = cleanEnvValue(process.env.DRIVE_TRANSACTION_IMAGES_FOLDER_ID);
+    const clientId = cleanEnvValue(process.env.GOOGLE_DRIVE_OAUTH_CLIENT_ID);
+    const clientSecret = cleanEnvValue(process.env.GOOGLE_DRIVE_OAUTH_CLIENT_SECRET);
+    const refreshToken = cleanEnvValue(process.env.GOOGLE_DRIVE_OAUTH_REFRESH_TOKEN);
+    const redirectUri = cleanEnvValue(process.env.GOOGLE_DRIVE_OAUTH_REDIRECT_URI);
+
+    return {
+        folderId_present: Boolean(folderId),
+        folderId_len: folderId ? folderId.length : 0,
+        folderId_tail: folderId ? redactTail(folderId, 8) : '',
+        oauth_client_id_present: Boolean(clientId),
+        oauth_client_secret_present: Boolean(clientSecret),
+        oauth_refresh_token_present: Boolean(refreshToken),
+        oauth_redirect_uri_present: Boolean(redirectUri),
+        oauth_redirect_uri: redirectUri || ''
+    };
 }
 
 async function createDriveClientWithOAuth() {
@@ -40,7 +73,7 @@ export async function uploadTransactionImageToDrive({
 }) {
     const drive = await getDriveClient();
 
-    const folderId = process.env.DRIVE_TRANSACTION_IMAGES_FOLDER_ID;
+    const folderId = cleanEnvValue(process.env.DRIVE_TRANSACTION_IMAGES_FOLDER_ID);
     if (!folderId) {
         throw new Error('Missing DRIVE_TRANSACTION_IMAGES_FOLDER_ID');
     }
