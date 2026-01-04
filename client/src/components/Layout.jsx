@@ -82,8 +82,11 @@ export default function Layout() {
 
     const closeMobileSidebar = () => setIsMobileSidebarOpen(false);
 
+    // Sidebar is expanded if it's open on desktop OR if the mobile sidebar is active
+    const isExpanded = isSidebarOpen || isMobileSidebarOpen;
+
     return (
-        <div className="flex h-screen bg-slate-50 font-sans">
+        <div className="flex h-dvh bg-slate-50 font-sans">
             {/* Mobile Backdrop */}
             {isMobileSidebarOpen && (
                 <div
@@ -95,20 +98,20 @@ export default function Layout() {
             {/* Sidebar */}
             <aside
                 className={clsx(
-                    "bg-white border-r border-slate-100 flex flex-col shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)] z-50 transition-all duration-300 ease-in-out relative",
+                    "bg-white border-r border-slate-100 flex flex-col shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)] z-50 transition-all duration-300 ease-in-out",
                     // Desktop: Always visible, collapsible
-                    "hidden md:flex",
+                    // Mobile: Initially hidden by translation, always rendered
                     isSidebarOpen ? "md:w-72" : "md:w-20",
-                    // Mobile: Overlay from left
+                    // Mobile: Overlay from left, full height
                     "md:relative fixed inset-y-0 left-0",
                     isMobileSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
-                    "w-72" // Full width on mobile
+                    "w-72 pt-[env(safe-area-inset-top)] md:pt-0" // Add safe area padding for mobile sidebar
                 )}
             >
                 {/* Mobile Close Button */}
                 <button
                     onClick={closeMobileSidebar}
-                    className="absolute right-4 top-4 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg md:hidden"
+                    className="absolute right-4 top-4 md:top-4 mt-[env(safe-area-inset-top)] md:mt-0 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg md:hidden"
                     aria-label="Close menu"
                 >
                     <X size={20} />
@@ -123,12 +126,12 @@ export default function Layout() {
                     {isSidebarOpen ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
                 </button>
 
-                <div className={clsx("p-6", isSidebarOpen ? "pb-6" : "md:pb-4 md:flex md:justify-center")}>
+                <div className={clsx("p-6", isExpanded ? "pb-6" : "md:pb-4 md:flex md:justify-center")}>
                     <div className="flex items-center gap-3 mb-1">
                         <div className="w-10 h-10 min-w-[2.5rem] rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-200">
                             <span className="font-bold text-xl">F</span>
                         </div>
-                        <div className={clsx("overflow-hidden transition-all duration-300", isSidebarOpen ? "opacity-100 w-auto" : "md:opacity-0 md:w-0 md:hidden")}>
+                        <div className={clsx("overflow-hidden transition-all duration-300", isExpanded ? "opacity-100 w-auto" : "md:opacity-0 md:w-0 md:hidden")}>
                             <h1 className="text-xl font-bold text-slate-900 tracking-tight whitespace-nowrap">
                                 FastAcc
                             </h1>
@@ -141,30 +144,30 @@ export default function Layout() {
                     <div className="h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
                 </div>
 
-                <nav className="flex-1 space-y-1.5 px-2">
-                    <NavItem to="/overview" icon={LayoutDashboard} label="Tổng quan" collapsed={!isSidebarOpen} onClick={closeMobileSidebar} />
-                    <NavItem to="/transactions" icon={FileText} label="Giao dịch" collapsed={!isSidebarOpen} onClick={closeMobileSidebar} />
-                    <NavItem to="/customers" icon={Users} label="Khách hàng" collapsed={!isSidebarOpen} onClick={closeMobileSidebar} />
-                    <NavItem to="/interest-configs" icon={Calculator} label="Cấu hình lãi suất" collapsed={!isSidebarOpen} onClick={closeMobileSidebar} />
-                    <NavItem to="/reports" icon={BarChart3} label="Báo cáo" collapsed={!isSidebarOpen} onClick={closeMobileSidebar} />
+                <nav className="flex-1 space-y-1.5 px-2 overflow-y-auto">
+                    <NavItem to="/overview" icon={LayoutDashboard} label="Tổng quan" collapsed={!isExpanded} onClick={closeMobileSidebar} />
+                    <NavItem to="/transactions" icon={FileText} label="Giao dịch" collapsed={!isExpanded} onClick={closeMobileSidebar} />
+                    <NavItem to="/customers" icon={Users} label="Khách hàng" collapsed={!isExpanded} onClick={closeMobileSidebar} />
+                    <NavItem to="/interest-configs" icon={Calculator} label="Cấu hình lãi suất" collapsed={!isExpanded} onClick={closeMobileSidebar} />
+                    <NavItem to="/reports" icon={BarChart3} label="Báo cáo" collapsed={!isExpanded} onClick={closeMobileSidebar} />
                     {user?.role === 'ADMIN' && (
                         <>
-                            <NavItem to="/users" icon={Users} label="Người dùng" collapsed={!isSidebarOpen} onClick={closeMobileSidebar} />
-                            <NavItem to="/backup-data" icon={DatabaseBackup} label="Backup Data" collapsed={!isSidebarOpen} onClick={closeMobileSidebar} />
+                            <NavItem to="/users" icon={Users} label="Người dùng" collapsed={!isExpanded} onClick={closeMobileSidebar} />
+                            <NavItem to="/backup-data" icon={DatabaseBackup} label="Backup Data" collapsed={!isExpanded} onClick={closeMobileSidebar} />
                         </>
                     )}
-                    <NavItem to="/info" icon={Info} label="Thông tin" collapsed={!isSidebarOpen} onClick={closeMobileSidebar} />
-                    <NavItem to="/guide" icon={BookOpen} label="Hướng dẫn" collapsed={!isSidebarOpen} onClick={closeMobileSidebar} />
+                    <NavItem to="/info" icon={Info} label="Thông tin" collapsed={!isExpanded} onClick={closeMobileSidebar} />
+                    <NavItem to="/guide" icon={BookOpen} label="Hướng dẫn" collapsed={!isExpanded} onClick={closeMobileSidebar} />
                 </nav>
 
                 <div className="p-6">
-                    <div className={clsx("bg-slate-50 rounded-2xl border border-slate-100 transition-all duration-300", isSidebarOpen ? "p-4" : "md:p-2 md:flex md:justify-center p-4")}>
-                        <div className={clsx("flex items-center gap-3", isSidebarOpen ? "" : "md:justify-center md:flex-col")}>
+                    <div className={clsx("bg-slate-50 rounded-2xl border border-slate-100 transition-all duration-300", isExpanded ? "p-4" : "md:p-2 md:flex md:justify-center p-4")}>
+                        <div className={clsx("flex items-center gap-3", isExpanded ? "" : "md:justify-center md:flex-col")}>
                             <div className="w-8 h-8 min-w-[2rem] rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs uppercase">
                                 {userInitials}
                             </div>
 
-                            {isSidebarOpen ? (
+                            {isExpanded ? (
                                 <>
                                     <div className="flex-1 overflow-hidden">
                                         <p className="text-sm font-semibold text-slate-800 truncate leading-tight">{userDisplayName}</p>
@@ -197,7 +200,7 @@ export default function Layout() {
                                 </button>
                             )}
                         </div>
-                        {isSidebarOpen && (
+                        {isExpanded && (
                             <div className="text-[10px] text-slate-400 text-center mt-2 font-mono" title={`Updated: ${appInfo?.updated_at}`}>
                                 v{appInfo?.version || '...'}
                             </div>
@@ -208,8 +211,8 @@ export default function Layout() {
 
             {/* Main Content */}
             <main className="flex-1 flex flex-col overflow-hidden relative">
-                {/* Mobile Header */}
-                <header className="h-16 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center px-4 sm:px-6 justify-between md:hidden z-20 sticky top-0">
+                {/* Mobile Header (Absolute & Fixed to top of Main) */}
+                <header className="absolute top-0 left-0 right-0 h-[calc(4rem+env(safe-area-inset-top))] bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center px-4 sm:px-6 justify-between md:hidden z-30 pt-[env(safe-area-inset-top)] transition-all">
                     <button
                         onClick={() => setIsMobileSidebarOpen(true)}
                         className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
@@ -217,12 +220,14 @@ export default function Layout() {
                     >
                         <Menu size={24} />
                     </button>
-                    <span className="font-bold text-lg text-blue-600">FastAccounting</span>
-                    <div className="w-10" /> {/* Spacer for centering */}
+                    <span className="font-bold text-lg text-blue-600 absolute left-1/2 top-1/2 -translate-x-1/2 mt-[calc(env(safe-area-inset-top)/2)]">FastAccounting</span>
+                    <div className="w-10" /> {/* Spacer */}
                 </header>
 
-                <div className="flex-1 overflow-auto bg-slate-50">
-                    <div className="w-full p-4 sm:p-6 md:p-8">
+                {/* Content Area */}
+                <div className="flex-1 overflow-auto bg-slate-50 w-full h-full">
+                    {/* Padding top to push content below fixed header on mobile */}
+                    <div className="w-full p-4 sm:p-6 md:p-8 pt-[calc(5rem+env(safe-area-inset-top))] md:pt-8 min-h-full">
                         <Outlet />
                     </div>
                 </div>

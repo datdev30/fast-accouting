@@ -402,8 +402,8 @@ export default function Customers() {
                         )}>
                             {/* Left Side: Form */}
                             <div className={clsx(
-                                'p-8 space-y-6 overflow-y-auto',
-                                isEdit && 'lg:w-1/4 lg:border-r lg:border-slate-100 lg:flex-none'
+                                'p-6 sm:p-8 space-y-6 overflow-y-auto w-full',
+                                isEdit && 'lg:w-1/3 lg:border-r lg:border-slate-100 lg:flex-none'
                             )}>
                                 <form onSubmit={handleSubmit} className="space-y-6">
                                     <div className="space-y-2">
@@ -429,9 +429,9 @@ export default function Customers() {
                                             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors">
                                                 <MapPin size={18} />
                                             </div>
-                                                <input
+                                            <input
                                                 className="w-full bg-slate-50 border border-slate-100 rounded-[1.25rem] pl-11 pr-4 py-3.5 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all text-base font-medium text-slate-800 placeholder:text-slate-300 shadow-inner"
-                                                    value={formData.contact_info ?? ''}
+                                                value={formData.contact_info ?? ''}
                                                 onChange={e => setFormData({ ...formData, contact_info: e.target.value })}
                                                 placeholder="SĐT, Địa chỉ, Ghi chú..."
                                             />
@@ -462,10 +462,10 @@ export default function Customers() {
                                 </form>
                             </div>
 
-                            {/* Right Side: Transaction History (Only in Edit Mode) */}
+                            {/* Right Side: Transaction History (Now visible on all screens in Edit Mode) */}
                             {isEdit && (
-                                <div className="hidden lg:flex flex-col lg:w-3/4 bg-slate-50/30 overflow-hidden">
-                                    <div className="px-8 py-4 border-b border-slate-100 bg-white/50 flex items-center justify-between">
+                                <div className="flex flex-col w-full lg:w-2/3 bg-slate-50/30 overflow-hidden border-t sm:border-t-0 border-slate-100">
+                                    <div className="px-6 py-4 border-b border-slate-100 bg-white/50 flex items-center justify-between">
                                         <div className="flex items-center gap-2 text-slate-800">
                                             <History size={18} className="text-blue-500" />
                                             <span className="font-bold text-xs uppercase tracking-widest">Lịch sử giao dịch</span>
@@ -567,215 +567,219 @@ export default function Customers() {
             )}
 
             {/* Transaction Edit Modal */}
-            {isTxModalOpen && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[60] p-0 sm:p-4 transition-all">
-                    <div
-                        ref={txModalRef}
-                        className="bg-white sm:rounded-[2.5rem] w-full h-full sm:h-auto sm:max-w-xl shadow-2xl overflow-hidden animate-in fade-in sm:zoom-in sm:duration-300 duration-300 flex flex-col"
-                        role="dialog"
-                        aria-modal="true"
-                        aria-labelledby="tx-modal-title"
-                    >
-                        <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-white">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2.5 bg-blue-50 text-blue-600 rounded-2xl">
-                                    <Edit2 size={22} />
+            {
+                isTxModalOpen && (
+                    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[60] p-0 sm:p-4 transition-all">
+                        <div
+                            ref={txModalRef}
+                            className="bg-white sm:rounded-[2.5rem] w-full h-full sm:h-auto sm:max-w-xl shadow-2xl overflow-hidden animate-in fade-in sm:zoom-in sm:duration-300 duration-300 flex flex-col"
+                            role="dialog"
+                            aria-modal="true"
+                            aria-labelledby="tx-modal-title"
+                        >
+                            <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-white">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2.5 bg-blue-50 text-blue-600 rounded-2xl">
+                                        <Edit2 size={22} />
+                                    </div>
+                                    <div>
+                                        <h3 id="tx-modal-title" className="text-lg sm:text-xl font-bold text-slate-900 leading-tight">Chỉnh Sửa Giao Dịch</h3>
+                                        <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mt-0.5">Cập nhật thông tin chi tiết</p>
+                                    </div>
                                 </div>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={handleOpenTxImage}
+                                        title="Xem ảnh giao dịch"
+                                        aria-label="Xem ảnh giao dịch"
+                                        className={clsx(
+                                            "p-2.5 rounded-2xl transition-all border",
+                                            txImageLoading && "opacity-60 cursor-not-allowed",
+                                            txHasImage
+                                                ? "bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100"
+                                                : "bg-white text-slate-300 border-slate-200"
+                                        )}
+                                        disabled={txImageLoading}
+                                    >
+                                        <ImageIcon size={22} />
+                                    </button>
+
+                                    <button onClick={handleTxClose} className="p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-2xl transition-all">
+                                        <X size={24} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <form onSubmit={handleTxSubmit} className="p-8 space-y-6 flex-1 overflow-y-auto">
+                                {/* Type config selector */}
                                 <div>
-                                    <h3 id="tx-modal-title" className="text-lg sm:text-xl font-bold text-slate-900 leading-tight">Chỉnh Sửa Giao Dịch</h3>
-                                    <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mt-0.5">Cập nhật thông tin chi tiết</p>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <button
-                                    type="button"
-                                    onClick={handleOpenTxImage}
-                                    title="Xem ảnh giao dịch"
-                                    aria-label="Xem ảnh giao dịch"
-                                    className={clsx(
-                                        "p-2.5 rounded-2xl transition-all border",
-                                        txImageLoading && "opacity-60 cursor-not-allowed",
-                                        txHasImage
-                                            ? "bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100"
-                                            : "bg-white text-slate-300 border-slate-200"
-                                    )}
-                                    disabled={txImageLoading}
-                                >
-                                    <ImageIcon size={22} />
-                                </button>
-
-                                <button onClick={handleTxClose} className="p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-2xl transition-all">
-                                    <X size={24} />
-                                </button>
-                            </div>
-                        </div>
-
-                        <form onSubmit={handleTxSubmit} className="p-8 space-y-6 flex-1 overflow-y-auto">
-                            {/* Type config selector */}
-                            <div>
-                                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-3 ml-1">Loại giao dịch</label>
-                                <div className="flex flex-wrap gap-2">
-                                    {configs?.map((config) => {
-                                        const colors = getInterestConfigColorScheme(config.code);
-                                        const isSelected = txFormData.type === config.code;
-                                        return (
-                                            <button
-                                                key={config.code}
-                                                type="button"
-                                                onClick={() => setTxFormData({ ...txFormData, type: config.code })}
-                                                className={clsx(
-                                                    "px-4 py-2 rounded-xl text-xs font-bold border transition-all whitespace-nowrap",
-                                                    isSelected ? `${colors.badge} ring-2 ${colors.ring}` : "bg-slate-50 text-slate-500 border-slate-100 hover:border-slate-200"
-                                                )}
-                                            >
-                                                {config.name}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-3 ml-1">Nội dung</label>
-                                <textarea
-                                    ref={txContentRef}
-                                    required
-                                    className="w-full bg-slate-50 border border-slate-100 rounded-[1.25rem] px-5 py-4 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all text-base font-medium text-slate-800 placeholder:text-slate-300 shadow-inner min-h-[100px] resize-none underline-none"
-                                    value={txFormData.content}
-                                    onChange={e => setTxFormData({ ...txFormData, content: e.target.value })}
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                <div className="space-y-2">
-                                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Số tiền gốc</label>
-                                    <div className="relative group">
-                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 font-bold">đ</div>
-                                        <input
-                                            required
-                                            className="w-full bg-slate-50 border border-slate-100 rounded-[1.25rem] pl-10 pr-4 py-3.5 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all text-base font-semibold text-slate-800 shadow-inner"
-                                            value={formatMoneyComma(txFormData.amount)}
-                                            onChange={e => {
-                                                const val = e.target.value.replace(/,/g, '');
-                                                if (/^\d*$/.test(val)) setTxFormData({ ...txFormData, amount: val });
-                                            }}
-                                        />
+                                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-3 ml-1">Loại giao dịch</label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {configs?.map((config) => {
+                                            const colors = getInterestConfigColorScheme(config.code);
+                                            const isSelected = txFormData.type === config.code;
+                                            return (
+                                                <button
+                                                    key={config.code}
+                                                    type="button"
+                                                    onClick={() => setTxFormData({ ...txFormData, type: config.code })}
+                                                    className={clsx(
+                                                        "px-4 py-2 rounded-xl text-xs font-bold border transition-all whitespace-nowrap",
+                                                        isSelected ? `${colors.badge} ring-2 ${colors.ring}` : "bg-slate-50 text-slate-500 border-slate-100 hover:border-slate-200"
+                                                    )}
+                                                >
+                                                    {config.name}
+                                                </button>
+                                            );
+                                        })}
                                     </div>
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Ngày giao dịch</label>
-                                    <div className="relative group">
-                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400"><Calendar size={18} /></div>
-                                        <DateInput
-                                            required
-                                            className="w-full bg-slate-50 border border-slate-100 rounded-[1.25rem] pl-11 pr-4 py-3.5 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all text-base font-medium text-slate-800 shadow-inner"
-                                            value={txFormData.transaction_date}
-                                            onChange={e => setTxFormData({ ...txFormData, transaction_date: e.target.value })}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                 <div className="space-y-2">
-                                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Trạng thái</label>
-                                    <StatusDropdown
-                                        value={txFormData.status}
-                                        onChange={(next) => setTxFormData({ ...txFormData, status: next })}
-                                        size="md"
+                                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-3 ml-1">Nội dung</label>
+                                    <textarea
+                                        ref={txContentRef}
+                                        required
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-[1.25rem] px-5 py-4 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all text-base font-medium text-slate-800 placeholder:text-slate-300 shadow-inner min-h-[100px] resize-none underline-none"
+                                        value={txFormData.content}
+                                        onChange={e => setTxFormData({ ...txFormData, content: e.target.value })}
                                     />
                                 </div>
-                                {txFormData.status === 'PAID' && (
-                                    <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
-                                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Ngày thanh toán</label>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Số tiền gốc</label>
                                         <div className="relative group">
-                                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400"><Check size={18} /></div>
-                                            <DateInput
+                                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 font-bold">đ</div>
+                                            <input
                                                 required
-                                                className="w-full bg-slate-50 border border-slate-100 rounded-[1.25rem] pl-11 pr-4 py-3.5 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all text-base font-medium text-slate-800 shadow-inner"
-                                                value={txFormData.closed_at}
-                                                onChange={e => setTxFormData({ ...txFormData, closed_at: e.target.value })}
+                                                className="w-full bg-slate-50 border border-slate-100 rounded-[1.25rem] pl-10 pr-4 py-3.5 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all text-base font-semibold text-slate-800 shadow-inner"
+                                                value={formatMoneyComma(txFormData.amount)}
+                                                onChange={e => {
+                                                    const val = e.target.value.replace(/,/g, '');
+                                                    if (/^\d*$/.test(val)) setTxFormData({ ...txFormData, amount: val });
+                                                }}
                                             />
                                         </div>
                                     </div>
-                                )}
-                            </div>
+                                    <div className="space-y-2">
+                                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Ngày giao dịch</label>
+                                        <div className="relative group">
+                                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400"><Calendar size={18} /></div>
+                                            <DateInput
+                                                required
+                                                className="w-full bg-slate-50 border border-slate-100 rounded-[1.25rem] pl-11 pr-4 py-3.5 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all text-base font-medium text-slate-800 shadow-inner"
+                                                value={txFormData.transaction_date}
+                                                onChange={e => setTxFormData({ ...txFormData, transaction_date: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
 
-                            <div className="flex flex-col gap-4 pt-4">
-                                <button
-                                    type="submit"
-                                    disabled={updateTxMutation.isPending}
-                                    className="w-full btn btn-primary btn-lg"
-                                >
-                                    {updateTxMutation.isPending ? 'Đang xử lý...' : 'Lưu thay đổi'}
-                                    <ChevronRight size={18} />
-                                </button>
-                                {isAdmin && (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Trạng thái</label>
+                                        <StatusDropdown
+                                            value={txFormData.status}
+                                            onChange={(next) => setTxFormData({ ...txFormData, status: next })}
+                                            size="md"
+                                        />
+                                    </div>
+                                    {txFormData.status === 'PAID' && (
+                                        <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
+                                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Ngày thanh toán</label>
+                                            <div className="relative group">
+                                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400"><Check size={18} /></div>
+                                                <DateInput
+                                                    required
+                                                    className="w-full bg-slate-50 border border-slate-100 rounded-[1.25rem] pl-11 pr-4 py-3.5 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all text-base font-medium text-slate-800 shadow-inner"
+                                                    value={txFormData.closed_at}
+                                                    onChange={e => setTxFormData({ ...txFormData, closed_at: e.target.value })}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="flex flex-col gap-4 pt-4">
                                     <button
-                                        type="button"
-                                        onClick={() => setIsTxDeleteModalOpen(true)}
-                                        className="w-full btn btn-secondary btn-lg text-red-600 hover:text-red-700 hover:border-red-200"
+                                        type="submit"
+                                        disabled={updateTxMutation.isPending}
+                                        className="w-full btn btn-primary btn-lg"
                                     >
-                                        <Trash2 size={16} />
-                                        Xóa giao dịch này
+                                        {updateTxMutation.isPending ? 'Đang xử lý...' : 'Lưu thay đổi'}
+                                        <ChevronRight size={18} />
                                     </button>
-                                )}
-                            </div>
-                        </form>
+                                    {isAdmin && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsTxDeleteModalOpen(true)}
+                                            className="w-full btn btn-secondary btn-lg text-red-600 hover:text-red-700 hover:border-red-200"
+                                        >
+                                            <Trash2 size={16} />
+                                            Xóa giao dịch này
+                                        </button>
+                                    )}
+                                </div>
+                            </form>
+                        </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Transaction Image Viewer (lazy-load on click) */}
-            {isTxImageModalOpen && (
-                <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center z-[70] p-0 sm:p-4">
-                    <div className="bg-white w-full h-full sm:h-auto sm:max-w-3xl sm:rounded-[2rem] shadow-2xl overflow-hidden flex flex-col">
-                        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-blue-50 text-blue-600 rounded-2xl">
-                                    <ImageIcon size={20} />
+            {
+                isTxImageModalOpen && (
+                    <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center z-[70] p-0 sm:p-4">
+                        <div className="bg-white w-full h-full sm:h-auto sm:max-w-3xl sm:rounded-[2rem] shadow-2xl overflow-hidden flex flex-col">
+                            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-blue-50 text-blue-600 rounded-2xl">
+                                        <ImageIcon size={20} />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">Ảnh giao dịch</h4>
+                                        <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mt-0.5">Chỉ tải khi bấm xem</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h4 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">Ảnh giao dịch</h4>
-                                    <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mt-0.5">Chỉ tải khi bấm xem</p>
-                                </div>
+                                <button
+                                    type="button"
+                                    onClick={handleCloseTxImage}
+                                    className="p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-2xl transition-all"
+                                    aria-label="Đóng"
+                                >
+                                    <X size={22} />
+                                </button>
                             </div>
-                            <button
-                                type="button"
-                                onClick={handleCloseTxImage}
-                                className="p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-2xl transition-all"
-                                aria-label="Đóng"
-                            >
-                                <X size={22} />
-                            </button>
-                        </div>
 
-                        <div className="p-6 flex-1 overflow-auto bg-slate-50">
-                            {txImageLoading && (
-                                <div className="h-full min-h-[220px] flex items-center justify-center text-slate-400">
-                                    <div className="text-sm font-medium">Đang tải ảnh...</div>
-                                </div>
-                            )}
+                            <div className="p-6 flex-1 overflow-auto bg-slate-50">
+                                {txImageLoading && (
+                                    <div className="h-full min-h-[220px] flex items-center justify-center text-slate-400">
+                                        <div className="text-sm font-medium">Đang tải ảnh...</div>
+                                    </div>
+                                )}
 
-                            {!txImageLoading && txImageError && (
-                                <div className="h-full min-h-[220px] flex items-center justify-center">
-                                    <div className="text-sm font-medium text-slate-500">{txImageError}</div>
-                                </div>
-                            )}
+                                {!txImageLoading && txImageError && (
+                                    <div className="h-full min-h-[220px] flex items-center justify-center">
+                                        <div className="text-sm font-medium text-slate-500">{txImageError}</div>
+                                    </div>
+                                )}
 
-                            {!txImageLoading && !txImageError && txImageUrl && (
-                                <div className="flex items-center justify-center">
-                                    <img
-                                        src={txImageUrl}
-                                        alt="Ảnh giao dịch"
-                                        className="max-h-[calc(100vh-160px)] sm:max-h-[70vh] w-auto max-w-full rounded-2xl border border-slate-200 shadow-sm"
-                                    />
-                                </div>
-                            )}
+                                {!txImageLoading && !txImageError && txImageUrl && (
+                                    <div className="flex items-center justify-center">
+                                        <img
+                                            src={txImageUrl}
+                                            alt="Ảnh giao dịch"
+                                            className="max-h-[calc(100vh-160px)] sm:max-h-[70vh] w-auto max-w-full rounded-2xl border border-slate-200 shadow-sm"
+                                        />
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             <DeleteConfirmationModal
                 isOpen={isTxDeleteModalOpen}
@@ -850,7 +854,7 @@ export default function Customers() {
                                     <Link
                                         to={`/customers/${customer.id}/debt`}
                                         onClick={(e) => e.stopPropagation()}
-                                        className="w-full flex items-center justify-center gap-2 text-[11px] font-bold uppercase tracking-wider text-blue-600 hover:text-white hover:bg-blue-600 border border-blue-100 hover:border-blue-600 transition-all px-4 py-2.5 rounded-xl shadow-sm group/btn"
+                                        className="w-full flex items-center justify-center gap-2 text-[11px] font-bold uppercase tracking-wider text-blue-600 hover:text-white hover:bg-blue-600 border border-blue-100 hover:border-blue-600 transition-all px-4 py-4 rounded-2xl shadow-sm group/btn"
                                     >
                                         Xem chi tiết nợ <ChevronRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
                                     </Link>

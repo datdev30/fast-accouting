@@ -647,8 +647,8 @@ export default function Transactions() {
                     <p className="section-subtitle">Quản lý các giao dịch vay và nợ</p>
                 </div>
 
-                <div className="flex gap-2 flex-wrap items-center justify-end">
-                    <div className="flex gap-2 items-center bg-white p-1 rounded-xl border border-slate-200">
+                <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+                    <div className="flex w-full sm:w-auto justify-between gap-2 items-center bg-white p-1 rounded-xl border border-slate-200">
                         <DateInput
                             value={startDate}
                             onChange={e => setStartDate(e.target.value)}
@@ -673,13 +673,13 @@ export default function Transactions() {
                     </div>
 
                     {/* Combined Customer Filter Combobox */}
-                    <div className="relative group" ref={filterComboboxRef}>
+                    <div className="relative group w-full sm:w-auto" ref={filterComboboxRef}>
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors">
                             <Search size={18} />
                         </div>
                         <input
                             type="text"
-                            className="input input-icon pr-10 min-w-[280px]"
+                            className="input input-icon pr-10 w-full sm:min-w-[280px]"
                             value={customerSearchTerm}
                             onChange={e => {
                                 setCustomerSearchTerm(e.target.value);
@@ -760,7 +760,7 @@ export default function Transactions() {
                             }
                             setIsOpen(true);
                         }}
-                        className="btn-primary btn-md"
+                        className="btn-primary btn-md w-full sm:w-auto justify-center"
                     >
                         <Plus size={18} />
                         Tạo Giao Dịch
@@ -1210,132 +1210,209 @@ export default function Transactions() {
                 {isLoadingTransactions ? (
                     <SkeletonTable rows={8} columns={10} />
                 ) : (
-                    <div className="overflow-x-auto">
-                        <table className="table">
-                            <thead className="table-head">
-                                <tr>
-                                    <th className="table-th">
-                                        <div className="flex items-center gap-2">
-                                            Ngày GD
-                                        </div>
-                                    </th>
-                                    <th className="table-th">
-                                        <div className="flex items-center gap-2">
-                                            Khách hàng
-                                        </div>
-                                    </th>
-                                    <th className="table-th">
-                                        <div className="flex items-center gap-2">
-                                            Loại
-                                        </div>
-                                    </th>
-                                    <th className="table-th">Nội dung</th>
-                                    <th className="table-th text-right">
-                                        <div className="flex items-center justify-end gap-2">
-                                            Tiền gốc
-                                        </div>
-                                    </th>
-                                    <th className="table-th text-center">Lãi suất</th>
-                                    <th className="table-th text-center">Thời gian</th>
-                                    <th className="table-th text-right">Tiền lãi</th>
-                                    <th className="table-th text-right">Tổng cộng</th>
-                                    <th className="table-th text-center">
-                                        <div className="flex items-center justify-center gap-2">
-                                            Trạng thái
-                                        </div>
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                                {filteredTransactions?.map((tx) => {
-                                    const customerName = customers?.find(c => c.id === (tx.customer_id || tx.customer?.id || tx.customer))?.name || 'Không xác định';
-                                    const typeConfig = configs?.find(c => c.code === tx.type);
-                                    const typeName = typeConfig ? typeConfig.name : tx.type;
-                                    const calc = tx.interest_calculation;
-                                    const total = tx.amount + (calc?.rounded_interest || 0);
+                    <>
+                        {/* Mobile Card View (<= md) */}
+                        <div className="md:hidden divide-y divide-slate-100">
+                            {filteredTransactions?.map((tx) => {
+                                const customerName = customers?.find(c => c.id === (tx.customer_id || tx.customer?.id || tx.customer))?.name || 'Không xác định';
+                                const typeConfig = configs?.find(c => c.code === tx.type);
+                                const typeName = typeConfig ? typeConfig.name : tx.type;
+                                const calc = tx.interest_calculation;
+                                const total = tx.amount + (calc?.rounded_interest || 0);
 
-
-                                    return (
-                                        <tr
-                                            key={tx._id}
-                                            className={clsx(
-                                                "table-row",
-                                                tx.status === 'PAID' && "!bg-emerald-50 hover:!bg-emerald-100/60"
-                                            )}
-                                            onClick={() => handleEdit(tx)}
-                                        >
-                                            <td className="table-td whitespace-nowrap">
-                                                {formatDate(tx.transaction_date)}
-                                            </td>
-                                            <td className="table-td whitespace-nowrap font-medium text-slate-800">
-                                                {customerName}
-                                            </td>
-                                            <td className="table-td whitespace-nowrap">
-                                                <span className={clsx(
-                                                    "px-2.5 py-1 rounded-lg text-xs font-bold",
-                                                    tx.type?.includes('TIEN_MAT')
-                                                        ? 'bg-emerald-50 text-emerald-700'
-                                                        : tx.type?.includes('MUA_HANG')
-                                                            ? 'bg-blue-50 text-blue-700'
-                                                            : 'bg-slate-100 text-slate-900'
-                                                )}>
-                                                    {typeName}
-                                                </span>
-                                            </td>
-                                            <td className="table-td text-slate-600 max-w-xs whitespace-pre-wrap leading-relaxed font-normal">
-                                                {tx.content}
-                                            </td>
-                                            <td className="table-td whitespace-nowrap text-right font-mono font-medium text-slate-700">
-                                                {tx.amount.toLocaleString('vi-VN')}
-                                            </td>
-                                            <td className="table-td whitespace-nowrap text-center text-slate-500 font-medium">
-                                                {tx.interest_rate_snapshot}%
-                                            </td>
-                                            <td className="table-td whitespace-nowrap text-center font-medium">
-                                                {calc ? (
-                                                    <span className="badge-neutral">
-                                                        {calc?.months.toFixed(1) || 0} tháng
+                                return (
+                                    <div
+                                        key={tx._id}
+                                        onClick={() => handleEdit(tx)}
+                                        className={clsx(
+                                            "p-4 active:bg-slate-50 transition-colors",
+                                            tx.status === 'PAID' && "bg-emerald-50/60"
+                                        )}
+                                    >
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="min-w-0">
+                                                <div className="text-xs font-semibold text-slate-500">
+                                                    {formatDate(tx.transaction_date)}
+                                                </div>
+                                                <div className="mt-0.5 font-bold text-slate-900 truncate">
+                                                    {customerName}
+                                                </div>
+                                                <div className="mt-2 flex items-center gap-2 flex-wrap">
+                                                    <span className={clsx(
+                                                        "px-2.5 py-1 rounded-lg text-xs font-bold",
+                                                        tx.type?.includes('TIEN_MAT')
+                                                            ? 'bg-emerald-50 text-emerald-700'
+                                                            : tx.type?.includes('MUA_HANG')
+                                                                ? 'bg-blue-50 text-blue-700'
+                                                                : 'bg-slate-100 text-slate-900'
+                                                    )}>
+                                                        {typeName}
                                                     </span>
-                                                ) : <span className="text-slate-300">-</span>}
-                                            </td>
-                                            <td className="table-td whitespace-nowrap text-right font-mono font-medium text-blue-600">
-                                                {calc ? `+ ${calc?.rounded_interest.toLocaleString('vi-VN')}` : '-'}
-                                            </td>
-                                            <td className="table-td whitespace-nowrap text-right font-mono font-semibold text-slate-900">
-                                                {calc ? total.toLocaleString('vi-VN') : tx.amount.toLocaleString('vi-VN')}
-                                            </td>
-                                            <td className="table-td whitespace-nowrap text-center">
-                                                <button
-                                                    onClick={(e) => handleStatusToggle(e, tx)}
-                                                    className={clsx(
-                                                        "badge",
-                                                        tx.status === 'PAID'
-                                                            ? "badge-success"
-                                                            : "badge-warning"
-                                                    )}
-                                                >
-                                                    {tx.status === 'PAID' ? 'Đã thanh toán' : 'Chưa thu'}
-                                                </button>
+                                                    <span className="badge-neutral">{tx.interest_rate_snapshot}%</span>
+                                                    <span className="badge-neutral">
+                                                        {calc ? `${calc?.months.toFixed(1) || 0} tháng` : '- tháng'}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <button
+                                                onClick={(e) => handleStatusToggle(e, tx)}
+                                                className={clsx(
+                                                    "badge shrink-0",
+                                                    tx.status === 'PAID' ? "badge-success" : "badge-warning"
+                                                )}
+                                            >
+                                                {tx.status === 'PAID' ? 'Đã thanh toán' : 'Chưa thu'}
+                                            </button>
+                                        </div>
+
+                                        <div className="mt-3 grid grid-cols-2 gap-3 bg-slate-50/50 rounded-2xl p-3 border border-slate-100">
+                                            <div>
+                                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tiền gốc</div>
+                                                <div className="mt-1 font-mono text-sm font-bold text-slate-700">
+                                                    {tx.amount.toLocaleString('vi-VN')}
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <div className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Tiền lãi</div>
+                                                <div className="mt-1 font-mono text-sm font-bold text-blue-600">
+                                                    {calc ? `+ ${calc?.rounded_interest.toLocaleString('vi-VN')}` : '-'}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tổng cộng</div>
+                                                <div className="mt-1 font-mono text-base font-black text-slate-900">
+                                                    {calc ? total.toLocaleString('vi-VN') : tx.amount.toLocaleString('vi-VN')}
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nội dung</div>
+                                                <div className="mt-1 text-sm font-medium text-slate-600 line-clamp-2 whitespace-pre-wrap">
+                                                    {tx.content || '-'}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+
+                            {filteredTransactions?.length === 0 && (
+                                <div className="py-16 text-center">
+                                    <div className="flex flex-col items-center justify-center text-slate-400">
+                                        <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 border border-dashed border-slate-200">
+                                            <Search size={32} className="opacity-40" />
+                                        </div>
+                                        <p className="font-medium text-slate-500">Chưa có giao dịch nào</p>
+                                        <p className="text-sm mt-1">Thử thay đổi bộ lọc hoặc tạo giao dịch mới</p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Desktop Table View (>= md) */}
+                        <div className="hidden md:block overflow-x-auto">
+                            <table className="table min-w-[1000px]">
+                                <thead className="table-head">
+                                    <tr>
+                                        <th className="table-th">
+                                            <div className="flex items-center gap-2">Ngày GD</div>
+                                        </th>
+                                        <th className="table-th">
+                                            <div className="flex items-center gap-2">Khách hàng</div>
+                                        </th>
+                                        <th className="table-th">
+                                            <div className="flex items-center gap-2">Loại</div>
+                                        </th>
+                                        <th className="table-th">Nội dung</th>
+                                        <th className="table-th text-right">
+                                            <div className="flex items-center justify-end gap-2">Tiền gốc</div>
+                                        </th>
+                                        <th className="table-th text-center">Lãi suất</th>
+                                        <th className="table-th text-center">Thời gian</th>
+                                        <th className="table-th text-right">Tiền lãi</th>
+                                        <th className="table-th text-right">Tổng cộng</th>
+                                        <th className="table-th text-center">
+                                            <div className="flex items-center justify-center gap-2">Trạng thái</div>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {filteredTransactions?.map((tx) => {
+                                        const customerName = customers?.find(c => c.id === (tx.customer_id || tx.customer?.id || tx.customer))?.name || 'Không xác định';
+                                        const typeConfig = configs?.find(c => c.code === tx.type);
+                                        const typeName = typeConfig ? typeConfig.name : tx.type;
+                                        const calc = tx.interest_calculation;
+                                        const total = tx.amount + (calc?.rounded_interest || 0);
+
+
+                                        return (
+                                            <tr
+                                                key={tx._id}
+                                                className={clsx(
+                                                    "table-row",
+                                                    tx.status === 'PAID' && "!bg-emerald-50 hover:!bg-emerald-100/60"
+                                                )}
+                                                onClick={() => handleEdit(tx)}
+                                            >
+                                                <td className="table-td whitespace-nowrap">{formatDate(tx.transaction_date)}</td>
+                                                <td className="table-td whitespace-nowrap font-medium text-slate-800">{customerName}</td>
+                                                <td className="table-td whitespace-nowrap">
+                                                    <span className={clsx(
+                                                        "px-2.5 py-1 rounded-lg text-xs font-bold",
+                                                        tx.type?.includes('TIEN_MAT')
+                                                            ? 'bg-emerald-50 text-emerald-700'
+                                                            : tx.type?.includes('MUA_HANG')
+                                                                ? 'bg-blue-50 text-blue-700'
+                                                                : 'bg-slate-100 text-slate-900'
+                                                    )}>
+                                                        {typeName}
+                                                    </span>
+                                                </td>
+                                                <td className="table-td text-slate-600 max-w-xs whitespace-pre-wrap leading-relaxed font-normal">{tx.content}</td>
+                                                <td className="table-td whitespace-nowrap text-right font-mono font-medium text-slate-700">{tx.amount.toLocaleString('vi-VN')}</td>
+                                                <td className="table-td whitespace-nowrap text-center text-slate-500 font-medium">{tx.interest_rate_snapshot}%</td>
+                                                <td className="table-td whitespace-nowrap text-center font-medium">
+                                                    {calc ? (
+                                                        <span className="badge-neutral">{calc?.months.toFixed(1) || 0} tháng</span>
+                                                    ) : <span className="text-slate-300">-</span>}
+                                                </td>
+                                                <td className="table-td whitespace-nowrap text-right font-mono font-medium text-blue-600">
+                                                    {calc ? `+ ${calc?.rounded_interest.toLocaleString('vi-VN')}` : '-'}
+                                                </td>
+                                                <td className="table-td whitespace-nowrap text-right font-mono font-semibold text-slate-900">
+                                                    {calc ? total.toLocaleString('vi-VN') : tx.amount.toLocaleString('vi-VN')}
+                                                </td>
+                                                <td className="table-td whitespace-nowrap text-center">
+                                                    <button
+                                                        onClick={(e) => handleStatusToggle(e, tx)}
+                                                        className={clsx(
+                                                            "badge",
+                                                            tx.status === 'PAID' ? "badge-success" : "badge-warning"
+                                                        )}
+                                                    >
+                                                        {tx.status === 'PAID' ? 'Đã thanh toán' : 'Chưa thu'}
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        )
+                                    })}
+                                    {filteredTransactions?.length === 0 && (
+                                        <tr>
+                                            <td colSpan="10" className="table-td py-16 text-center">
+                                                <div className="flex flex-col items-center justify-center text-slate-400">
+                                                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 border border-dashed border-slate-200">
+                                                        <Search size={32} className="opacity-40" />
+                                                    </div>
+                                                    <p className="font-medium text-slate-500">Chưa có giao dịch nào</p>
+                                                    <p className="text-sm mt-1">Thử thay đổi bộ lọc hoặc tạo giao dịch mới</p>
+                                                </div>
                                             </td>
                                         </tr>
-                                    )
-                                })}
-                                {filteredTransactions?.length === 0 && (
-                                    <tr>
-                                        <td colSpan="10" className="table-td py-16 text-center">
-                                            <div className="flex flex-col items-center justify-center text-slate-400">
-                                                <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 border border-dashed border-slate-200">
-                                                    <Search size={32} className="opacity-40" />
-                                                </div>
-                                                <p className="font-medium text-slate-500">Chưa có giao dịch nào</p>
-                                                <p className="text-sm mt-1">Thử thay đổi bộ lọc hoặc tạo giao dịch mới</p>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </>
                 )}
             </div>
             {isImagePickerOpen && (

@@ -12,6 +12,8 @@ body,
   /* Prevent body scroll, delegate to Layout */
   overscroll-behavior: none;
   /* Disable pull-to-refresh / rubber banding */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  background-color: var(--color-slate-50);
 }
 
 @media print {
@@ -27,6 +29,9 @@ body,
 
 body {
   @apply bg-slate-50 text-slate-900 antialiased selection:bg-blue-100 selection:text-blue-900;
+  /* Ensure background covers safe areas */
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
 }
 
 @layer components {
@@ -87,7 +92,7 @@ body {
 
   /* Inputs */
   .input {
-    @apply w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm transition-all text-sm font-medium text-slate-700 placeholder:text-slate-400 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed;
+    @apply w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm transition-all text-base md:text-sm font-medium text-slate-700 placeholder:text-slate-400 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed;
   }
 
   .input-icon {
@@ -95,11 +100,11 @@ body {
   }
 
   .select {
-    @apply w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm transition-all text-sm font-medium text-slate-700 placeholder:text-slate-400 appearance-none cursor-pointer disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed;
+    @apply w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm transition-all text-base md:text-sm font-medium text-slate-700 placeholder:text-slate-400 appearance-none cursor-pointer disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed;
   }
 
   .textarea {
-    @apply w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm transition-all text-sm font-medium text-slate-700 placeholder:text-slate-400 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed resize-none;
+    @apply w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm transition-all text-base md:text-sm font-medium text-slate-700 placeholder:text-slate-400 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed resize-none;
   }
 
   /* Tables */
@@ -108,15 +113,15 @@ body {
   }
 
   .table-head {
-    @apply bg-white border-b border-slate-100 text-xs font-bold text-slate-400 uppercase tracking-wider;
+    @apply bg-white border-b border-slate-100 text-[11px] md:text-xs font-bold text-slate-400 uppercase tracking-wider;
   }
 
   .table-th {
-    @apply px-6 py-4;
+    @apply px-3 py-3 md:px-6 md:py-4;
   }
 
   .table-td {
-    @apply px-6 py-4;
+    @apply px-3 py-3 md:px-6 md:py-4;
   }
 
   .table-row {

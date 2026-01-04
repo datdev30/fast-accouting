@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getDebtReport } from '../services/api';
-import { Download, TrendingUp, Wallet, ArrowUpRight, ArrowDownRight, PieChart, Search, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Download, TrendingUp, Wallet, ArrowUpRight, ArrowDownRight, PieChart, Search, ArrowUpDown, ArrowUp, ArrowDown, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
@@ -206,7 +206,7 @@ export default function Reports() {
                         />
                     </div>
                 </div>
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto hidden md:block">
                     <table className="table min-w-[1000px]">
                         <thead className="table-head">
                             <tr>
@@ -321,6 +321,57 @@ export default function Reports() {
                             )}
                         </tbody>
                     </table>
+                </div>
+
+                {/* Mobile Card View */}
+                <div className="md:hidden divide-y divide-slate-100">
+                    {processedData.map((item) => (
+                        <div
+                            key={item.customer_id}
+                            onClick={() => navigate(`/customers/${item.customer_id}/debt`)}
+                            className="p-5 active:bg-slate-50 transition-colors"
+                        >
+                            <div className="flex justify-between items-start mb-3">
+                                <div>
+                                    <h4 className="font-bold text-slate-900 text-base">{item.customer_name}</h4>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <span className="badge-neutral text-[10px]">{item.transaction_count} GD</span>
+                                        {item.total_debt > 0 ? (
+                                            <span className="badge-warning text-[10px]">Đang nợ</span>
+                                        ) : (
+                                            <span className="badge-success text-[10px]">Hoàn tất</span>
+                                        )}
+                                    </div>
+                                </div>
+                                <ChevronRight size={18} className="text-slate-300" />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4 bg-slate-50/50 rounded-2xl p-4 border border-slate-100">
+                                <div>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Tổng gốc</p>
+                                    <p className="font-mono text-sm font-bold text-slate-700">{item.total_principal.toLocaleString('vi-VN')}</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1">Tổng lãi</p>
+                                    <p className="font-mono text-sm font-bold text-blue-600">+{item.total_interest.toLocaleString('vi-VN')}</p>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-1">Đã thu</p>
+                                    <p className="font-mono text-sm font-bold text-emerald-600">{item.total_collected?.toLocaleString('vi-VN') || 0}</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest mb-1">Còn nợ</p>
+                                    <p className="font-mono text-base font-black text-red-600">{item.total_debt.toLocaleString('vi-VN')}</p>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+
+                    {processedData.length === 0 && (
+                        <div className="py-20 text-center text-slate-400">
+                            <p>Chưa có dữ liệu nào.</p>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
