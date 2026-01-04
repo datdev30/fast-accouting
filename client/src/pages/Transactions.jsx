@@ -287,14 +287,10 @@ export default function Transactions() {
         }
     };
 
-    const openImagePicker = () => setIsImagePickerOpen(true);
-    const closeImagePicker = () => setIsImagePickerOpen(false);
     const pickFromCamera = () => {
-        closeImagePicker();
         fileInputRef.current?.click();
     };
     const pickFromFile = () => {
-        closeImagePicker();
         fileUploadInputRef.current?.click();
     };
 
@@ -848,7 +844,7 @@ export default function Transactions() {
                                                 if (hasImageIndicator) {
                                                     setIsImageDetailOpen(true);
                                                 } else {
-                                                    openImagePicker();
+                                                    setIsImagePickerOpen(true);
                                                 }
                                             }}
                                             title={hasImageIndicator ? "Xem ảnh giao dịch" : "Thêm ảnh giao dịch"}
@@ -978,6 +974,7 @@ export default function Transactions() {
                                             placeholder="Nhập nội dung vay/trả chi tiết..."
                                         />
                                     </div>
+
 
                                     {/* Hidden File Input (triggered from header) */}
                                     <input
@@ -1341,6 +1338,59 @@ export default function Transactions() {
                     </div>
                 )}
             </div>
+            {isImagePickerOpen && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[70] flex items-center justify-center p-4 animate-in fade-in duration-300">
+                    <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in duration-300">
+                        <div className="p-8 text-center border-b border-slate-50 bg-slate-50/50">
+                            <h3 className="text-xl font-bold text-slate-800 tracking-tight">Thêm ảnh giao dịch</h3>
+                            <p className="text-sm text-slate-500 mt-1 font-medium">Chọn phương thức để đính kèm hình ảnh</p>
+                        </div>
+
+                        <div className="p-8 grid grid-cols-2 gap-4">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setIsImagePickerOpen(false);
+                                    pickFromCamera();
+                                }}
+                                className="group flex flex-col items-center justify-center p-6 bg-slate-50 rounded-3xl border-2 border-transparent hover:border-emerald-200 hover:bg-emerald-50 transition-all active:scale-95"
+                            >
+                                <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-slate-400 group-hover:text-emerald-500 shadow-sm group-hover:shadow-emerald-100 transition-all duration-300 mb-4 border border-slate-100">
+                                    <Camera size={32} />
+                                </div>
+                                <span className="text-sm font-bold text-slate-700 group-hover:text-emerald-700">Chụp ảnh</span>
+                                <span className="text-[10px] text-slate-400 mt-1 uppercase tracking-widest font-bold">Camera</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setIsImagePickerOpen(false);
+                                    pickFromFile();
+                                }}
+                                className="group flex flex-col items-center justify-center p-6 bg-slate-50 rounded-3xl border-2 border-transparent hover:border-blue-200 hover:bg-blue-50 transition-all active:scale-95"
+                            >
+                                <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-slate-400 group-hover:text-blue-500 shadow-sm group-hover:shadow-blue-100 transition-all duration-300 mb-4 border border-slate-100">
+                                    <ImageIcon size={32} />
+                                </div>
+                                <span className="text-sm font-bold text-slate-700 group-hover:text-blue-700">Tải lên</span>
+                                <span className="text-[10px] text-slate-400 mt-1 uppercase tracking-widest font-bold">Thư viện</span>
+                            </button>
+                        </div>
+
+                        <div className="px-8 pb-8">
+                            <button
+                                type="button"
+                                onClick={() => setIsImagePickerOpen(false)}
+                                className="w-full py-4 text-sm font-bold text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-2xl transition-all uppercase tracking-widest"
+                            >
+                                Đóng cửa sổ
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {isImageDetailOpen && (
                 <ImageDetailModal
                     isOpen={isImageDetailOpen}
@@ -1348,7 +1398,7 @@ export default function Transactions() {
                     onClose={() => setIsImageDetailOpen(false)}
                     onUpdate={() => {
                         setIsImageDetailOpen(false);
-                        openImagePicker();
+                        setIsImagePickerOpen(true);
                     }}
                     onDelete={() => {
                         setIsImageDetailOpen(false);
@@ -1361,61 +1411,6 @@ export default function Transactions() {
                 />
             )}
 
-            {isImagePickerOpen && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-                    <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-                        <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-200">
-                                    <ImageIcon size={18} />
-                                </div>
-                                <div>
-                                    <div className="text-lg font-bold text-slate-900 leading-tight">
-                                        {txImageUrl ? 'Đổi ảnh giao dịch' : 'Thêm ảnh giao dịch'}
-                                    </div>
-                                    <div className="text-xs text-slate-500 font-medium mt-1">Chọn nguồn ảnh</div>
-                                </div>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={closeImagePicker}
-                                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-2xl transition-all"
-                                aria-label="Đóng"
-                            >
-                                <X size={22} />
-                            </button>
-                        </div>
-
-                        <div className="p-6 space-y-3">
-                            <button
-                                type="button"
-                                onClick={pickFromCamera}
-                                disabled={!!editingId && uploadImageMutation.isPending}
-                                className="w-full btn btn-primary btn-lg"
-                            >
-                                <Camera size={18} />
-                                Chụp từ camera
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={pickFromFile}
-                                disabled={!!editingId && uploadImageMutation.isPending}
-                                className="w-full btn btn-secondary btn-lg"
-                            >
-                                <ImageIcon size={18} />
-                                Tải ảnh lên
-                            </button>
-
-                            {txImageError && (
-                                <div className="text-sm text-red-600 font-medium pt-1">{txImageError}</div>
-                            )}
-
-                            <div className="text-xs text-slate-400 pt-1">Giới hạn dung lượng: 5MB</div>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             <DeleteConfirmationModal
                 isOpen={isDeleteImageModalOpen}
