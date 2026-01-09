@@ -445,7 +445,7 @@ const CustomerDebtDetail = () => {
                                                     <th className="px-6 py-3 whitespace-nowrap">Ngày</th>
                                                     <th className="px-6 py-3 whitespace-nowrap">Loại dịch vụ</th>
                                                     <th className="px-6 py-3 min-w-[300px]">Nội dung</th>
-                                                    <th className="px-6 py-3 text-right whitespace-nowrap">Tiền vay</th>
+                                                    <th className="px-6 py-3 text-right whitespace-nowrap">Tiền gốc</th>
                                                     <th className="px-6 py-3 text-center whitespace-nowrap">Lãi suất</th>
                                                     <th className="px-6 py-3 text-center whitespace-nowrap">Thời gian</th>
                                                     <th className="px-6 py-3 text-right whitespace-nowrap">Tiền lãi</th>
