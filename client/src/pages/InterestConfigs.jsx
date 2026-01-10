@@ -7,6 +7,9 @@ import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
 import { getInterestConfigColorScheme } from '../utils/colorSchemes';
+import LoadingSkeleton from '../components/LoadingSkeleton';
+import { EmptyStates } from '../components/EmptyState';
+import { ErrorStates } from '../components/ErrorState';
 
 export default function InterestConfigs() {
     const queryClient = useQueryClient();
@@ -22,9 +25,10 @@ export default function InterestConfigs() {
         description: ''
     });
 
-    const { data: configs, isLoading } = useQuery({
+    const { data: configs, isLoading, error, refetch } = useQuery({
         queryKey: ['interest-configs'],
-        queryFn: getInterestConfigs
+        queryFn: getInterestConfigs,
+        retry: 1
     });
 
     const createMutation = useMutation({
@@ -98,7 +102,24 @@ export default function InterestConfigs() {
         }
     };
 
-    if (isLoading) return <div className="p-8">Đang tải...</div>;
+    if (error) return (
+        <div className="p-8">
+            <ErrorStates.Network
+                error={error}
+                onRetry={refetch}
+                showDetails={true}
+            />
+        </div>
+    );
+
+    if (isLoading) return (
+        <div className="space-y-6">
+            <div className="h-20 skeleton"></div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+                <LoadingSkeleton.Card count={5} />
+            </div>
+        </div>
+    );
 
     return (
         <div className="space-y-6">
@@ -293,12 +314,11 @@ export default function InterestConfigs() {
                 })}
 
                 {configs?.length === 0 && (
-                    <div className="col-span-full py-16 flex flex-col items-center justify-center text-slate-400 bg-white rounded-2xl border border-dashed border-slate-200">
-                        <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 border border-dashed border-slate-200">
-                            <Percent size={32} className="opacity-40" />
-                        </div>
-                        <p className="font-medium text-slate-500">Chưa có cấu hình lãi suất</p>
-                        <p className="text-sm mt-1">Hãy thêm mức lãi suất chuẩn (vd. 2% Tiền mặt)</p>
+                    <div className="col-span-full">
+                        <EmptyStates.NoData
+                            action={() => { setIsEditing(false); setIsOpen(true); }}
+                            actionLabel="Thêm cấu hình đầu tiên"
+                        />
                     </div>
                 )}
             </div>

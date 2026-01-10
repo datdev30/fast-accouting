@@ -5,6 +5,9 @@ import { Download, TrendingUp, Wallet, ArrowUpRight, ArrowDownRight, PieChart, S
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
+import LoadingSkeleton from '../components/LoadingSkeleton';
+import { EmptyStates } from '../components/EmptyState';
+import { ErrorStates } from '../components/ErrorState';
 
 export default function Reports() {
     const navigate = useNavigate();
@@ -13,9 +16,10 @@ export default function Reports() {
     const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
-    const { data: report, isLoading } = useQuery({
+    const { data: report, isLoading, error: reportError, refetch } = useQuery({
         queryKey: ['debt-report'],
-        queryFn: getDebtReport
+        queryFn: getDebtReport,
+        retry: 1
     });
 
     const processedData = useMemo(() => {
@@ -61,9 +65,20 @@ export default function Reports() {
             : <ArrowDown size={14} className="text-blue-600" />;
     };
 
+    if (reportError) return (
+        <div className="p-8">
+            <ErrorStates.Network
+                error={reportError}
+                onRetry={refetch}
+                showDetails={true}
+            />
+        </div>
+    );
+
     if (isLoading) return (
-        <div className="flex justify-center items-center h-64">
-            <div className="animate-spin text-blue-600 w-8 h-8 border-2 border-current border-t-transparent rounded-full"></div>
+        <div className="space-y-8">
+            <LoadingSkeleton.Stats count={4} />
+            <LoadingSkeleton.Table rows={8} columns={7} />
         </div>
     );
 
@@ -309,13 +324,15 @@ export default function Reports() {
                             ))}
                             {processedData.length === 0 && (
                                 <tr>
-                                    <td colSpan="7" className="table-td py-16 text-center text-slate-400">
-                                        <div className="flex flex-col items-center gap-3">
-                                            <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center">
-                                                <PieChart size={24} className="opacity-50" />
-                                            </div>
-                                            <p>Chưa có dữ liệu công nợ nào.</p>
-                                        </div>
+                                    <td colSpan="7" className="table-td py-8">
+                                        {searchTerm ? (
+                                            <EmptyStates.NoResults
+                                                action={() => setSearchTerm('')}
+                                                actionLabel="Xóa tìm kiếm"
+                                            />
+                                        ) : (
+                                            <EmptyStates.NoReports />
+                                        )}
                                     </td>
                                 </tr>
                             )}
@@ -368,8 +385,15 @@ export default function Reports() {
                     ))}
 
                     {processedData.length === 0 && (
-                        <div className="py-20 text-center text-slate-400">
-                            <p>Chưa có dữ liệu nào.</p>
+                        <div className="py-8">
+                            {searchTerm ? (
+                                <EmptyStates.NoResults
+                                    action={() => setSearchTerm('')}
+                                    actionLabel="Xóa tìm kiếm"
+                                />
+                            ) : (
+                                <EmptyStates.NoReports />
+                            )}
                         </div>
                     )}
                 </div>

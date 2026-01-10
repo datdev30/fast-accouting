@@ -13,6 +13,8 @@ import DateInput from '../components/DateInput';
 import StatusDropdown from '../components/StatusDropdown';
 import { SkeletonCard } from '../components/SkeletonLoader';
 import { trapFocus } from '../utils/focusTrap';
+import { EmptyStates } from '../components/EmptyState';
+import { ErrorStates } from '../components/ErrorState';
 
 export default function Customers() {
     const queryClient = useQueryClient();
@@ -57,7 +59,11 @@ export default function Customers() {
         closed_at: new Date().toISOString().split('T')[0]
     });
 
-    const { data: customers, isLoading: isLoadingCustomers } = useQuery({ queryKey: ['customers'], queryFn: getCustomers });
+    const { data: customers, isLoading: isLoadingCustomers, error: customersError, refetch: refetchCustomers } = useQuery({
+        queryKey: ['customers'],
+        queryFn: getCustomers,
+        retry: 1
+    });
 
     // Fetch transactions for the currently edited customer
     const { data: customerTransactions, isLoading: isLoadingTransactions } = useQuery({
@@ -800,80 +806,94 @@ export default function Customers() {
             />
 
             {/* Customer Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                {isLoadingCustomers ? (
-                    // Show skeleton loaders while loading
-                    Array.from({ length: 8 }).map((_, i) => (
-                        <SkeletonCard key={i} />
-                    ))
-                ) : (
-                    filteredCustomers?.map(customer => {
-                        return (
-                            <div
-                                key={customer._id}
-                                onClick={() => handleEdit(customer)}
-                                className="group relative bg-white rounded-[2rem] border border-slate-100 p-5 shadow-sm hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 cursor-pointer overflow-hidden flex flex-col"
-                            >
-                                {/* Decorative Background Element */}
-                                <div className="absolute -top-12 -right-12 w-32 h-32 bg-gradient-to-br from-blue-50 to-indigo-50/30 rounded-full group-hover:scale-150 transition-transform duration-500 ease-out z-0 opacity-60"></div>
-
-                                {/* Paid in Full Ribbon */}
-                                {customer.is_paid_in_full && (
-                                    <div className="absolute top-0 right-0 z-20 text-center pointer-events-none overflow-hidden w-32 h-32">
-                                        <div className="absolute top-[24px] right-[-34px] rotate-45 bg-gradient-to-r from-emerald-500 to-green-600 text-white text-xs font-bold py-1.5 w-[160px] shadow-lg shadow-emerald-500/40 uppercase tracking-widest leading-none">
-                                            Đã tất toán
-                                        </div>
-                                    </div>
-                                )}
-
-                                <div className="flex items-center gap-4 mb-5 relative z-10">
-                                    {/* Avatar Circle */}
-                                    <div className="w-14 h-14 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center border border-slate-200 group-hover:bg-blue-50 group-hover:text-blue-500 group-hover:border-blue-100 transition-colors duration-300">
-                                        <User size={28} />
-                                    </div>
-                                    <div className="flex-1 min-w-0 text-center sm:text-left">
-                                        <h3 className="text-lg font-bold text-slate-900 truncate group-hover:text-blue-600 transition-colors">
-                                            {customer.name}
-                                        </h3>
-
-                                    </div>
-                                </div>
-
-                                <div className="space-y-3 mb-6 relative z-10">
-                                    <div className="flex items-start gap-2.5 text-slate-500 text-sm">
-                                        <div className="p-1.5 bg-slate-50 text-slate-400 rounded-lg group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors">
-                                            <MapPin size={14} />
-                                        </div>
-                                        <span className="leading-tight pt-0.5 line-clamp-2 italic font-medium text-slate-500">
-                                            {customer.contact_info || 'Chưa cập nhật địa chỉ'}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <div className="mt-auto pt-4 border-t border-slate-50 flex items-center justify-end relative z-10">
-                                    <Link
-                                        to={`/customers/${customer.id}/debt`}
-                                        onClick={(e) => e.stopPropagation()}
-                                        className="w-full flex items-center justify-center gap-2 text-[11px] font-bold uppercase tracking-wider text-blue-600 hover:text-white hover:bg-blue-600 border border-blue-100 hover:border-blue-600 transition-all px-4 py-4 rounded-2xl shadow-sm group/btn"
-                                    >
-                                        Xem chi tiết nợ <ChevronRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
-                                    </Link>
-                                </div>
-                            </div>
-                        );
-                    })
-                )}
-
-                {filteredCustomers?.length === 0 && (
-                    <div className="col-span-full py-16 flex flex-col items-center justify-center text-slate-400 bg-white rounded-2xl border border-dashed border-slate-200">
-                        <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 border border-dashed border-slate-200">
-                            <Users size={32} className="opacity-40" />
+            {customersError ? (
+                <ErrorStates.Network
+                    onRetry={refetchCustomers}
+                    error={customersError}
+                    showDetails={true}
+                />
+            ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                    {isLoadingCustomers ? (
+                        // Show skeleton loaders while loading
+                        Array.from({ length: 8 }).map((_, i) => (
+                            <SkeletonCard key={i} />
+                        ))
+                    ) : customers?.length === 0 ? (
+                        // No customers at all
+                        <div className="col-span-full">
+                            <EmptyStates.NoCustomers
+                                action={() => setIsOpen(true)}
+                                actionLabel="Thêm khách hàng đầu tiên"
+                            />
                         </div>
-                        <p className="font-medium text-slate-500">Không tìm thấy khách hàng</p>
-                        <p className="text-sm mt-1">Thử tìm từ khóa khác hoặc thêm khách hàng mới</p>
-                    </div>
-                )}
-            </div >
+                    ) : filteredCustomers?.length === 0 ? (
+                        // Filtered results empty
+                        <div className="col-span-full">
+                            <EmptyStates.NoResults
+                                action={() => setSearchTerm('')}
+                                actionLabel="Xóa bộ lọc"
+                            />
+                        </div>
+                    ) : (
+                        filteredCustomers?.map(customer => {
+                            return (
+                                <div
+                                    key={customer._id}
+                                    onClick={() => handleEdit(customer)}
+                                    className="group relative bg-white rounded-[2rem] border border-slate-100 p-5 shadow-sm hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 cursor-pointer overflow-hidden flex flex-col"
+                                >
+                                    {/* Decorative Background Element */}
+                                    <div className="absolute -top-12 -right-12 w-32 h-32 bg-gradient-to-br from-blue-50 to-indigo-50/30 rounded-full group-hover:scale-150 transition-transform duration-500 ease-out z-0 opacity-60"></div>
+
+                                    {/* Paid in Full Ribbon */}
+                                    {customer.is_paid_in_full && (
+                                        <div className="absolute top-0 right-0 z-20 text-center pointer-events-none overflow-hidden w-32 h-32">
+                                            <div className="absolute top-[24px] right-[-34px] rotate-45 bg-gradient-to-r from-emerald-500 to-green-600 text-white text-xs font-bold py-1.5 w-[160px] shadow-lg shadow-emerald-500/40 uppercase tracking-widest leading-none">
+                                                Đã tất toán
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="flex items-center gap-4 mb-5 relative z-10">
+                                        {/* Avatar Circle */}
+                                        <div className="w-14 h-14 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center border border-slate-200 group-hover:bg-blue-50 group-hover:text-blue-500 group-hover:border-blue-100 transition-colors duration-300">
+                                            <User size={28} />
+                                        </div>
+                                        <div className="flex-1 min-w-0 text-center sm:text-left">
+                                            <h3 className="text-lg font-bold text-slate-900 truncate group-hover:text-blue-600 transition-colors">
+                                                {customer.name}
+                                            </h3>
+
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-3 mb-6 relative z-10">
+                                        <div className="flex items-start gap-2.5 text-slate-500 text-sm">
+                                            <div className="p-1.5 bg-slate-50 text-slate-400 rounded-lg group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors">
+                                                <MapPin size={14} />
+                                            </div>
+                                            <span className="leading-tight pt-0.5 line-clamp-2 italic font-medium text-slate-500">
+                                                {customer.contact_info || 'Chưa cập nhật địa chỉ'}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-auto pt-4 border-t border-slate-50 flex items-center justify-end relative z-10">
+                                        <Link
+                                            to={`/customers/${customer.id}/debt`}
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="w-full flex items-center justify-center gap-2 text-[11px] font-bold uppercase tracking-wider text-blue-600 hover:text-white hover:bg-blue-600 border border-blue-100 hover:border-blue-600 transition-all px-4 py-4 rounded-2xl shadow-sm group/btn"
+                                        >
+                                            Xem chi tiết nợ <ChevronRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
+                                        </Link>
+                                    </div>
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
+            )}
         </div >
     );
 }

@@ -1,15 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { LogIn, UserPlus, Lock, User, AlertCircle, ArrowRight } from 'lucide-react';
+import { LogIn, UserPlus, Lock, User, AlertCircle, ArrowRight, Eye, EyeOff } from 'lucide-react';
 
 export default function Login() {
     const [formData, setFormData] = useState({ username: '', password: '' });
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     const { login } = useAuth();
     const navigate = useNavigate();
+
+    const usernameRef = useRef(null);
+    const passwordRef = useRef(null);
+
+    // Focus on error field when error occurs
+    useEffect(() => {
+        if (error) {
+            // Determine which field has the error and focus it
+            if (error.toLowerCase().includes('username') || error.toLowerCase().includes('tài khoản')) {
+                usernameRef.current?.focus();
+            } else if (error.toLowerCase().includes('password') || error.toLowerCase().includes('mật khẩu')) {
+                passwordRef.current?.focus();
+            }
+        }
+    }, [error]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -42,22 +58,32 @@ export default function Login() {
                     </div>
 
                     {error && (
-                        <div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 rounded-xl flex items-center gap-3 text-red-200 animate-in fade-in slide-in-from-top-2">
-                            <AlertCircle size={20} />
+                        <div
+                            className="mb-6 p-4 bg-red-500/20 border border-red-500/30 rounded-xl flex items-center gap-3 text-red-200 animate-fade-in"
+                            role="alert"
+                            aria-live="assertive"
+                        >
+                            <AlertCircle size={20} className="flex-shrink-0" />
                             <span className="text-sm font-medium">{error}</span>
                         </div>
                     )}
 
                     <form onSubmit={handleSubmit} className="space-y-5">
                         <div className="space-y-1.5">
-                            <label className="text-sm font-medium text-blue-100 ml-1">Tài khoản</label>
+                            <label htmlFor="username" className="text-sm font-medium text-blue-100 ml-1">
+                                Tài khoản
+                            </label>
                             <div className="relative group">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-blue-300 group-focus-within:text-white transition-colors">
                                     <User size={18} />
                                 </div>
                                 <input
+                                    ref={usernameRef}
+                                    id="username"
+                                    name="username"
                                     type="text"
                                     required
+                                    autoComplete="username"
                                     className="w-full bg-slate-800/50 border border-slate-700/50 text-white placeholder-slate-500 rounded-xl pl-10 pr-4 py-3 outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all font-medium"
                                     placeholder="Nhập tên đăng nhập"
                                     value={formData.username}
@@ -67,29 +93,47 @@ export default function Login() {
                         </div>
 
                         <div className="space-y-1.5">
-                            <label className="text-sm font-medium text-blue-100 ml-1">Mật khẩu</label>
+                            <label htmlFor="password" className="text-sm font-medium text-blue-100 ml-1">
+                                Mật khẩu
+                            </label>
                             <div className="relative group">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-blue-300 group-focus-within:text-white transition-colors">
                                     <Lock size={18} />
                                 </div>
                                 <input
-                                    type="password"
+                                    ref={passwordRef}
+                                    id="password"
+                                    name="password"
+                                    type={showPassword ? 'text' : 'password'}
                                     required
-                                    className="w-full bg-slate-800/50 border border-slate-700/50 text-white placeholder-slate-500 rounded-xl pl-10 pr-4 py-3 outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all font-medium"
+                                    autoComplete="current-password"
+                                    className="w-full bg-slate-800/50 border border-slate-700/50 text-white placeholder-slate-500 rounded-xl pl-10 pr-12 py-3 outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all font-medium"
                                     placeholder="••••••••"
                                     value={formData.password}
                                     onChange={e => setFormData({ ...formData, password: e.target.value })}
                                 />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-blue-300 hover:text-white transition-colors focus:outline-none focus:text-white"
+                                    aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                                    tabIndex={0}
+                                >
+                                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                </button>
                             </div>
                         </div>
 
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl font-bold shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:-translate-y-0.5 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 group"
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl font-bold shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:-translate-y-0.5 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 flex items-center justify-center gap-2 group"
                         >
                             {isLoading ? (
-                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                <>
+                                    <div className="spinner"></div>
+                                    <span>Đang đăng nhập...</span>
+                                </>
                             ) : (
                                 <>
                                     Đăng Nhập

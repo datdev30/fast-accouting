@@ -10,6 +10,9 @@ import { clsx } from 'clsx';
 import DateInput from '../components/DateInput';
 import { formatDate } from '../utils/dateUtils';
 import { useToast } from '../context/ToastContext';
+import LoadingSkeleton from '../components/LoadingSkeleton';
+import { EmptyStates } from '../components/EmptyState';
+import { ErrorStates } from '../components/ErrorState';
 
 const CustomerDebtDetail = () => {
     const { id } = useParams();
@@ -49,10 +52,11 @@ const CustomerDebtDetail = () => {
     // Prefer specific fetch, fallback to list (safeguard)
     const customer = customerData || customers?.find(c => c.id === id || c._id === id);
 
-    const { data: transactions, isLoading } = useQuery({
+    const { data: transactions, isLoading, error: transactionsError, refetch: refetchTransactions } = useQuery({
         queryKey: ['transactions', id, startDate, endDate],
         queryFn: () => getTransactions(id, startDate || undefined, endDate || undefined),
-        enabled: !!id
+        enabled: !!id,
+        retry: 1
     });
 
     const bulkPayMutation = useMutation({
@@ -398,15 +402,26 @@ const CustomerDebtDetail = () => {
             </div>
 
             {/* Transactions List */}
-            {isLoading ? (
-                <div className="flex justify-center p-12">
-                    <div className="animate-spin text-blue-600 w-8 h-8 border-2 border-current border-t-transparent rounded-full"></div>
+            {transactionsError ? (
+                <ErrorStates.Network
+                    error={transactionsError}
+                    onRetry={refetchTransactions}
+                    showDetails={true}
+                />
+            ) : isLoading ? (
+                <div className="space-y-6">
+                    <LoadingSkeleton.Table rows={5} columns={8} />
+                    <LoadingSkeleton.Table rows={4} columns={8} />
                 </div>
             ) : Object.keys(groupedTransactions).length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 bg-white rounded-2xl border border-dashed border-slate-200 text-slate-400">
-                    <FileText size={48} className="mb-4 opacity-20" />
-                    <p>Không tìm thấy khoản nợ nào trong khoảng thời gian này.</p>
-                </div>
+                (startDate || endDate) ? (
+                    <EmptyStates.NoResults
+                        action={() => { setStartDate(''); setEndDate(''); }}
+                        actionLabel="Xóa bộ lọc"
+                    />
+                ) : (
+                    <EmptyStates.NoTransactions />
+                )
             ) : (
                 <div className="space-y-6">
                     {Object.entries(groupedTransactionsDisplay)
