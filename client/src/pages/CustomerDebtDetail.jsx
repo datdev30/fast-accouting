@@ -5,9 +5,10 @@ import { getTransactions, getCustomers, getInterestConfigs, getCustomer } from '
 import api from '../services/api'; // Import default api instance
 import { useReactToPrint } from 'react-to-print';
 import PrintableReport from '../components/PrintableReport';
-import { ArrowLeft, Printer, Calendar, X, ChevronRight, FileText, Wallet, Percent, PiggyBank, CheckCircle, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Printer, Calendar, X, ChevronRight, FileText, Wallet, Percent, PiggyBank, CheckCircle, AlertCircle, Check, Clock, Search } from 'lucide-react';
 import { clsx } from 'clsx';
 import DateInput from '../components/DateInput';
+import DatePicker from '../components/DatePicker';
 import { formatDate } from '../utils/dateUtils';
 import { useToast } from '../context/ToastContext';
 import LoadingSkeleton from '../components/LoadingSkeleton';
@@ -165,7 +166,7 @@ const CustomerDebtDetail = () => {
         <div className="space-y-6">
             {/* Header */}
             {/* Header */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6">
                 <div>
                     <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-500 mb-2">
                         <Link to="/customers" className="hover:text-blue-600 transition-colors uppercase tracking-wider font-semibold">Khách hàng</Link>
@@ -241,7 +242,7 @@ const CustomerDebtDetail = () => {
                                         inputMode="numeric"
                                         maxLength={4}
                                         placeholder="••••"
-                                        className="input border-2 border-slate-100 px-4 py-4 font-mono font-bold text-center text-3xl tracking-[0.5em] text-slate-800 placeholder:text-slate-200"
+                                        className="input border-2 border-slate-100 px-4 py-4 md:py-5 font-mono font-bold text-center text-3xl md:text-4xl tracking-[0.5em] text-slate-800 placeholder:text-slate-200"
                                         value={bulkPin}
                                         onChange={e => setBulkPin(e.target.value.replace(/\D/g, ''))}
                                     />
@@ -320,7 +321,8 @@ const CustomerDebtDetail = () => {
             )}
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+            {/* Tablet: 2 cols portrait, 3 cols landscape; Desktop: 5 cols */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
                 {/* 1. Lifetime Principal */}
                 <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-5 rounded-2xl text-white shadow-lg shadow-blue-200 relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-4 opacity-10"><Wallet size={80} /></div>
@@ -367,35 +369,60 @@ const CustomerDebtDetail = () => {
                 </div>
             </div>
 
-            {/* Filters */}
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row items-stretch md:items-center gap-4">
-                <div className="flex items-center gap-2 text-slate-700">
-                    <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-                        <Calendar size={18} />
+            {/* Filters - Inline Style */}
+            <div className="flex items-center gap-1.5 border-b-2 border-slate-200 pb-2 focus-within:border-blue-500 transition-colors">
+                {/* Portrait: Inline */}
+                <div className="xl:hidden flex flex-1 items-center gap-1.5">
+                    <div className="flex-1 min-w-0">
+                        <DatePicker
+                            value={startDate}
+                            onChange={e => setStartDate(e.target.value)}
+                            placeholder="Từ ngày"
+                        />
                     </div>
-                    <span className="font-bold text-sm uppercase tracking-wider">Thời gian:</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <DateInput
-                        value={startDate}
-                        onChange={e => setStartDate(e.target.value)}
-                        className="w-36 bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium text-slate-700 text-sm transition-all"
-                        placeholder="Từ ngày"
-                    />
-                    <span className="text-slate-300 font-bold">-</span>
-                    <DateInput
-                        value={endDate}
-                        onChange={e => setEndDate(e.target.value)}
-                        className="w-36 bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium text-slate-700 text-sm transition-all"
-                        placeholder="Đến ngày"
-                    />
+                    <span className="text-slate-300 text-base font-medium shrink-0">-</span>
+                    <div className="flex-1 min-w-0">
+                        <DatePicker
+                            value={endDate}
+                            onChange={e => setEndDate(e.target.value)}
+                            placeholder="Đến ngày"
+                        />
+                    </div>
                     {(startDate || endDate) && (
                         <button
                             onClick={() => { setStartDate(''); setEndDate(''); }}
-                            className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                            className="ml-1 p-1.5 min-w-[32px] min-h-[32px] flex items-center justify-center text-red-500 hover:bg-red-50 rounded-md transition-colors shrink-0"
                             title="Xóa lọc"
                         >
-                            <X size={18} />
+                            <X size={16} />
+                        </button>
+                    )}
+                </div>
+
+                {/* Landscape: Inline */}
+                <div className="hidden xl:flex xl:items-center xl:gap-1.5">
+                    <div className="w-32">
+                        <DatePicker
+                            value={startDate}
+                            onChange={e => setStartDate(e.target.value)}
+                            placeholder="Từ ngày"
+                        />
+                    </div>
+                    <span className="text-slate-300 text-base font-medium shrink-0">-</span>
+                    <div className="w-32">
+                        <DatePicker
+                            value={endDate}
+                            onChange={e => setEndDate(e.target.value)}
+                            placeholder="Đến ngày"
+                        />
+                    </div>
+                    {(startDate || endDate) && (
+                        <button
+                            onClick={() => { setStartDate(''); setEndDate(''); }}
+                            className="ml-1 p-1.5 min-w-[32px] min-h-[32px] flex items-center justify-center text-red-500 hover:bg-red-50 rounded-md transition-colors shrink-0"
+                            title="Xóa lọc"
+                        >
+                            <X size={16} />
                         </button>
                     )}
                 </div>
@@ -450,8 +477,179 @@ const CustomerDebtDetail = () => {
                                             {isMonthFullyPaid && <span className="text-xs font-semibold px-2 py-1 rounded-md bg-emerald-100 text-emerald-700">Đã tất toán</span>}
                                         </div>
                                     </div>
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full min-w-[900px]">
+
+                                    {/* Mobile Card View (< md) */}
+                                    <div className="md:hidden divide-y divide-slate-100">
+                                        {sortedTxs.map(tx => {
+                                            const typeConfig = configs?.find(c => c.code === tx.type);
+                                            const typeName = typeConfig ? typeConfig.name : tx.type;
+                                            const calc = tx.interest_calculation;
+                                            const total = (tx.amount || 0) + (calc?.rounded_interest || 0);
+                                            const isCash = tx.type === 'TIEN_MAT';
+
+                                            return (
+                                                <div key={tx._id} className={clsx(
+                                                    "p-4",
+                                                    tx.status === 'PAID' ? "bg-emerald-50/60" : ""
+                                                )}>
+                                                    <div className="flex items-start justify-between gap-3 mb-3">
+                                                        <div className="min-w-0 flex-1">
+                                                            <div className="text-xs font-semibold text-slate-500 mb-1">
+                                                                {formatDate(tx.transaction_date)}
+                                                            </div>
+                                                            <div className="flex items-center gap-2 flex-wrap mb-2">
+                                                                <span className={clsx(
+                                                                    "px-2.5 py-1 rounded-lg text-xs font-bold",
+                                                                    isCash
+                                                                        ? 'bg-emerald-50 text-emerald-700'
+                                                                        : 'bg-blue-50 text-blue-700'
+                                                                )}>
+                                                                    {typeName}
+                                                                </span>
+                                                                <span className="text-xs text-slate-500">{tx.interest_rate_snapshot}%</span>
+                                                                {calc && <span className="text-xs text-slate-500">{(calc?.months || 0).toFixed(1)} tháng</span>}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-sm text-slate-700 mb-3 line-clamp-2">{tx.content}</div>
+                                                    <div className="grid grid-cols-2 gap-3 bg-slate-50/50 rounded-xl p-3">
+                                                        <div>
+                                                            <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">Tiền gốc</div>
+                                                            <div className="font-mono text-sm font-bold text-slate-700">{(tx.amount || 0).toLocaleString('vi-VN')}</div>
+                                                        </div>
+                                                        <div>
+                                                            <div className="text-[10px] font-bold text-blue-400 uppercase mb-1">Tiền lãi</div>
+                                                            <div className="font-mono text-sm font-bold text-blue-600">+{(calc?.rounded_interest || 0).toLocaleString('vi-VN')}</div>
+                                                        </div>
+                                                        <div className="col-span-2">
+                                                            <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">Tổng cộng</div>
+                                                            <div className="font-mono text-base font-black text-slate-900">{(total || 0).toLocaleString('vi-VN')} đ</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* Tablet Portrait Card View (md - xl) */}
+                                    <div className="hidden md:block xl:hidden">
+                                        <div className="space-y-4 p-4">
+                                            {sortedTxs.map(tx => {
+                                                const typeConfig = configs?.find(c => c.code === tx.type);
+                                                const typeName = typeConfig ? typeConfig.name : tx.type;
+                                                const calc = tx.interest_calculation;
+                                                const total = (tx.amount || 0) + (calc?.rounded_interest || 0);
+
+                                                return (
+                                                    <div
+                                                        key={tx._id}
+                                                        className={clsx(
+                                                            "relative rounded-xl border p-5 md:p-6 hover:shadow-md transition-all overflow-hidden",
+                                                            tx.status === 'PAID'
+                                                                ? "bg-emerald-50 border-emerald-200"
+                                                                : "bg-white border-slate-200"
+                                                        )}
+                                                    >
+                                                        {/* Badge "ĐÃ THANH TOÁN" - Góc trên phải */}
+                                                        {tx.status === 'PAID' && (
+                                                            <div className="absolute top-0 right-0 bg-emerald-500 text-white px-4 md:px-5 py-1.5 md:py-2 text-xs md:text-sm font-bold uppercase tracking-wider shadow-lg z-10">
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <Check size={14} className="md:w-4 md:h-4" />
+                                                                    <span>ĐÃ THANH TOÁN</span>
+                                                                </div>
+                                                                {/* Ribbon corner effect */}
+                                                                <div className="absolute -bottom-2 right-0 w-0 h-0 border-l-[12px] md:border-l-[16px] border-l-transparent border-t-[12px] md:border-t-[16px] border-t-emerald-600"></div>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Top Section: Date, Type */}
+                                                        <div className="flex items-center gap-3 flex-wrap mb-4 pb-4 border-b border-slate-100">
+                                                            <div className="text-base md:text-lg font-semibold text-slate-600">
+                                                                {formatDate(tx.transaction_date)}
+                                                            </div>
+                                                            <span className={clsx(
+                                                                "px-3 py-1.5 rounded-lg text-sm md:text-base font-bold",
+                                                                tx.type?.includes('TIEN_MAT')
+                                                                    ? 'bg-emerald-50 text-emerald-700'
+                                                                    : 'bg-blue-50 text-blue-700'
+                                                            )}>
+                                                                {typeName}
+                                                            </span>
+                                                            {calc && (
+                                                                <div className="flex items-center gap-2 text-sm text-slate-500">
+                                                                    <span>{tx.interest_rate_snapshot}%</span>
+                                                                    <span>•</span>
+                                                                    <span>{(calc?.months || 0).toFixed(1)} tháng</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Content */}
+                                                        <div className="mb-4">
+                                                            <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Nội dung</div>
+                                                            <div className="text-base text-slate-600 leading-relaxed line-clamp-2">
+                                                                {tx.content ? (
+                                                                    tx.content.includes('-') ? (
+                                                                        <div className="whitespace-pre-wrap">
+                                                                            {tx.content
+                                                                                .split(/\n/)
+                                                                                .flatMap(line => {
+                                                                                    // Nếu dòng có dấu -, split theo dấu - và giữ lại dấu -
+                                                                                    if (line.includes('-')) {
+                                                                                        return line.split(/(?=-)/).filter(part => part.trim());
+                                                                                    }
+                                                                                    return [line];
+                                                                                })
+                                                                                .filter(part => part.trim())
+                                                                                .map((part, idx) => {
+                                                                                    const trimmed = part.trim();
+                                                                                    return (
+                                                                                        <React.Fragment key={idx}>
+                                                                                            {idx > 0 && <br />}
+                                                                                            {trimmed}
+                                                                                        </React.Fragment>
+                                                                                    );
+                                                                                })}
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div>{tx.content}</div>
+                                                                    )
+                                                                ) : (
+                                                                    <span className="text-slate-400">-</span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Financial Info Grid */}
+                                                        <div className="grid grid-cols-3 gap-4 bg-gradient-to-br from-slate-50 to-slate-100/50 rounded-lg p-4 border border-slate-200">
+                                                            <div>
+                                                                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Tiền gốc</div>
+                                                                <div className="font-mono text-lg md:text-xl font-bold text-slate-700">
+                                                                    {(tx.amount || 0).toLocaleString('vi-VN')}
+                                                                </div>
+                                                            </div>
+                                                            <div>
+                                                                <div className="text-xs font-bold text-blue-400 uppercase tracking-widest mb-2">Tiền lãi</div>
+                                                                <div className="font-mono text-lg md:text-xl font-bold text-blue-600">
+                                                                    +{(calc?.rounded_interest || 0).toLocaleString('vi-VN')}
+                                                                </div>
+                                                            </div>
+                                                            <div>
+                                                                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Tổng cộng</div>
+                                                                <div className="font-mono text-xl md:text-2xl font-black text-slate-900">
+                                                                    {(total || 0).toLocaleString('vi-VN')}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* Desktop/Tablet Landscape Table View (≥ xl) */}
+                                    <div className="hidden xl:block overflow-x-auto">
+                                        <table className="w-full">
                                             <thead className={clsx(
                                                 "border-b border-slate-100 text-xs font-bold text-slate-400 uppercase tracking-wider text-left",
                                                 isMonthFullyPaid ? "bg-emerald-50/50" : "bg-white"
@@ -517,11 +715,9 @@ const CustomerDebtDetail = () => {
                                         </table>
                                     </div>
                                 </div>
-
                             );
                         })}
-
-                </div >
+                </div>
             )
             }
         </div >

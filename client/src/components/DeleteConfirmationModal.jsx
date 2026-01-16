@@ -87,7 +87,7 @@ const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, title, warningMes
                     </h3>
                     <button
                         onClick={onClose}
-                        className="text-red-300 hover:text-red-500 hover:bg-red-100 p-1.5 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
+                        className="text-red-300 hover:text-red-500 hover:bg-red-100 p-2 md:min-w-[44px] md:min-h-[44px] md:flex md:items-center md:justify-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
                         aria-label="Đóng"
                     >
                         <X size={24} />
@@ -135,7 +135,7 @@ const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, title, warningMes
                                     required
                                     maxLength={4}
                                     placeholder="••••"
-                                    className="w-full max-w-[320px] sm:w-80 text-center text-4xl sm:text-5xl font-bold tracking-[0.5em] text-slate-800 border-b-2 border-slate-200 focus:border-red-500 outline-none py-3 bg-transparent transition-colors placeholder:tracking-normal placeholder:text-3xl placeholder:text-slate-300"
+                                    className="w-full max-w-[320px] sm:w-80 text-center text-4xl sm:text-5xl md:text-5xl font-bold tracking-[0.5em] text-slate-800 border-b-2 border-slate-200 focus:border-red-500 outline-none py-3 md:py-4 bg-transparent transition-colors placeholder:tracking-normal placeholder:text-3xl placeholder:text-slate-300"
                                     value={pin}
                                     onChange={e => setPin(e.target.value.replace(/\D/g, ''))}
                                 />

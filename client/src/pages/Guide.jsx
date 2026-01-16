@@ -83,10 +83,26 @@ export default function Guide() {
     const [openIndex, setOpenIndex] = useState(0);
 
     return (
-        <div className="max-w-4xl mx-auto space-y-8 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div>
-                <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Hướng Dẫn Sử Dụng</h2>
-                <p className="text-slate-500 font-medium mt-1">Làm chủ hệ thống quản lý tài chính FastAccounting</p>
+        <div className="max-w-5xl mx-auto space-y-8 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Header Section - Portrait: Stack layout, Landscape: All in 1 Row */}
+            <div className="space-y-4 md:space-y-5 xl:space-y-0">
+                {/* Portrait: Stack layout */}
+                <div className="xl:hidden space-y-4 md:space-y-5">
+                    {/* Row 1: Title & Subtitle */}
+                    <div>
+                        <h2 className="section-title text-2xl md:text-3xl">Hướng Dẫn Sử Dụng</h2>
+                        <p className="section-subtitle text-sm md:text-base mt-1">Làm chủ hệ thống quản lý tài chính FastAccounting</p>
+                    </div>
+                </div>
+
+                {/* Landscape: All in 1 Row */}
+                <div className="hidden xl:flex xl:items-center xl:justify-between xl:gap-6">
+                    {/* Left: Title & Subtitle */}
+                    <div>
+                        <h2 className="section-title text-2xl 2xl:text-3xl">Hướng Dẫn Sử Dụng</h2>
+                        <p className="section-subtitle text-sm 2xl:text-base mt-1">Làm chủ hệ thống quản lý tài chính FastAccounting</p>
+                    </div>
+                </div>
             </div>
 
             <div className="space-y-4">
@@ -98,6 +114,13 @@ export default function Guide() {
                     color="indigo"
                 >
                     <p>Hệ thống FastAccounting được thiết kế để bạn quản lý dòng tiền, công nợ một cách nhanh chóng và chính xác nhất. Không gò bó trong quy trình cứng nhắc, bạn có thể thao tác linh hoạt tùy theo tình huống thực tế.</p>
+
+                    <SectionTitle>Giao diện thông minh cho mọi thiết bị:</SectionTitle>
+                    <ul className="space-y-2 mt-2">
+                        <Bullet type="check"><strong>Tablet (iPad Pro 11")</strong>: Giao diện hybrid tự động chuyển đổi - Card view dễ đọc khi xoay dọc, Table view gọn gàng khi xoay ngang.</Bullet>
+                        <Bullet type="check"><strong>Desktop</strong>: Bảng dữ liệu đầy đủ với nhiều cột, tối ưu cho màn hình lớn.</Bullet>
+                        <Bullet type="check"><strong>Mobile</strong>: Card view thân thiện với touch, dễ thao tác trên màn hình nhỏ.</Bullet>
+                    </ul>
 
                     <SectionTitle>Bắt đầu từ đâu cũng được:</SectionTitle>
                     <ul className="space-y-2 mt-2">
@@ -135,10 +158,18 @@ export default function Guide() {
                     color="emerald"
                 >
                     <SectionTitle>Tạo giao dịch siêu tốc</SectionTitle>
-                    <p className="mb-2">Khi bấm "Tạo Giao Dịch", bạn có một công cụ mạnh mẽ trong tay:</p>
+                    <p className="mb-2">Khi bấm "Tạo Giao Dịch" (hoặc FAB button trên tablet), bạn có một công cụ mạnh mẽ trong tay:</p>
                     <ul className="space-y-2">
                         <Bullet type="check"><strong>Tìm khách hàng 2 trong 1</strong>: Gõ tên vào ô khách hàng. Nếu chưa có, hệ thống sẽ gợi ý <strong>"Tạo mới ngay"</strong>. Bấm vào đó, điền SĐT là xong. Tiết kiệm 50% thao tác!</Bullet>
                         <Bullet type="info"><strong>Nhập liệu liên tục</strong>: Tích vào ô <strong>"Tạo tiếp giao dịch khác"</strong>. Sau khi Lưu, form sẽ tự làm mới nhưng giữ lại tên khách hàng cũ, rất tiện khi một người vay nhiều món.</Bullet>
+                        <Bullet type="check"><strong>Form tối ưu cho tablet</strong>: Trên màn hình dọc, "Ngày giao dịch" và "Khách hàng" được xếp cùng một hàng. "Loại giao dịch" hiển thị 4 phần tử mỗi hàng để tiết kiệm không gian.</Bullet>
+                    </ul>
+
+                    <SectionTitle>Xem danh sách giao dịch</SectionTitle>
+                    <ul className="space-y-2">
+                        <Bullet type="info"><strong>Tablet Portrait</strong>: Card view với thông tin đầy đủ, dễ đọc, dễ chạm. Mỗi card hiển thị: Ngày, Loại, Khách hàng, Nội dung, Thông tin tài chính, Lãi suất.</Bullet>
+                        <Bullet type="info"><strong>Tablet Landscape / Desktop</strong>: Bảng gọn gàng với 6 cột chính. Trạng thái được hiển thị bằng icon và màu nền, không cần cột riêng.</Bullet>
+                        <Bullet type="check"><strong>Double-click để đổi trạng thái</strong>: Trên bảng desktop, double-click vào dòng để chuyển đổi nhanh giữa OPEN và PAID.</Bullet>
                     </ul>
 
                     <SectionTitle>Thanh toán & Đóng hồ sơ</SectionTitle>
@@ -184,7 +215,9 @@ export default function Guide() {
                 >
                     <p>Hồ sơ khách hàng là nơi lưu trữ "Sổ cái" của từng người.</p>
                     <ul className="space-y-2 mt-2">
-                        <Bullet type="info"><strong>Lịch sử minh bạch</strong>: Bấm vào từng khách hàng để xem toàn bộ lịch sử vay/trả.</Bullet>
+                        <Bullet type="info"><strong>Lịch sử minh bạch</strong>: Bấm vào từng khách hàng để xem toàn bộ lịch sử vay/trả với giao diện hybrid tương tự trang giao dịch.</Bullet>
+                        <Bullet type="check"><strong>Lọc theo thời gian</strong>: Sử dụng DatePicker tùy chỉnh để chọn khoảng thời gian cần xem. Giao diện compact, không chiếm nhiều không gian.</Bullet>
+                        <Bullet type="info"><strong>Nội dung tự động xuống dòng</strong>: Nội dung giao dịch có dấu gạch ngang (-) sẽ tự động xuống dòng tại mỗi dấu gạch để dễ đọc hơn.</Bullet>
                         <Bullet type="warn"><strong>Xóa khách hàng</strong>: Cẩn thận! Xóa khách hàng sẽ xóa <strong>toàn bộ</strong> giao dịch liên quan đến họ. Chỉ Admin mới có quyền này.</Bullet>
                     </ul>
                 </GuideItem>
@@ -206,6 +239,36 @@ export default function Guide() {
                 </GuideItem>
 
                 <GuideItem
+                    title="7. Giao Diện Thông Minh & Responsive"
+                    icon={Settings}
+                    isOpen={openIndex === 7}
+                    onToggle={() => setOpenIndex(7)}
+                    color="indigo"
+                >
+                    <p>Hệ thống được tối ưu hóa cho mọi thiết bị, đặc biệt là iPad Pro 11" với giao diện hybrid thông minh.</p>
+
+                    <SectionTitle>Hybrid UI - Tự động chuyển đổi:</SectionTitle>
+                    <ul className="space-y-2">
+                        <Bullet type="check"><strong>Portrait Mode (Màn hình dọc)</strong>: Card view với thông tin đầy đủ, dễ đọc, dễ chạm. FAB button nổi ở bottom center để tạo mới nhanh.</Bullet>
+                        <Bullet type="check"><strong>Landscape Mode (Màn hình ngang)</strong>: Table view gọn gàng với nhiều cột, tối ưu cho màn hình rộng. Tất cả controls nằm trên một hàng.</Bullet>
+                        <Bullet type="info"><strong>Breakpoint thông minh</strong>: Tự động chuyển đổi tại 1280px (xl breakpoint) để tận dụng tối đa không gian màn hình.</Bullet>
+                    </ul>
+
+                    <SectionTitle>Tính năng UI/UX mới:</SectionTitle>
+                    <ul className="space-y-2">
+                        <Bullet type="check"><strong>Custom DatePicker</strong>: Date picker tùy chỉnh với giao diện đẹp, không phụ thuộc vào browser default. Chọn ngày dễ dàng với calendar popup.</Bullet>
+                        <Bullet type="check"><strong>FAB Buttons</strong>: Floating Action Button xuất hiện ở portrait mode, giúp tạo mới nhanh chóng mà không chiếm không gian header.</Bullet>
+                        <Bullet type="check"><strong>Touch-friendly</strong>: Tất cả buttons và interactive elements có kích thước tối thiểu 44x44px, đảm bảo dễ chạm trên tablet.</Bullet>
+                        <Bullet type="check"><strong>Typography scaling</strong>: Font size tự động điều chỉnh theo breakpoint để đảm bảo dễ đọc trên mọi thiết bị.</Bullet>
+                        <Bullet type="info"><strong>Content wrapping</strong>: Nội dung có dấu gạch ngang tự động xuống dòng để dễ đọc hơn, đặc biệt hữu ích cho danh sách dài.</Bullet>
+                    </ul>
+
+                    <ProTip>
+                        <strong>Mẹo:</strong> Trên tablet, hãy thử xoay màn hình để trải nghiệm sự khác biệt giữa Card view và Table view. Mỗi chế độ đều được tối ưu cho mục đích sử dụng riêng.
+                    </ProTip>
+                </GuideItem>
+
+                <GuideItem
                     title="6. Phân Quyền & Bảo Mật"
                     icon={ShieldAlert}
                     isOpen={openIndex === 6}
@@ -222,7 +285,9 @@ export default function Guide() {
                             <ul className="text-sm space-y-1 text-slate-600">
                                 <li>• Xem danh sách & Báo cáo</li>
                                 <li>• Tạo mới & Chỉnh sửa giao dịch</li>
+                                <li>• Quản lý khách hàng & cấu hình lãi suất</li>
                                 <li className="text-slate-400 italic">• Không thể xóa dữ liệu</li>
+                                <li className="text-slate-400 italic">• Không thể quản lý user</li>
                             </ul>
                         </div>
                         <div className="bg-purple-50 p-4 rounded-xl border border-purple-100">
@@ -233,10 +298,16 @@ export default function Guide() {
                             <ul className="text-sm space-y-1 text-purple-800">
                                 <li>• Toàn quyền hệ thống</li>
                                 <li>• Quản lý tài khoản nhân viên</li>
-                                <li>• <strong>Xóa giao dịch</strong> (Yêu cầu mã PIN)</li>
+                                <li>• <strong>Xóa giao dịch & khách hàng</strong> (Yêu cầu mã PIN)</li>
+                                <li>• Backup & Restore dữ liệu</li>
+                                <li>• Cập nhật thông tin hệ thống</li>
                             </ul>
                         </div>
                     </div>
+
+                    <ProTip>
+                        <strong>Lưu ý:</strong> Mã PIN Admin được yêu cầu cho các thao tác nhạy cảm như xóa user, xóa giao dịch. Đảm bảo mã PIN của bạn an toàn và không chia sẻ với người khác.
+                    </ProTip>
                 </GuideItem>
             </div>
         </div>

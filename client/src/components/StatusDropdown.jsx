@@ -31,7 +31,7 @@ export default function StatusDropdown({ value, onChange, size = 'md' }) {
         [value]
     );
 
-    const heightClass = size === 'lg' ? 'h-[60px]' : 'h-[54px]';
+    const heightClass = size === 'lg' ? 'h-[60px] md:h-[60px]' : 'h-[54px] md:min-h-[44px]';
 
     const close = () => {
         setOpen(false);
@@ -140,8 +140,9 @@ export default function StatusDropdown({ value, onChange, size = 'md' }) {
                                 role="option"
                                 aria-selected={isSelected}
                                 className={clsx(
-                                    'w-full px-4 py-3 text-left flex items-center gap-3',
-                                    'text-sm font-medium',
+                                    'w-full px-4 py-3 md:py-3.5 text-left flex items-center gap-3',
+                                    'text-sm md:text-base font-medium',
+                                    'md:min-h-[44px]',
                                     isHighlighted && 'bg-slate-50',
                                     !isHighlighted && 'bg-white',
                                     'hover:bg-slate-50 transition-colors'

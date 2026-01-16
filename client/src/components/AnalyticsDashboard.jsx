@@ -90,14 +90,14 @@ export default function AnalyticsDashboard({ report }) {
             </div>
 
             {/* Charts Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Pie Chart - Debt Distribution */}
                 <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
                     <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
                         <div className="w-1 h-6 bg-gradient-to-b from-blue-500 to-indigo-500 rounded-full"></div>
                         Phân bổ công nợ
                     </h3>
-                    <ResponsiveContainer width="100%" height={300}>
+                    <ResponsiveContainer width="100%" height={300} minHeight={250}>
                         <PieChart>
                             <Pie
                                 data={pieData}
@@ -124,7 +124,7 @@ export default function AnalyticsDashboard({ report }) {
                         <div className="w-1 h-6 bg-gradient-to-b from-amber-500 to-orange-500 rounded-full"></div>
                         Top 5 khách hàng nợ nhiều
                     </h3>
-                    <ResponsiveContainer width="100%" height={300}>
+                    <ResponsiveContainer width="100%" height={300} minHeight={250}>
                         <BarChart data={topDebtors}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                             <XAxis
@@ -159,7 +159,7 @@ export default function AnalyticsDashboard({ report }) {
                         <div className="w-1 h-6 bg-gradient-to-b from-indigo-500 to-purple-500 rounded-full"></div>
                         Hoạt động giao dịch (Top khách hàng)
                     </h3>
-                    <ResponsiveContainer width="100%" height={300}>
+                    <ResponsiveContainer width="100%" height={300} minHeight={250}>
                         <BarChart data={txVolumeData}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                             <XAxis dataKey="name" style={{ fontSize: '12px' }} />

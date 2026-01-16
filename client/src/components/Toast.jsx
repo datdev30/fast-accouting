@@ -60,9 +60,10 @@ export default function Toast({ toast, onClose }) {
                         setIsVisible(false);
                         setTimeout(onClose, 300); // Wait for animation
                     }}
-                    className="p-1 hover:bg-slate-100 rounded-full text-slate-400 transition-colors"
+                    className="p-2 md:p-2.5 hover:bg-slate-100 rounded-full text-slate-400 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                    aria-label="Đóng thông báo"
                 >
-                    <X size={16} />
+                    <X size={18} className="md:w-5 md:h-5" />
                 </button>
             </div>
         </div>

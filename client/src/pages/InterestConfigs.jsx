@@ -123,19 +123,44 @@ export default function InterestConfigs() {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Cấu Hình Lãi Suất</h2>
-                    <p className="text-slate-500 text-xs sm:text-sm font-medium">Tùy chỉnh các mức lãi suất mặc định cho giao dịch</p>
+            {/* Header Section - Portrait: Stack layout, Landscape: All in 1 Row */}
+            <div className="space-y-4 md:space-y-5 xl:space-y-0">
+                {/* Portrait: Stack layout */}
+                <div className="xl:hidden space-y-4 md:space-y-5">
+                    {/* Row 1: Title & Subtitle */}
+                    <div>
+                        <h2 className="section-title text-2xl md:text-3xl">Cấu Hình Lãi Suất</h2>
+                        <p className="section-subtitle text-sm md:text-base mt-1">Tùy chỉnh các mức lãi suất mặc định cho giao dịch</p>
+                    </div>
                 </div>
-                <button
-                    onClick={() => { setIsEditing(false); setIsOpen(true); }}
-                    className="w-full sm:w-auto btn btn-primary btn-md"
-                >
-                    <Plus size={18} />
-                    Thêm cấu hình
-                </button>
+
+                {/* Landscape: All in 1 Row */}
+                <div className="hidden xl:flex xl:items-center xl:justify-between xl:gap-6">
+                    {/* Left: Title & Subtitle */}
+                    <div>
+                        <h2 className="section-title text-2xl 2xl:text-3xl">Cấu Hình Lãi Suất</h2>
+                        <p className="section-subtitle text-sm 2xl:text-base mt-1">Tùy chỉnh các mức lãi suất mặc định cho giao dịch</p>
+                    </div>
+
+                    {/* Right: Create Button */}
+                    <button
+                        onClick={() => { setIsEditing(false); setIsOpen(true); }}
+                        className="btn-primary btn-md justify-center text-base min-h-[44px] px-6 py-3 whitespace-nowrap shrink-0"
+                    >
+                        <Plus size={20} className="shrink-0" />
+                        <span>Thêm cấu hình</span>
+                    </button>
+                </div>
             </div>
+
+            {/* FAB Button - Only for Portrait (hidden on landscape) */}
+            <button
+                onClick={() => { setIsEditing(false); setIsOpen(true); }}
+                className="fixed bottom-6 left-1/2 -translate-x-1/2 xl:hidden z-50 w-16 h-16 md:w-20 md:h-20 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-2xl shadow-blue-500/50 flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+                aria-label="Thêm cấu hình mới"
+            >
+                <Plus size={28} className="md:w-8 md:h-8" />
+            </button>
 
             {isOpen && (
                 <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-50 p-0 sm:p-4 transition-all overflow-hidden">
@@ -260,7 +285,7 @@ export default function InterestConfigs() {
                 isDeleting={deleteMutation.isPending}
             />
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+            <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4">
                 {configs?.map(config => {
                     const colors = getInterestConfigColorScheme(config.code);
                     const isLiquidation = config.code?.toLowerCase().includes('tl') || config.name?.toLowerCase().includes('thanh lý');
@@ -269,44 +294,44 @@ export default function InterestConfigs() {
                         <div
                             key={config._id}
                             onClick={() => handleEdit(config)}
-                            className="group relative bg-white rounded-3xl border border-slate-100 p-6 shadow-sm hover:shadow-2xl hover:shadow-slate-200 transition-all duration-500 cursor-pointer overflow-hidden flex flex-col items-center text-center"
+                            className="group relative bg-white rounded-xl border border-slate-100 p-3 md:p-4 shadow-sm hover:shadow-lg hover:shadow-slate-200 transition-all duration-500 cursor-pointer overflow-hidden flex flex-col items-center text-center"
                         >
                             {/* Visual Pattern Overlays */}
-                            <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${colors.gradient} opacity-[0.03] group-hover:opacity-[0.08] rounded-full -mr-16 -mt-16 transition-all duration-700 group-hover:scale-150`}></div>
+                            <div className={`absolute top-0 right-0 w-20 h-20 bg-gradient-to-br ${colors.gradient} opacity-[0.03] group-hover:opacity-[0.08] rounded-full -mr-10 -mt-10 transition-all duration-700 group-hover:scale-150`}></div>
 
                             <div className="relative z-10 flex flex-col items-center w-full">
-                                <div className="flex justify-between items-start w-full mb-6">
-                                    <div className={`w-14 h-14 bg-gradient-to-br ${colors.gradient} rounded-[1.25rem] flex items-center justify-center ${colors.icon} shadow-lg shadow-current/10 ring-4 ring-white`}>
-                                        <Percent size={28} strokeWidth={2.5} />
+                                <div className="flex justify-between items-start w-full mb-3">
+                                    <div className={`w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br ${colors.gradient} rounded-lg flex items-center justify-center ${colors.icon} shadow-md shadow-current/10 ring-2 ring-white`}>
+                                        <Percent size={16} className="md:w-5 md:h-5" strokeWidth={2.5} />
                                     </div>
 
-                                    <div className="flex flex-col items-end gap-1.5">
-                                        <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest border shadow-sm ${isLiquidation ? 'border-amber-200 bg-amber-50 text-amber-600' : 'border-blue-200 bg-blue-50 text-blue-600'}`}>
+                                    <div className="flex flex-col items-end gap-0.5">
+                                        <span className={`px-1.5 py-0.5 rounded text-[8px] md:text-[9px] font-bold uppercase tracking-widest border shadow-sm ${isLiquidation ? 'border-amber-200 bg-amber-50 text-amber-600' : 'border-blue-200 bg-blue-50 text-blue-600'}`}>
                                             {isLiquidation ? 'Thanh lý' : 'Định kỳ'}
                                         </span>
-                                        <span className="text-[10px] font-semibold text-slate-400 font-mono">#{config.code}</span>
+                                        <span className="text-[8px] md:text-[9px] font-semibold text-slate-400 font-mono">#{config.code}</span>
                                     </div>
                                 </div>
 
-                                <div className="mb-2 w-full">
-                                    <h3 className="text-xl font-bold text-slate-900 leading-tight mb-4 group-hover:text-blue-600 transition-colors truncate">
+                                <div className="mb-1 w-full">
+                                    <h3 className="text-sm md:text-base font-bold text-slate-900 leading-tight mb-2 group-hover:text-blue-600 transition-colors truncate">
                                         {config.name}
                                     </h3>
                                     <div className="flex justify-center">
-                                        <div className={`px-5 py-2.5 rounded-2xl ${colors.bgIcon} flex items-center gap-1.5 shadow-lg shadow-current/20`}>
-                                            <span className="text-3xl font-bold text-white leading-none">
+                                        <div className={`px-3 py-1.5 rounded-lg ${colors.bgIcon} flex items-center gap-1 shadow-md shadow-current/20`}>
+                                            <span className="text-xl md:text-2xl font-bold text-white leading-none">
                                                 {config.rate_per_month}%
                                             </span>
-                                            <span className="text-[10px] font-bold text-white/90 uppercase">/ Th</span>
+                                            <span className="text-[8px] md:text-[9px] font-bold text-white/90 uppercase">/ Th</span>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Hover Action Indicator */}
-                            <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0 transition-all duration-300">
-                                <div className={`p-2 rounded-xl bg-slate-900 text-white shadow-lg`}>
-                                    <Pencil size={14} />
+                            <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0 transition-all duration-300">
+                                <div className={`p-1 rounded-md bg-slate-900 text-white shadow-lg`}>
+                                    <Pencil size={10} />
                                 </div>
                             </div>
                         </div>

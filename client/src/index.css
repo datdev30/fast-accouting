@@ -63,11 +63,11 @@ body {
 
   /* Typography */
   .section-title {
-    @apply text-2xl sm:text-3xl font-bold tracking-tight text-slate-900;
+    @apply text-xl md:text-xl lg:text-2xl font-bold tracking-tight text-slate-900;
   }
 
   .section-subtitle {
-    @apply text-slate-500 text-sm font-medium;
+    @apply text-slate-500 text-xs md:text-sm font-medium;
   }
 
   .section-kicker {
@@ -93,11 +93,11 @@ body {
   }
 
   .btn-md {
-    @apply px-5 py-2.5 text-sm;
+    @apply px-5 py-2.5 text-sm md:min-h-[44px] md:py-3 md:text-base;
   }
 
   .btn-lg {
-    @apply px-6 py-3 text-sm sm:text-base font-bold;
+    @apply px-6 py-3 text-sm sm:text-base font-bold md:min-h-[44px] md:py-3.5;
   }
 
   .btn-primary {
@@ -117,12 +117,13 @@ body {
   }
 
   .icon-btn {
-    @apply p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed;
+    @apply p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed md:min-w-[44px] md:min-h-[44px] md:flex md:items-center md:justify-center;
   }
 
   /* Inputs */
+  /* Tablet: font-size >= 16px to prevent iOS auto-zoom */
   .input {
-    @apply w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm transition-all text-base md:text-sm font-medium text-slate-700 placeholder:text-slate-400 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed;
+    @apply w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm transition-all text-base md:text-base lg:text-sm font-medium text-slate-700 placeholder:text-slate-400 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed md:py-3;
   }
 
   .input-error {
@@ -137,12 +138,62 @@ body {
     @apply pl-10;
   }
 
+  /* Date Picker Styling */
+  input[type="date"] {
+    @apply w-full bg-transparent text-sm md:text-base px-3 py-2.5 outline-none font-medium text-slate-600 border-0 focus:ring-0;
+    color-scheme: light;
+    /* Remove default browser styling */
+    -webkit-appearance: none;
+    -moz-appearance: textfield;
+  }
+
+  /* Webkit browsers (Chrome, Safari, Edge) */
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    @apply cursor-pointer opacity-0 absolute inset-0 w-full h-full;
+    background: transparent;
+  }
+
+  /* Firefox */
+  input[type="date"]::-webkit-datetime-edit-text {
+    @apply text-slate-600;
+  }
+
+  input[type="date"]::-webkit-datetime-edit-month-field,
+  input[type="date"]::-webkit-datetime-edit-day-field,
+  input[type="date"]::-webkit-datetime-edit-year-field {
+    @apply text-slate-600;
+  }
+
+  input[type="date"]:focus::-webkit-datetime-edit-month-field,
+  input[type="date"]:focus::-webkit-datetime-edit-day-field,
+  input[type="date"]:focus::-webkit-datetime-edit-year-field {
+    @apply text-blue-600;
+  }
+
+  input[type="date"]::-webkit-inner-spin-button,
+  input[type="date"]::-webkit-clear-button {
+    @apply opacity-0;
+  }
+
+  /* Custom date picker container */
+  .date-picker-wrapper {
+    @apply relative;
+  }
+
+  .date-picker-wrapper input[type="date"] {
+    @apply w-full;
+  }
+
+  .date-picker-wrapper input[type="date"]:focus {
+    @apply outline-none ring-0;
+  }
+
   .select {
-    @apply w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm transition-all text-base md:text-sm font-medium text-slate-700 placeholder:text-slate-400 appearance-none cursor-pointer disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed;
+    @apply w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm transition-all text-base md:text-base lg:text-sm font-medium text-slate-700 placeholder:text-slate-400 appearance-none cursor-pointer disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed md:py-3;
   }
 
   .textarea {
-    @apply w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm transition-all text-base md:text-sm font-medium text-slate-700 placeholder:text-slate-400 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed resize-none;
+    @apply w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm transition-all text-base md:text-base lg:text-sm font-medium text-slate-700 placeholder:text-slate-400 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed resize-none md:py-3;
   }
 
   /* Form Field Helpers */

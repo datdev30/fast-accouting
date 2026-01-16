@@ -88,36 +88,52 @@ export default function Reports() {
     const totalCollected = report?.reduce((sum, item) => sum + (item.total_collected || 0), 0) || 0;
 
     return (
-        <div className="space-y-8">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                <div>
-                    <h1 className="section-title">Tổng Quan Tài Chính</h1>
-                    <p className="section-subtitle mt-1">Báo cáo tổng hợp tình hình công nợ khách hàng</p>
+        <div className="space-y-4 md:space-y-6 xl:space-y-8">
+            {/* Header Section - Portrait: Stack layout, Landscape: All in 1 Row */}
+            <div className="space-y-4 md:space-y-5 xl:space-y-0">
+                {/* Portrait: Stack layout */}
+                <div className="xl:hidden space-y-4 md:space-y-5">
+                    {/* Row 1: Title & Subtitle */}
+                    <div>
+                        <h1 className="section-title text-2xl md:text-3xl">Tổng Quan Tài Chính</h1>
+                        <p className="section-subtitle text-sm md:text-base mt-1">Báo cáo tổng hợp tình hình công nợ khách hàng</p>
+                    </div>
                 </div>
 
-                <button
-                    onClick={async () => {
-                        let selectedPath = null;
-                        if (window.pywebview && window.pywebview.api && window.pywebview.api.select_folder) {
-                            try {
-                                selectedPath = await window.pywebview.api.select_folder();
-                                if (!selectedPath) return;
-                            } catch (err) {
-                                console.error("Error selecting folder:", err);
+                {/* Landscape: All in 1 Row */}
+                <div className="hidden xl:flex xl:items-center xl:justify-between xl:gap-6">
+                    {/* Left: Title & Subtitle */}
+                    <div>
+                        <h1 className="section-title text-2xl 2xl:text-3xl">Tổng Quan Tài Chính</h1>
+                        <p className="section-subtitle text-sm 2xl:text-base mt-1">Báo cáo tổng hợp tình hình công nợ khách hàng</p>
+                    </div>
+
+                    {/* Right: Export Button */}
+                    <button
+                        onClick={async () => {
+                            let selectedPath = null;
+                            if (window.pywebview && window.pywebview.api && window.pywebview.api.select_folder) {
+                                try {
+                                    selectedPath = await window.pywebview.api.select_folder();
+                                    if (!selectedPath) return;
+                                } catch (err) {
+                                    console.error("Error selecting folder:", err);
+                                }
                             }
-                        }
-                        await triggerBatchExport(selectedPath);
-                    }}
-                    disabled={isBackingUp}
-                    className="btn-primary btn-lg w-full sm:w-auto disabled:cursor-wait"
-                >
-                    <Download size={18} className={isBackingUp ? "animate-bounce" : ""} />
-                    <span>{isBackingUp ? 'Đang Xử Lý...' : 'Xuất Phiếu PDF'}</span>
-                </button>
+                            await triggerBatchExport(selectedPath);
+                        }}
+                        disabled={isBackingUp}
+                        className="btn-primary btn-md xl:btn-lg justify-center text-base min-h-[44px] px-5 xl:px-6 py-2.5 xl:py-3 whitespace-nowrap shrink-0 disabled:cursor-wait"
+                    >
+                        <Download size={18} className={isBackingUp ? "animate-bounce" : ""} />
+                        <span>{isBackingUp ? 'Đang Xử Lý...' : 'Xuất Phiếu PDF'}</span>
+                    </button>
+                </div>
             </div>
 
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+
+            {/* Summary Cards - 1 col mobile, 2 col tablet portrait, 4 col landscape */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-5 xl:gap-6">
                 <div className="group relative overflow-hidden bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-all">
                     <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110">
                         <Wallet size={120} className="text-blue-600" />
@@ -199,34 +215,60 @@ export default function Reports() {
                 </div>
             </div>
 
-            {/* Detailed Table */}
+            {/* Detailed List - Hybrid Layout */}
             <div className="card overflow-hidden">
-                <div className="card-header flex flex-col sm:flex-row justify-between items-center gap-4">
-                    <h3 className="section-kicker">
-                        <div className="w-1 h-4 bg-blue-600 rounded-full"></div>
-                        Chi Tiết Theo Khách Hàng
-                    </h3>
-
-                    {/* Search Bar */}
-                    <div className="relative w-full sm:w-64">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                            <Search size={16} />
+                {/* Header Section - Portrait: Stack, Landscape: Single Row */}
+                <div className="card-header">
+                    {/* Portrait: Stack layout */}
+                    <div className="xl:hidden space-y-4">
+                        <h3 className="section-kicker">
+                            <div className="w-1 h-4 bg-blue-600 rounded-full"></div>
+                            Chi Tiết Theo Khách Hàng
+                        </h3>
+                        {/* Search Bar */}
+                        <div className="relative w-full">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                                <Search size={18} />
+                            </div>
+                            <input
+                                type="text"
+                                placeholder="Tìm kiếm khách hàng..."
+                                className="input pl-10 text-base min-h-[44px]"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
                         </div>
-                        <input
-                            type="text"
-                            placeholder="Tìm kiếm khách hàng..."
-                            className="input pl-9"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
+                    </div>
+
+                    {/* Landscape: Single Row */}
+                    <div className="hidden xl:flex xl:items-center xl:justify-between xl:gap-6">
+                        <h3 className="section-kicker">
+                            <div className="w-1 h-4 bg-blue-600 rounded-full"></div>
+                            Chi Tiết Theo Khách Hàng
+                        </h3>
+                        {/* Search Bar */}
+                        <div className="relative w-64">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                                <Search size={18} />
+                            </div>
+                            <input
+                                type="text"
+                                placeholder="Tìm kiếm khách hàng..."
+                                className="input pl-10 text-base min-h-[44px]"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
                     </div>
                 </div>
-                <div className="overflow-x-auto hidden md:block">
+
+                {/* Desktop/Tablet Landscape: Table View */}
+                <div className="overflow-x-auto hidden xl:block">
                     <table className="table min-w-[1000px]">
                         <thead className="table-head">
                             <tr>
                                 <th
-                                    className="table-th cursor-pointer hover:bg-slate-50 transition-colors group"
+                                    className="table-th cursor-pointer hover:bg-slate-50 transition-colors group md:min-h-[44px] md:py-4"
                                     onClick={() => handleSort('customer_name')}
                                 >
                                     <div className="flex items-center gap-2">
@@ -235,7 +277,7 @@ export default function Reports() {
                                     </div>
                                 </th>
                                 <th
-                                    className="table-th text-center cursor-pointer hover:bg-slate-50 transition-colors"
+                                    className="table-th text-center cursor-pointer hover:bg-slate-50 transition-colors md:min-h-[44px] md:py-4"
                                     onClick={() => handleSort('transaction_count')}
                                 >
                                     <div className="flex items-center justify-center gap-2">
@@ -244,7 +286,7 @@ export default function Reports() {
                                     </div>
                                 </th>
                                 <th
-                                    className="table-th text-right cursor-pointer hover:bg-slate-50 transition-colors"
+                                    className="table-th text-right cursor-pointer hover:bg-slate-50 transition-colors md:min-h-[44px] md:py-4"
                                     onClick={() => handleSort('total_principal')}
                                 >
                                     <div className="flex items-center justify-end gap-2">
@@ -253,7 +295,7 @@ export default function Reports() {
                                     </div>
                                 </th>
                                 <th
-                                    className="table-th text-right cursor-pointer hover:bg-slate-50 transition-colors"
+                                    className="table-th text-right cursor-pointer hover:bg-slate-50 transition-colors md:min-h-[44px] md:py-4"
                                     onClick={() => handleSort('total_interest')}
                                 >
                                     <div className="flex items-center justify-end gap-2">
@@ -262,7 +304,7 @@ export default function Reports() {
                                     </div>
                                 </th>
                                 <th
-                                    className="table-th text-right cursor-pointer hover:bg-slate-50 transition-colors"
+                                    className="table-th text-right cursor-pointer hover:bg-slate-50 transition-colors md:min-h-[44px] md:py-4"
                                     onClick={() => handleSort('total_collected')}
                                 >
                                     <div className="flex items-center justify-end gap-2">
@@ -271,7 +313,7 @@ export default function Reports() {
                                     </div>
                                 </th>
                                 <th
-                                    className="table-th text-right cursor-pointer hover:bg-slate-50 transition-colors"
+                                    className="table-th text-right cursor-pointer hover:bg-slate-50 transition-colors md:min-h-[44px] md:py-4"
                                     onClick={() => handleSort('total_debt')}
                                 >
                                     <div className="flex items-center justify-end gap-2">
@@ -279,7 +321,7 @@ export default function Reports() {
                                         {getSortIcon('total_debt')}
                                     </div>
                                 </th>
-                                <th className="table-th text-right">Trạng thái</th>
+                                <th className="table-th text-right md:min-h-[44px] md:py-4">Trạng thái</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50 text-sm">
@@ -340,52 +382,72 @@ export default function Reports() {
                     </table>
                 </div>
 
-                {/* Mobile Card View */}
-                <div className="md:hidden divide-y divide-slate-100">
+                {/* Mobile & Tablet Portrait: Card View */}
+                <div className="xl:hidden divide-y divide-slate-100">
                     {processedData.map((item) => (
                         <div
                             key={item.customer_id}
                             onClick={() => navigate(`/customers/${item.customer_id}/debt`)}
-                            className="p-5 active:bg-slate-50 transition-colors"
+                            className={`
+                                relative p-5 md:p-7 active:bg-slate-50 transition-colors cursor-pointer overflow-hidden
+                                ${item.total_debt > 0 ? 'bg-white' : 'bg-emerald-50/30'}
+                            `}
                         >
-                            <div className="flex justify-between items-start mb-3">
-                                <div>
-                                    <h4 className="font-bold text-slate-900 text-base">{item.customer_name}</h4>
-                                    <div className="flex items-center gap-2 mt-1">
-                                        <span className="badge-neutral text-[10px]">{item.transaction_count} GD</span>
-                                        {item.total_debt > 0 ? (
-                                            <span className="badge-warning text-[10px]">Đang nợ</span>
-                                        ) : (
-                                            <span className="badge-success text-[10px]">Hoàn tất</span>
+                            {/* Badge "ĐÃ TẤT TOÁN" - Góc trên phải */}
+                            {item.total_debt === 0 && (
+                                <div className="absolute top-0 right-0 bg-emerald-500 text-white px-4 md:px-5 py-1.5 md:py-2 text-xs md:text-sm font-bold uppercase tracking-wider shadow-lg z-10">
+                                    <div className="flex items-center gap-1.5">
+                                        <ArrowDownRight size={14} className="md:w-4 md:h-4" />
+                                        <span>ĐÃ TẤT TOÁN</span>
+                                    </div>
+                                    {/* Ribbon corner effect */}
+                                    <div className="absolute -bottom-2 right-0 w-0 h-0 border-l-[12px] md:border-l-[16px] border-l-transparent border-t-[12px] md:border-t-[16px] border-t-emerald-600"></div>
+                                </div>
+                            )}
+
+                            {/* Header: Customer Name & Status */}
+                            <div className="flex justify-between items-start mb-4 md:mb-5">
+                                <div className="flex-1 min-w-0 pr-2">
+                                    <h4 className="font-bold text-slate-900 text-lg md:text-xl mb-2">{item.customer_name}</h4>
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="badge-neutral text-xs md:text-sm px-2.5 md:px-3 py-1 md:py-1.5">
+                                            {item.transaction_count} GD
+                                        </span>
+                                        {item.total_debt > 0 && (
+                                            <span className="badge-warning text-xs md:text-sm px-2.5 md:px-3 py-1 md:py-1.5">
+                                                <ArrowUpRight size={14} className="md:w-4 md:h-4" />
+                                                Đang nợ
+                                            </span>
                                         )}
                                     </div>
                                 </div>
-                                <ChevronRight size={18} className="text-slate-300" />
+                                <ChevronRight size={20} className="md:w-6 md:h-6 text-slate-300 shrink-0 ml-2" />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4 bg-slate-50/50 rounded-2xl p-4 border border-slate-100">
+                            {/* Financial Grid */}
+                            <div className="grid grid-cols-2 gap-3 md:gap-4 bg-gradient-to-br from-slate-50 to-slate-100/50 rounded-xl md:rounded-2xl p-4 md:p-5 border border-slate-200">
                                 <div>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Tổng gốc</p>
-                                    <p className="font-mono text-sm font-bold text-slate-700">{item.total_principal.toLocaleString('vi-VN')}</p>
+                                    <p className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest mb-1 md:mb-2">Tổng gốc</p>
+                                    <p className="font-mono text-sm md:text-base font-bold text-slate-700">{item.total_principal.toLocaleString('vi-VN')} đ</p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1">Tổng lãi</p>
-                                    <p className="font-mono text-sm font-bold text-blue-600">+{item.total_interest.toLocaleString('vi-VN')}</p>
+                                    <p className="text-[10px] md:text-xs font-bold text-blue-400 uppercase tracking-widest mb-1 md:mb-2">Tổng lãi</p>
+                                    <p className="font-mono text-sm md:text-base font-bold text-blue-600">+{item.total_interest.toLocaleString('vi-VN')} đ</p>
                                 </div>
                                 <div>
-                                    <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest mb-1">Đã thu</p>
-                                    <p className="font-mono text-sm font-bold text-emerald-600">{item.total_collected?.toLocaleString('vi-VN') || 0}</p>
+                                    <p className="text-[10px] md:text-xs font-bold text-emerald-400 uppercase tracking-widest mb-1 md:mb-2">Đã thu</p>
+                                    <p className="font-mono text-sm md:text-base font-bold text-emerald-600">{item.total_collected?.toLocaleString('vi-VN') || 0} đ</p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest mb-1">Còn nợ</p>
-                                    <p className="font-mono text-base font-black text-red-600">{item.total_debt.toLocaleString('vi-VN')}</p>
+                                    <p className="text-[10px] md:text-xs font-bold text-red-400 uppercase tracking-widest mb-1 md:mb-2">Còn nợ</p>
+                                    <p className="font-mono text-base md:text-lg font-black text-red-600">{item.total_debt.toLocaleString('vi-VN')} đ</p>
                                 </div>
                             </div>
                         </div>
                     ))}
 
                     {processedData.length === 0 && (
-                        <div className="py-8">
+                        <div className="py-8 md:py-12">
                             {searchTerm ? (
                                 <EmptyStates.NoResults
                                     action={() => setSearchTerm('')}

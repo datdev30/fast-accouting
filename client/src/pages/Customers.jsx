@@ -340,34 +340,75 @@ export default function Customers() {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Danh Sách Khách Hàng</h2>
-                    <p className="text-slate-500 text-xs sm:text-sm">Quản lý thông tin đối tác và khách hàng</p>
-                </div>
+            {/* Header Section - Portrait: Stack layout, Landscape: All in 1 Row */}
+            <div className="space-y-4 md:space-y-5 xl:space-y-0">
+                {/* Portrait: Stack layout */}
+                <div className="xl:hidden space-y-4 md:space-y-5">
+                    {/* Row 1: Title & Subtitle */}
+                    <div>
+                        <h2 className="section-title text-2xl md:text-3xl">Danh Sách Khách Hàng</h2>
+                        <p className="section-subtitle text-sm md:text-base mt-1">Quản lý thông tin đối tác và khách hàng</p>
+                    </div>
 
-                <div className="flex flex-col sm:flex-row gap-3">
-                    <div className="relative group w-full sm:w-64">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors">
-                            <Search size={18} />
+                    {/* Row 2: Search (full width) */}
+                    <div className="relative group flex-1">
+                        <div className="absolute inset-y-0 left-0 pl-3 md:pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors">
+                            <Search size={20} className="md:w-5 md:h-5" />
                         </div>
                         <input
                             type="text"
-                            placeholder="Tìm kiếm..."
-                            className="input input-icon"
+                            placeholder="Tìm kiếm khách hàng..."
+                            className="input input-icon pr-10 md:pr-12 w-full text-sm md:text-base min-h-[44px]"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
-                    <button
-                        onClick={() => setIsOpen(true)}
-                        className="w-full sm:w-auto btn btn-primary btn-md"
-                    >
-                        <Plus size={18} />
-                        Thêm Khách Hàng
-                    </button>
+                </div>
+
+                {/* Landscape: All in 1 Row */}
+                <div className="hidden xl:flex xl:items-center xl:justify-between xl:gap-6">
+                    {/* Left: Title & Subtitle */}
+                    <div>
+                        <h2 className="section-title text-2xl 2xl:text-3xl">Danh Sách Khách Hàng</h2>
+                        <p className="section-subtitle text-sm 2xl:text-base mt-1">Quản lý thông tin đối tác và khách hàng</p>
+                    </div>
+
+                    {/* Right: Search & Create Button */}
+                    <div className="flex items-center gap-3">
+                        {/* Search */}
+                        <div className="relative group">
+                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors">
+                                <Search size={20} />
+                            </div>
+                            <input
+                                type="text"
+                                placeholder="Tìm kiếm khách hàng..."
+                                className="input input-icon pr-12 min-w-[300px] text-base min-h-[44px]"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+
+                        {/* Create Button */}
+                        <button
+                            onClick={() => setIsOpen(true)}
+                            className="btn-primary btn-md justify-center text-base min-h-[44px] px-6 py-3 whitespace-nowrap shrink-0"
+                        >
+                            <Plus size={20} className="shrink-0" />
+                            <span>Thêm Khách Hàng</span>
+                        </button>
+                    </div>
                 </div>
             </div>
+
+            {/* FAB Button - Only for Portrait (hidden on landscape) */}
+            <button
+                onClick={() => setIsOpen(true)}
+                className="fixed bottom-6 left-1/2 -translate-x-1/2 xl:hidden z-50 w-16 h-16 md:w-20 md:h-20 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-2xl shadow-blue-500/50 flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+                aria-label="Thêm khách hàng mới"
+            >
+                <Plus size={28} className="md:w-8 md:h-8" />
+            </button>
             {/* Modal */}
             {isOpen && (
                 <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-50 p-0 sm:p-4 transition-all overflow-hidden">
@@ -813,87 +854,87 @@ export default function Customers() {
                     showDetails={true}
                 />
             ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                    {isLoadingCustomers ? (
-                        // Show skeleton loaders while loading
-                        Array.from({ length: 8 }).map((_, i) => (
-                            <SkeletonCard key={i} />
-                        ))
-                    ) : customers?.length === 0 ? (
-                        // No customers at all
-                        <div className="col-span-full">
-                            <EmptyStates.NoCustomers
-                                action={() => setIsOpen(true)}
-                                actionLabel="Thêm khách hàng đầu tiên"
-                            />
-                        </div>
-                    ) : filteredCustomers?.length === 0 ? (
-                        // Filtered results empty
-                        <div className="col-span-full">
-                            <EmptyStates.NoResults
-                                action={() => setSearchTerm('')}
-                                actionLabel="Xóa bộ lọc"
-                            />
-                        </div>
-                    ) : (
-                        filteredCustomers?.map(customer => {
-                            return (
-                                <div
-                                    key={customer._id}
-                                    onClick={() => handleEdit(customer)}
-                                    className="group relative bg-white rounded-[2rem] border border-slate-100 p-5 shadow-sm hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 cursor-pointer overflow-hidden flex flex-col"
-                                >
-                                    {/* Decorative Background Element */}
-                                    <div className="absolute -top-12 -right-12 w-32 h-32 bg-gradient-to-br from-blue-50 to-indigo-50/30 rounded-full group-hover:scale-150 transition-transform duration-500 ease-out z-0 opacity-60"></div>
+                <div className="grid grid-cols-3 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 lg:gap-6">
+            {isLoadingCustomers ? (
+                // Show skeleton loaders while loading
+                Array.from({ length: 8 }).map((_, i) => (
+                    <SkeletonCard key={i} />
+                ))
+            ) : customers?.length === 0 ? (
+                // No customers at all
+                <div className="col-span-full">
+                    <EmptyStates.NoCustomers
+                        action={() => setIsOpen(true)}
+                        actionLabel="Thêm khách hàng đầu tiên"
+                    />
+                </div>
+            ) : filteredCustomers?.length === 0 ? (
+                // Filtered results empty
+                <div className="col-span-full">
+                    <EmptyStates.NoResults
+                        action={() => setSearchTerm('')}
+                        actionLabel="Xóa bộ lọc"
+                    />
+                </div>
+            ) : (
+                filteredCustomers?.map(customer => {
+                    return (
+                        <div
+                            key={customer._id}
+                            onClick={() => handleEdit(customer)}
+                            className="group relative bg-white rounded-[2rem] border border-slate-100 p-5 shadow-sm hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 cursor-pointer overflow-hidden flex flex-col"
+                        >
+                            {/* Decorative Background Element */}
+                            <div className="absolute -top-12 -right-12 w-32 h-32 bg-gradient-to-br from-blue-50 to-indigo-50/30 rounded-full group-hover:scale-150 transition-transform duration-500 ease-out z-0 opacity-60"></div>
 
-                                    {/* Paid in Full Ribbon */}
-                                    {customer.is_paid_in_full && (
-                                        <div className="absolute top-0 right-0 z-20 text-center pointer-events-none overflow-hidden w-32 h-32">
-                                            <div className="absolute top-[24px] right-[-34px] rotate-45 bg-gradient-to-r from-emerald-500 to-green-600 text-white text-xs font-bold py-1.5 w-[160px] shadow-lg shadow-emerald-500/40 uppercase tracking-widest leading-none">
-                                                Đã tất toán
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    <div className="flex items-center gap-4 mb-5 relative z-10">
-                                        {/* Avatar Circle */}
-                                        <div className="w-14 h-14 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center border border-slate-200 group-hover:bg-blue-50 group-hover:text-blue-500 group-hover:border-blue-100 transition-colors duration-300">
-                                            <User size={28} />
-                                        </div>
-                                        <div className="flex-1 min-w-0 text-center sm:text-left">
-                                            <h3 className="text-lg font-bold text-slate-900 truncate group-hover:text-blue-600 transition-colors">
-                                                {customer.name}
-                                            </h3>
-
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-3 mb-6 relative z-10">
-                                        <div className="flex items-start gap-2.5 text-slate-500 text-sm">
-                                            <div className="p-1.5 bg-slate-50 text-slate-400 rounded-lg group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors">
-                                                <MapPin size={14} />
-                                            </div>
-                                            <span className="leading-tight pt-0.5 line-clamp-2 italic font-medium text-slate-500">
-                                                {customer.contact_info || 'Chưa cập nhật địa chỉ'}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    <div className="mt-auto pt-4 border-t border-slate-50 flex items-center justify-end relative z-10">
-                                        <Link
-                                            to={`/customers/${customer.id}/debt`}
-                                            onClick={(e) => e.stopPropagation()}
-                                            className="w-full flex items-center justify-center gap-2 text-[11px] font-bold uppercase tracking-wider text-blue-600 hover:text-white hover:bg-blue-600 border border-blue-100 hover:border-blue-600 transition-all px-4 py-4 rounded-2xl shadow-sm group/btn"
-                                        >
-                                            Xem chi tiết nợ <ChevronRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
-                                        </Link>
+                            {/* Paid in Full Ribbon */}
+                            {customer.is_paid_in_full && (
+                                <div className="absolute top-0 right-0 z-20 text-center pointer-events-none overflow-hidden w-32 h-32">
+                                    <div className="absolute top-[24px] right-[-34px] rotate-45 bg-gradient-to-r from-emerald-500 to-green-600 text-white text-xs font-bold py-1.5 w-[160px] shadow-lg shadow-emerald-500/40 uppercase tracking-widest leading-none">
+                                        Đã tất toán
                                     </div>
                                 </div>
-                            );
-                        })
-                    )}
+                            )}
+
+                            <div className="flex items-center gap-4 mb-5 relative z-10">
+                                {/* Avatar Circle */}
+                                <div className="w-14 h-14 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center border border-slate-200 group-hover:bg-blue-50 group-hover:text-blue-500 group-hover:border-blue-100 transition-colors duration-300">
+                                    <User size={28} />
+                                </div>
+                                <div className="flex-1 min-w-0 text-center sm:text-left">
+                                    <h3 className="text-lg font-bold text-slate-900 truncate group-hover:text-blue-600 transition-colors">
+                                        {customer.name}
+                                    </h3>
+
+                                </div>
+                            </div>
+
+                            <div className="space-y-3 mb-6 relative z-10">
+                                <div className="flex items-start gap-2.5 text-slate-500 text-sm">
+                                    <div className="p-1.5 bg-slate-50 text-slate-400 rounded-lg group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors">
+                                        <MapPin size={14} />
+                                    </div>
+                                    <span className="leading-tight pt-0.5 line-clamp-2 italic font-medium text-slate-500">
+                                        {customer.contact_info || 'Chưa cập nhật địa chỉ'}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="mt-auto pt-4 border-t border-slate-50 flex items-center justify-end relative z-10">
+                                <Link
+                                    to={`/customers/${customer.id}/debt`}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="w-full flex items-center justify-center gap-2 text-[11px] font-bold uppercase tracking-wider text-blue-600 hover:text-white hover:bg-blue-600 border border-blue-100 hover:border-blue-600 transition-all px-4 py-4 rounded-2xl shadow-sm group/btn"
+                                >
+                                    Xem chi tiết nợ <ChevronRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
+                                </Link>
+                            </div>
+                        </div>
+                    );
+                })
+            )}
                 </div>
             )}
-        </div >
+        </div>
     );
 }

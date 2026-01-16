@@ -16,6 +16,8 @@ const NavItem = ({ to, icon: Icon, label, collapsed, onClick }) => {
             onClick={onClick}
             className={clsx(
                 "group flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 mx-2",
+                // Tablet: ensure minimum touch target size (44px)
+                "md:min-h-[44px] md:py-3",
                 isActive
                     ? "bg-blue-600 text-white shadow-lg shadow-blue-200"
                     : "text-slate-600 hover:bg-slate-50 hover:text-blue-600",
@@ -23,8 +25,8 @@ const NavItem = ({ to, icon: Icon, label, collapsed, onClick }) => {
             )}
             title={collapsed ? label : undefined}
         >
-            <Icon size={20} className={clsx("transition-transform group-hover:scale-110", isActive && "text-white")} />
-            {!collapsed && <span className="font-medium flex-1 whitespace-nowrap overflow-hidden transition-all duration-300">{label}</span>}
+            <Icon size={20} className={clsx("transition-transform group-hover:scale-110 md:w-5 md:h-5", isActive && "text-white")} />
+            {!collapsed && <span className="font-medium flex-1 whitespace-nowrap overflow-hidden transition-all duration-300 md:text-base">{label}</span>}
             {!collapsed && isActive && <ChevronRight size={16} className="opacity-50" />}
         </Link>
     );
@@ -40,7 +42,14 @@ export default function Layout() {
     });
 
     const navigate = useNavigate();
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    // Initialize sidebar state: collapsed on tablet (768-1023px), open on desktop (>=1024px)
+    const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const isTablet = window.matchMedia('(min-width: 768px) and (max-width: 1023px)').matches;
+            return !isTablet; // Collapsed on tablet, open on desktop
+        }
+        return true;
+    });
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
     const userDisplayName = (user?.displayName || user?.username || 'User').trim();
@@ -80,6 +89,28 @@ export default function Layout() {
         };
     }, [isMobileSidebarOpen]);
 
+    // Handle tablet breakpoint changes - auto-collapse sidebar on tablet
+    useEffect(() => {
+        const handleResize = () => {
+            const isTablet = window.matchMedia('(min-width: 768px) and (max-width: 1023px)').matches;
+            const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
+            
+            // Auto-collapse on tablet, auto-expand on desktop (unless user manually toggled)
+            if (isTablet && isSidebarOpen) {
+                setIsSidebarOpen(false);
+            } else if (isDesktop && !isSidebarOpen) {
+                // Only auto-expand on desktop if we're not in a manual collapsed state
+                // This preserves user preference
+            }
+        };
+
+        window.addEventListener('resize', handleResize);
+        // Check on mount
+        handleResize();
+        
+        return () => window.removeEventListener('resize', handleResize);
+    }, [isSidebarOpen]);
+
     const closeMobileSidebar = () => setIsMobileSidebarOpen(false);
 
     // Sidebar is expanded if it's open on desktop OR if the mobile sidebar is active
@@ -99,9 +130,10 @@ export default function Layout() {
             <aside
                 className={clsx(
                     "bg-white border-r border-slate-100 flex flex-col shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)] z-50 transition-all duration-300 ease-in-out",
-                    // Desktop: Always visible, collapsible
+                    // Desktop (>=1024px): Always visible, collapsible
+                    // Tablet (768-1023px): Collapsed by default (w-20), can be toggled
                     // Mobile: Initially hidden by translation, always rendered
-                    isSidebarOpen ? "md:w-72" : "md:w-20",
+                    isSidebarOpen ? "md:w-72 lg:w-72" : "md:w-20 lg:w-20",
                     // Mobile: Overlay from left, full height
                     "md:relative fixed inset-y-0 left-0",
                     isMobileSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
@@ -117,13 +149,13 @@ export default function Layout() {
                     <X size={20} />
                 </button>
 
-                {/* Desktop Toggle Button */}
+                {/* Desktop & Tablet Toggle Button */}
                 <button
                     onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                    className="hidden md:block absolute -right-3 top-9 bg-white border border-slate-200 p-1 rounded-full text-slate-400 hover:text-blue-600 shadow-sm z-20 transition-colors"
+                    className="hidden md:block absolute -right-3 top-9 bg-white border border-slate-200 p-1.5 rounded-full text-slate-400 hover:text-blue-600 shadow-sm z-20 transition-colors md:min-w-[44px] md:min-h-[44px] md:flex md:items-center md:justify-center"
                     aria-label="Toggle sidebar"
                 >
-                    {isSidebarOpen ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
+                    {isSidebarOpen ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
                 </button>
 
                 <div className={clsx("p-6", isExpanded ? "pb-6" : "md:pb-4 md:flex md:justify-center")}>
@@ -144,7 +176,7 @@ export default function Layout() {
                     <div className="h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
                 </div>
 
-                <nav className="flex-1 space-y-1.5 px-2 overflow-y-auto">
+                <nav className="flex-1 space-y-2 px-2 overflow-y-auto">
                     <NavItem to="/overview" icon={LayoutDashboard} label="Tổng quan" collapsed={!isExpanded} onClick={closeMobileSidebar} />
                     <NavItem to="/transactions" icon={FileText} label="Giao dịch" collapsed={!isExpanded} onClick={closeMobileSidebar} />
                     <NavItem to="/customers" icon={Users} label="Khách hàng" collapsed={!isExpanded} onClick={closeMobileSidebar} />
@@ -184,7 +216,7 @@ export default function Layout() {
                                     </div>
                                     <button
                                         onClick={handleLogout}
-                                        className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                        className="p-2 md:min-w-[44px] md:min-h-[44px] md:flex md:items-center md:justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                                         title="Đăng xuất"
                                     >
                                         <LogOut size={16} />
@@ -193,7 +225,7 @@ export default function Layout() {
                             ) : (
                                 <button
                                     onClick={handleLogout}
-                                    className="md:mt-2 p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                    className="md:mt-2 p-2 md:min-w-[44px] md:min-h-[44px] md:flex md:items-center md:justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                                     title="Đăng xuất"
                                 >
                                     <LogOut size={16} />
@@ -227,7 +259,8 @@ export default function Layout() {
                 {/* Content Area */}
                 <div className="flex-1 overflow-auto bg-slate-50 w-full h-full">
                     {/* Padding top to push content below fixed header on mobile */}
-                    <div className="w-full p-4 sm:p-6 md:p-8 pt-[calc(5rem+env(safe-area-inset-top))] md:pt-8 min-h-full">
+                    {/* Tablet: reduced padding to maximize content area */}
+                    <div className="w-full p-4 sm:p-6 md:p-5 lg:p-8 pt-[calc(5rem+env(safe-area-inset-top))] md:pt-5 lg:pt-8 min-h-full max-w-[1800px] md:mx-auto">
                         <Outlet />
                     </div>
                 </div>

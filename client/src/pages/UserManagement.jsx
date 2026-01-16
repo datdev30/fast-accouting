@@ -155,16 +155,44 @@ export default function UserManagement() {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Quản Lý User</h2>
-                    <p className="text-slate-500 text-xs sm:text-sm font-medium">Tạo và phân quyền user (SALE/ADMIN)</p>
+            {/* Header Section - Portrait: Stack layout, Landscape: All in 1 Row */}
+            <div className="space-y-4 md:space-y-5 xl:space-y-0">
+                {/* Portrait: Stack layout */}
+                <div className="xl:hidden space-y-4 md:space-y-5">
+                    {/* Row 1: Title & Subtitle */}
+                    <div>
+                        <h2 className="section-title text-2xl md:text-3xl">Quản Lý User</h2>
+                        <p className="section-subtitle text-sm md:text-base mt-1">Tạo và phân quyền user (SALE/ADMIN)</p>
+                    </div>
                 </div>
-                <button onClick={openCreate} className="w-full sm:w-auto btn btn-primary btn-md">
-                    <Plus size={18} />
-                    Thêm user
-                </button>
+
+                {/* Landscape: All in 1 Row */}
+                <div className="hidden xl:flex xl:items-center xl:justify-between xl:gap-6">
+                    {/* Left: Title & Subtitle */}
+                    <div>
+                        <h2 className="section-title text-2xl 2xl:text-3xl">Quản Lý User</h2>
+                        <p className="section-subtitle text-sm 2xl:text-base mt-1">Tạo và phân quyền user (SALE/ADMIN)</p>
+                    </div>
+
+                    {/* Right: Create Button */}
+                    <button
+                        onClick={openCreate}
+                        className="btn-primary btn-md justify-center text-base min-h-[44px] px-6 py-3 whitespace-nowrap shrink-0"
+                    >
+                        <Plus size={20} className="shrink-0" />
+                        <span>Thêm user</span>
+                    </button>
+                </div>
             </div>
+
+            {/* FAB Button - Only for Portrait (hidden on landscape) */}
+            <button
+                onClick={openCreate}
+                className="fixed bottom-6 left-1/2 -translate-x-1/2 xl:hidden z-50 w-16 h-16 md:w-20 md:h-20 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-2xl shadow-blue-500/50 flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+                aria-label="Thêm user mới"
+            >
+                <Plus size={28} className="md:w-8 md:h-8" />
+            </button>
 
             <div className="card p-0 overflow-hidden">
                 <div className="overflow-auto">
@@ -206,16 +234,16 @@ export default function UserManagement() {
                                         </span>
                                     </td>
                                     <td className="table-td text-right">
-                                        <div className="inline-flex items-center gap-1">
+                                        <div className="inline-flex items-center gap-2">
                                             <button
-                                                className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                                className="p-2 md:min-w-[44px] md:min-h-[44px] md:flex md:items-center md:justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                                                 onClick={() => openEdit(u)}
                                                 title="Sửa"
                                             >
                                                 <Pencil size={18} />
                                             </button>
                                             <button
-                                                className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                                className="p-2 md:min-w-[44px] md:min-h-[44px] md:flex md:items-center md:justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                                                 onClick={() => { openEdit(u); setIsDeleteModalOpen(true); }}
                                                 title="Xóa"
                                             >

@@ -32,10 +32,26 @@ export default function Analytics() {
     );
 
     return (
-        <div className="space-y-6">
-            <div>
-                <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Phân Tích & Báo Cáo</h2>
-                <p className="text-slate-500 mt-1">Biểu đồ và phân tích dữ liệu tài chính</p>
+        <div className="space-y-4 md:space-y-6 xl:space-y-8">
+            {/* Header Section - Portrait: Stack layout, Landscape: All in 1 Row */}
+            <div className="space-y-4 md:space-y-5 xl:space-y-0">
+                {/* Portrait: Stack layout */}
+                <div className="xl:hidden space-y-4 md:space-y-5">
+                    {/* Row 1: Title & Subtitle */}
+                    <div>
+                        <h2 className="section-title text-2xl md:text-3xl">Phân Tích & Báo Cáo</h2>
+                        <p className="section-subtitle text-sm md:text-base mt-1">Biểu đồ và phân tích dữ liệu tài chính</p>
+                    </div>
+                </div>
+
+                {/* Landscape: All in 1 Row */}
+                <div className="hidden xl:flex xl:items-center xl:justify-between xl:gap-6">
+                    {/* Left: Title & Subtitle */}
+                    <div>
+                        <h2 className="section-title text-2xl 2xl:text-3xl">Phân Tích & Báo Cáo</h2>
+                        <p className="section-subtitle text-sm 2xl:text-base mt-1">Biểu đồ và phân tích dữ liệu tài chính</p>
+                    </div>
+                </div>
             </div>
 
             <AnalyticsDashboard report={report} />
