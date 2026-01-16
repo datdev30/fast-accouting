@@ -20,8 +20,38 @@ dotenv.config();
 const app = express();
 
 // Middleware
+// CORS: Allow both web app and Android WebView origins
+let allowedOrigins = ['*']; // Default: allow all
+
+if (process.env.CORS_ORIGIN) {
+    // Support multiple origins separated by comma
+    allowedOrigins = process.env.CORS_ORIGIN.split(',').map(o => o.trim()).filter(o => o);
+    
+    // Always ensure Android WebView origin is included
+    const androidOrigin = 'https://appassets.androidplatform.net';
+    if (!allowedOrigins.includes(androidOrigin) && !allowedOrigins.includes('*')) {
+        allowedOrigins.push(androidOrigin);
+    }
+}
+
 app.use(cors({
-    origin: process.env.CORS_ORIGIN || '*',
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps, Postman, or same-origin requests)
+        if (!origin) return callback(null, true);
+        
+        // Allow if wildcard is set
+        if (allowedOrigins.includes('*')) {
+            return callback(null, true);
+        }
+        
+        // Check if origin is in allowed list
+        if (allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            console.warn(`CORS blocked origin: ${origin}. Allowed: ${allowedOrigins.join(', ')}`);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true,
     exposedHeaders: ['Content-Disposition']
 }));
