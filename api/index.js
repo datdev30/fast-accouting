@@ -34,10 +34,19 @@ if (process.env.CORS_ORIGIN) {
     // Support multiple origins separated by comma
     allowedOrigins = process.env.CORS_ORIGIN.split(',').map(o => o.trim()).filter(o => o);
     
-    // Always ensure Android WebView origin is included
-    const androidOrigin = 'https://appassets.androidplatform.net';
-    if (!allowedOrigins.includes(androidOrigin) && !allowedOrigins.includes('*')) {
-        allowedOrigins.push(androidOrigin);
+    // Always ensure Android WebView origins are included
+    const androidOrigins = [
+        'https://appassets.androidplatform.net', // Standard Android WebView origin
+        'https://localhost', // Capacitor default origin with https scheme
+        'http://localhost' // Capacitor default origin with http scheme (if used)
+    ];
+    
+    if (!allowedOrigins.includes('*')) {
+        androidOrigins.forEach(origin => {
+            if (!allowedOrigins.includes(origin)) {
+                allowedOrigins.push(origin);
+            }
+        });
     }
 }
 
