@@ -1,4 +1,6 @@
 import express from 'express';
+import { pipeline } from 'stream';
+import { promisify } from 'util';
 
 import mongoose, { Types } from 'mongoose';
 import Transaction from '../models/Transaction.js';
@@ -9,10 +11,15 @@ import { getNextId } from '../utils/counter.js';
 import { calculateInterestAmount } from '../utils/interest.js';
 import { verifyAdminPin } from '../utils/helpers.js';
 import { authMiddleware, requireAdmin } from '../middleware/auth.js';
+import { validate, transactionSchemas } from '../middleware/validation.js';
+import { APIError, ErrorCodes } from '../utils/errors.js';
+import logger from '../utils/logger.js';
+import { resolveCustomerId } from '../utils/customerHelpers.js';
 import multer from 'multer';
 import { deleteDriveFile, downloadDriveFileStream, getDriveAccountDebugInfo, getDriveEnvDebugContext, uploadTransactionImageToDrive } from '../utils/drive.js';
 
 const router = express.Router();
+const pipelineAsync = promisify(pipeline);
 
 function buildTransactionLookupQuery(idParam) {
     // Transaction schema uses `_id: Mixed` (PROD may store business key in `_id`, e.g. "GD0001").
@@ -44,7 +51,7 @@ const handleTransactionImageUpload = (req, res, next) => {
  * POST /api/transactions/:id/image
  * Upload/replace transaction image (stored in Google Drive)
  */
-router.post('/:id/image', authMiddleware, handleTransactionImageUpload, async (req, res) => {
+router.post('/:id/image', authMiddleware, handleTransactionImageUpload, async (req, res, next) => {
     try {
         const tx = await Transaction.findOne(buildTransactionLookupQuery(req.params.id));
         if (!tx) {
@@ -68,7 +75,7 @@ router.post('/:id/image', authMiddleware, handleTransactionImageUpload, async (r
         });
 
         if (!driveFileId) {
-            return res.status(500).json({ error: 'Upload to Drive failed' });
+            throw new APIError('Upload to Drive failed', 500, ErrorCodes.DRIVE_ERROR);
         }
 
         tx.image_drive_file_id = driveFileId;
@@ -85,7 +92,11 @@ router.post('/:id/image', authMiddleware, handleTransactionImageUpload, async (r
             image_uploaded_at: tx.image_uploaded_at
         });
     } catch (error) {
-        console.error('Upload transaction image error:', error);
+        logger.error('Upload transaction image error', { 
+            error: error.message, 
+            transactionId: req.params.id,
+            code: error?.code
+        });
 
         const driveDebug = process.env.NODE_ENV === 'development' || process.env.DRIVE_DEBUG === '1';
         const driveAccount = driveDebug
@@ -112,29 +123,39 @@ router.post('/:id/image', authMiddleware, handleTransactionImageUpload, async (r
             const domain = error?.errors?.[0]?.domain;
 
             if (reason === 'storageQuotaExceeded' || domain === 'usageLimits') {
-                return res.status(502).json({
-                    error:
-                        'Google Drive storage quota exceeded (check Drive storage, folder permissions, and OAuth account).',
-                    ...driveErrorDetails
-                });
+                throw new APIError(
+                    'Google Drive storage quota exceeded (check Drive storage, folder permissions, and OAuth account).',
+                    502,
+                    ErrorCodes.DRIVE_QUOTA_EXCEEDED,
+                    driveErrorDetails
+                );
             }
 
-            return res.status(502).json({
-                error: 'Drive permission denied (check folder sharing/permissions for service account)',
-                ...driveErrorDetails
-            });
+            throw new APIError(
+                'Drive permission denied (check folder sharing/permissions for service account)',
+                502,
+                ErrorCodes.DRIVE_PERMISSION_DENIED,
+                driveErrorDetails
+            );
         }
         if (error?.code === 404) {
-            return res.status(502).json({
-                error: 'Drive folder/file not found (check DRIVE_TRANSACTION_IMAGES_FOLDER_ID)',
-                ...driveErrorDetails
-            });
+            throw new APIError(
+                'Drive folder/file not found (check DRIVE_TRANSACTION_IMAGES_FOLDER_ID)',
+                502,
+                ErrorCodes.DRIVE_ERROR,
+                driveErrorDetails
+            );
         }
 
-        return res.status(500).json({
-            error: error.message,
-            ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
-        });
+        // OAuth: refresh token hết hạn / bị thu hồi
+        const msg = String(error?.message || '');
+        const isInvalidGrant = /invalid_grant|expired|revoked|invalid.*token/i.test(msg) ||
+            error?.response?.data?.error === 'invalid_grant';
+        const finalMessage = isInvalidGrant
+            ? 'Refresh token OAuth không còn hợp lệ. Chạy lại script drive-oauth-generate-refresh-token.js để lấy token mới.'
+            : error.message;
+
+        throw new APIError(finalMessage, 500, ErrorCodes.DRIVE_ERROR, driveErrorDetails);
     }
 });
 
@@ -146,11 +167,11 @@ router.get('/:id/image', authMiddleware, async (req, res) => {
     try {
         const tx = await Transaction.findOne(buildTransactionLookupQuery(req.params.id));
         if (!tx) {
-            return res.status(404).json({ error: 'Transaction not found' });
+            throw new APIError('Transaction not found', 404, ErrorCodes.NOT_FOUND);
         }
 
         if (!tx.image_drive_file_id) {
-            return res.status(404).json({ error: 'Transaction has no image' });
+            throw new APIError('Transaction has no image', 404, ErrorCodes.NOT_FOUND);
         }
 
         const driveResp = await downloadDriveFileStream(tx.image_drive_file_id);
@@ -158,19 +179,21 @@ router.get('/:id/image', authMiddleware, async (req, res) => {
         const contentType = tx.image_mime_type || driveResp?.headers?.['content-type'] || 'application/octet-stream';
         res.setHeader('Content-Type', contentType);
 
-        // Stream response
-        driveResp.data.on('error', (err) => {
-            console.error('Drive stream error:', err);
+        try {
+            await pipelineAsync(driveResp.data, res);
+        } catch (streamErr) {
+            console.error('Drive stream error:', streamErr);
             if (!res.headersSent) {
-                res.status(502).json({ error: 'Failed to download image from Drive' });
-            } else {
-                res.end();
+                return res.status(502).json({ error: 'Failed to download image from Drive' });
             }
-        });
-
-        return driveResp.data.pipe(res);
+            try { res.end(); } catch (_) { /* ignore */ }
+        }
     } catch (error) {
-        console.error('Get transaction image error:', error);
+        logger.error('Get transaction image error', { 
+            error: error.message, 
+            transactionId: req.params.id,
+            code: error?.code
+        });
 
         const driveDebug = process.env.NODE_ENV === 'development' || process.env.DRIVE_DEBUG === '1';
         const driveAccount = driveDebug
@@ -193,27 +216,30 @@ router.get('/:id/image', authMiddleware, async (req, res) => {
 
         // googleapis errors often have `code`
         if (error?.code === 404) {
-            return res.status(404).json({ error: 'Image not found on Drive', ...driveErrorDetails });
+            throw new APIError('Image not found on Drive', 404, ErrorCodes.NOT_FOUND, driveErrorDetails);
         }
         if (error?.code === 403) {
             const reason = error?.errors?.[0]?.reason;
             const domain = error?.errors?.[0]?.domain;
 
             if (reason === 'storageQuotaExceeded' || domain === 'usageLimits') {
-                return res.status(502).json({
-                    error:
-                        'Google Drive storage quota exceeded (check Drive storage, file permissions, and OAuth account).',
-                    ...driveErrorDetails
-                });
+                throw new APIError(
+                    'Google Drive storage quota exceeded (check Drive storage, file permissions, and OAuth account).',
+                    502,
+                    ErrorCodes.DRIVE_QUOTA_EXCEEDED,
+                    driveErrorDetails
+                );
             }
 
-            return res.status(502).json({ error: 'Drive permission denied (check folder sharing/permissions)', ...driveErrorDetails });
+            throw new APIError(
+                'Drive permission denied (check folder sharing/permissions)',
+                502,
+                ErrorCodes.DRIVE_PERMISSION_DENIED,
+                driveErrorDetails
+            );
         }
 
-        return res.status(500).json({
-            error: error.message,
-            ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
-        });
+        next(error);
     }
 });
 
@@ -221,7 +247,7 @@ router.get('/:id/image', authMiddleware, async (req, res) => {
  * DELETE /api/transactions/:id/image
  * Remove transaction image (clears DB fields; attempts to delete Drive file)
  */
-router.delete('/:id/image', authMiddleware, async (req, res) => {
+router.delete('/:id/image', authMiddleware, async (req, res, next) => {
     try {
         const tx = await Transaction.findOne(buildTransactionLookupQuery(req.params.id));
         if (!tx) {
@@ -243,11 +269,25 @@ router.delete('/:id/image', authMiddleware, async (req, res) => {
 
         return res.json({ ok: true, removed: true, drive_deleted: driveDeleted });
     } catch (error) {
-        console.error('Delete transaction image error:', error);
-        return res.status(500).json({
-            error: error.message,
-            ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
+        logger.error('Delete transaction image error', { 
+            error: error.message, 
+            transactionId: req.params.id
         });
+        next(error);
+    }
+});
+
+/**
+ * GET /api/transactions/drive-status
+ * Kiểm tra cấu hình Drive (chỉ trả về boolean, không lộ secret). Cần đăng nhập.
+ */
+router.get('/drive-status', authMiddleware, (req, res) => {
+    try {
+        const ctx = getDriveEnvDebugContext();
+        const ok = !!(ctx.folderId_present && ctx.oauth_client_id_present && ctx.oauth_client_secret_present && ctx.oauth_refresh_token_present);
+        return res.json({ drive_configured: ok, ...ctx });
+    } catch (e) {
+        return res.json({ drive_configured: false, error: String(e?.message || e) });
     }
 });
 
@@ -255,24 +295,20 @@ router.delete('/:id/image', authMiddleware, async (req, res) => {
  * POST /api/transactions
  * Create new transaction
  */
-router.post('/', async (req, res) => {
+router.post('/', validate(transactionSchemas.create), async (req, res, next) => {
     try {
         const { customer_id, type, amount, content, transaction_date } = req.body;
 
-        if (amount === undefined || amount === null || isNaN(amount)) {
-            return res.status(400).json({ error: 'Giá trị tiền không hợp lệ' });
-        }
-
-        // Validate customer exists (PROD can store business key in `_id`)
-        const customer = await Customer.findOne({ $or: [{ id: customer_id }, { _id: customer_id }] });
+        // Validate customer exists
+        const customer = await resolveCustomerId(customer_id);
         if (!customer) {
-            return res.status(404).json({ error: 'Customer not found' });
+            throw new APIError('Customer not found', 404, ErrorCodes.NOT_FOUND);
         }
 
         // Validate interest config exists
         const interestConfig = await InterestConfig.findOne({ code: type });
         if (!interestConfig) {
-            return res.status(404).json({ error: 'Invalid transaction type' });
+            throw new APIError('Invalid transaction type', 404, ErrorCodes.INVALID_TRANSACTION_TYPE);
         }
 
         // Snapshot interest rate
@@ -293,13 +329,16 @@ router.post('/', async (req, res) => {
 
         await transaction.save();
 
+        logger.info('Transaction created', { 
+            transactionId: newId, 
+            customerId: customer_id,
+            amount,
+            type 
+        });
+
         res.status(201).json(transaction);
     } catch (error) {
-        console.error('Create transaction error:', error);
-        res.status(500).json({
-            error: error.message,
-            ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
-        });
+        next(error);
     }
 });
 
@@ -307,7 +346,7 @@ router.post('/', async (req, res) => {
  * GET /api/transactions
  * Get transactions with filters and calculated interest
  */
-router.get('/', async (req, res) => {
+router.get('/', async (req, res, next) => {
     try {
         const { customer_id, start_date, end_date } = req.query;
 
@@ -402,11 +441,7 @@ router.get('/', async (req, res) => {
 
         res.json(results);
     } catch (error) {
-        console.error('Get transactions error:', error);
-        res.status(500).json({
-            error: error.message,
-            ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
-        });
+        next(error);
     }
 });
 
@@ -414,14 +449,14 @@ router.get('/', async (req, res) => {
  * PATCH /api/transactions/:id
  * Update transaction
  */
-router.patch('/:id', async (req, res) => {
+router.patch('/:id', validate(transactionSchemas.update), async (req, res, next) => {
     try {
         const { customer_id, type, amount, content, transaction_date, status, closed_at } = req.body;
 
-        const tx = await Transaction.findOne({ $or: [{ id: req.params.id }, { _id: req.params.id }] });
+        const tx = await Transaction.findOne(buildTransactionLookupQuery(req.params.id));
 
         if (!tx) {
-            return res.status(404).json({ error: 'Transaction not found' });
+            throw new APIError('Transaction not found', 404, ErrorCodes.NOT_FOUND);
         }
 
         let needsRecalc = false;
@@ -430,7 +465,7 @@ router.patch('/:id', async (req, res) => {
         if (type !== undefined) {
             const interestConfig = await InterestConfig.findOne({ code: type });
             if (!interestConfig) {
-                return res.status(404).json({ error: 'Invalid transaction type' });
+                throw new APIError('Invalid transaction type', 404, ErrorCodes.INVALID_TRANSACTION_TYPE);
             }
             tx.type = type;
             tx.interest_rate_snapshot = interestConfig.rate_per_month;
@@ -448,8 +483,8 @@ router.patch('/:id', async (req, res) => {
 
         // Update amount
         if (amount !== undefined) {
-            if (isNaN(amount)) {
-                return res.status(400).json({ error: 'Giá trị tiền không hợp lệ' });
+            if (isNaN(amount) || amount <= 0) {
+                throw new APIError('Giá trị tiền không hợp lệ', 400, ErrorCodes.INVALID_AMOUNT);
             }
             tx.amount = amount;
             needsRecalc = true;
@@ -464,7 +499,7 @@ router.patch('/:id', async (req, res) => {
         if (transaction_date !== undefined) {
             tx.transaction_date = new Date(transaction_date);
             if (isNaN(tx.transaction_date.getTime())) {
-                return res.status(400).json({ error: 'Ngày giao dịch không hợp lệ' });
+                throw new APIError('Ngày giao dịch không hợp lệ', 400, ErrorCodes.VALIDATION_ERROR);
             }
             needsRecalc = true;
         }
@@ -498,13 +533,15 @@ router.patch('/:id', async (req, res) => {
             }
 
             if (isNaN(targetPaymentDate.getTime())) {
-                return res.status(400).json({ error: 'Ngày thanh toán không hợp lệ' });
+                throw new APIError('Ngày thanh toán không hợp lệ', 400, ErrorCodes.VALIDATION_ERROR);
             }
 
             if (targetPaymentDate < tx.transaction_date) {
-                return res.status(400).json({
-                    error: 'Ngày thanh toán không được nhỏ hơn ngày giao dịch'
-                });
+                throw new APIError(
+                    'Ngày thanh toán không được nhỏ hơn ngày giao dịch',
+                    400,
+                    ErrorCodes.INVALID_DATE_RANGE
+                );
             }
 
             // Calculate interest
@@ -524,13 +561,15 @@ router.patch('/:id', async (req, res) => {
 
         await tx.save();
 
+        logger.info('Transaction updated', { 
+            transactionId: tx.id || tx._id,
+            customerId: tx.customer_id,
+            status: tx.status
+        });
+
         res.json(tx);
     } catch (error) {
-        console.error('Update transaction error:', error);
-        res.status(500).json({
-            error: error.message,
-            ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
-        });
+        next(error);
     }
 });
 
@@ -538,7 +577,7 @@ router.patch('/:id', async (req, res) => {
  * POST /api/transactions/bulk-pay
  * Bulk payment for all OPEN transactions of a customer
  */
-router.post('/bulk-pay', authMiddleware, requireAdmin, async (req, res) => {
+router.post('/bulk-pay', authMiddleware, requireAdmin, async (req, res, next) => {
     try {
         const { customer_id, payment_date, pin } = req.body;
 
@@ -557,15 +596,17 @@ router.post('/bulk-pay', authMiddleware, requireAdmin, async (req, res) => {
 
         const paymentDateObj = new Date(payment_date);
         if (!payment_date || isNaN(paymentDateObj.getTime())) {
-            return res.status(400).json({ error: 'Ngày thanh toán không hợp lệ' });
+            throw new APIError('Ngày thanh toán không hợp lệ', 400, ErrorCodes.VALIDATION_ERROR);
         }
         let count = 0;
 
         for (const tx of transactions) {
             if (paymentDateObj < tx.transaction_date) {
-                return res.status(400).json({
-                    error: `Ngày thanh toán không được nhỏ hơn ngày giao dịch (giao dịch ${tx.id || tx._id})`
-                });
+                throw new APIError(
+                    `Ngày thanh toán không được nhỏ hơn ngày giao dịch (giao dịch ${tx.id || tx._id})`,
+                    400,
+                    ErrorCodes.INVALID_DATE_RANGE
+                );
             }
             // Calculate interest
             const calc = calculateInterestAmount(
@@ -585,11 +626,15 @@ router.post('/bulk-pay', authMiddleware, requireAdmin, async (req, res) => {
             count++;
         }
 
+        logger.info('Bulk payment completed', { 
+            customerId, 
+            count,
+            paymentDate: payment_date 
+        });
+
         res.json({ message: 'Thanh toán thành công', count });
     } catch (error) {
-        console.error('Bulk pay error:', error);
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({ error: error.message });
+        next(error);
     }
 });
 
@@ -621,10 +666,42 @@ router.post('/delete-secure', authMiddleware, requireAdmin, async (req, res) => 
 });
 
 /**
+ * GET /api/transactions/reports/monthly-count?year=2024
+ * Số lượng giao dịch theo từng tháng trong năm
+ */
+router.get('/reports/monthly-count', async (req, res, next) => {
+    try {
+        const year = parseInt(req.query.year, 10) || new Date().getFullYear();
+        const start = new Date(year, 0, 1);
+        const end = new Date(year, 11, 31, 23, 59, 59, 999);
+
+        const agg = await Transaction.aggregate([
+            { $match: { transaction_date: { $gte: start, $lte: end } } },
+            { $group: { _id: { $month: '$transaction_date' }, count: { $sum: 1 } } },
+            { $sort: { _id: 1 } }
+        ]);
+
+        const map = {};
+        agg.forEach((r) => { map[r._id] = r.count; });
+
+        const labels = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'];
+        const result = labels.map((label, i) => ({
+            month: i + 1,
+            label,
+            count: map[i + 1] || 0
+        }));
+
+        res.json(result);
+    } catch (error) {
+        next(error);
+    }
+});
+
+/**
  * GET /api/transactions/reports/debt
  * Debt report for all customers
  */
-router.get('/reports/debt', async (req, res) => {
+router.get('/reports/debt', async (req, res, next) => {
     try {
         const customers = await Customer.find().lean();
         const transactions = await Transaction.find().lean();
@@ -687,11 +764,7 @@ router.get('/reports/debt', async (req, res) => {
 
         res.json(reports);
     } catch (error) {
-        console.error('Debt report error:', error);
-        res.status(500).json({
-            error: error.message,
-            ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
-        });
+        next(error);
     }
 });
 

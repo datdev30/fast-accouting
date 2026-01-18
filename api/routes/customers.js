@@ -5,6 +5,10 @@ import { getNextId } from '../utils/counter.js';
 import { isMongoWriteForbidden, verifyAdminPin } from '../utils/helpers.js';
 import User from '../models/User.js';
 import { authMiddleware, requireAdmin } from '../middleware/auth.js';
+import { validate, customerSchemas } from '../middleware/validation.js';
+import { APIError, ErrorCodes } from '../utils/errors.js';
+import logger from '../utils/logger.js';
+import { buildCustomerIdResolver, calculateCustomerDebt, getCustomerStatus, resolveCustomerId } from '../utils/customerHelpers.js';
 
 const router = express.Router();
 
@@ -12,28 +16,13 @@ const router = express.Router();
  * GET /api/customers
  * Get all customers with status
  */
-router.get('/', async (req, res) => {
+router.get('/', async (req, res, next) => {
     try {
         const customers = await Customer.find().lean();
         const transactions = await Transaction.find().lean();
 
-        const idResolver = {};
-        customers.forEach(c => {
-            const rawCustomId = c?.id;
-            const customId = rawCustomId !== null && rawCustomId !== undefined
-                ? String(rawCustomId).trim()
-                : null;
-
-            const mongoId = c?._id !== null && c?._id !== undefined
-                ? String(c._id).trim()
-                : null;
-
-            const key = customId || mongoId;
-            if (!key) return;
-
-            if (customId) idResolver[customId] = key;
-            if (mongoId) idResolver[mongoId] = key;
-        });
+        // Use helper function for ID resolution
+        const idResolver = buildCustomerIdResolver(customers);
 
         // Map transactions to unified Custom ID
         const txMap = {};
@@ -48,7 +37,8 @@ router.get('/', async (req, res) => {
             }
         }
 
-        // Build results with status
+        // Build results with status and total_debt using helper functions
+        const now = new Date();
         const results = customers.map(c => {
             const rawCustomId = c?.id;
             const customId = rawCustomId !== null && rawCustomId !== undefined
@@ -60,9 +50,10 @@ router.get('/', async (req, res) => {
 
             const key = customId || mongoId;
             const cTxs = key ? (txMap[key] || []) : [];
-            const hasHistory = cTxs.length > 0;
-            const hasOpenDebt = cTxs.some(tx => tx.status === 'OPEN');
-            const isPaidInFull = hasHistory && !hasOpenDebt;
+
+            // Use helper functions
+            const status = getCustomerStatus(cTxs);
+            const debt = calculateCustomerDebt(cTxs, now);
 
             return {
                 _id: c._id,
@@ -70,16 +61,16 @@ router.get('/', async (req, res) => {
                 name: c.name,
                 contact_info: c.contact_info,
                 created_at: c.created_at,
-                is_paid_in_full: isPaidInFull,
-                has_history: hasHistory,
-                transaction_count: cTxs.length
+                is_paid_in_full: status.isPaidInFull,
+                has_history: status.hasHistory,
+                transaction_count: cTxs.length,
+                total_debt: debt.totalDebt
             };
         });
 
         res.json(results);
     } catch (error) {
-        console.error('Get customers error:', error);
-        res.status(500).json({ error: error.message });
+        next(error);
     }
 });
 
@@ -87,13 +78,9 @@ router.get('/', async (req, res) => {
  * POST /api/customers
  * Create new customer
  */
-router.post('/', async (req, res) => {
+router.post('/', validate(customerSchemas.create), async (req, res, next) => {
     try {
         const { name, contact_info } = req.body;
-
-        if (!name) {
-            return res.status(400).json({ error: 'Name is required' });
-        }
 
         // Generate custom ID
         const newId = await getNextId('customer');
@@ -106,15 +93,18 @@ router.post('/', async (req, res) => {
 
         await customer.save();
 
+        logger.info('Customer created', { customerId: newId, name });
+
         res.status(201).json(customer);
     } catch (error) {
-        console.error('Create customer error:', error);
-        const statusCode = error.statusCode || (isMongoWriteForbidden(error) ? 403 : 500);
-        res.status(statusCode).json({
-            error: statusCode === 403
-                ? 'Hệ thống đang ở chế độ chỉ đọc (read-only). Không thể tạo khách hàng.'
-                : error.message
-        });
+        if (isMongoWriteForbidden(error)) {
+            throw new APIError(
+                'Hệ thống đang ở chế độ chỉ đọc (read-only). Không thể tạo khách hàng.',
+                403,
+                ErrorCodes.READ_ONLY_MODE
+            );
+        }
+        next(error);
     }
 });
 
@@ -122,19 +112,18 @@ router.post('/', async (req, res) => {
  * GET /api/customers/:id
  * Get single customer
  */
-router.get('/:id', async (req, res) => {
+router.get('/:id', async (req, res, next) => {
     try {
         const customerId = String(req.params.id ?? '').trim();
-        const customer = await Customer.findOne({ $or: [{ id: customerId }, { _id: customerId }] });
+        const customer = await resolveCustomerId(customerId);
 
         if (!customer) {
-            return res.status(404).json({ error: 'Customer not found' });
+            throw new APIError('Customer not found', 404, ErrorCodes.NOT_FOUND);
         }
 
         res.json(customer);
     } catch (error) {
-        console.error('Get customer error:', error);
-        res.status(500).json({ error: error.message });
+        next(error);
     }
 });
 
@@ -142,15 +131,14 @@ router.get('/:id', async (req, res) => {
  * PATCH /api/customers/:id
  * Update customer
  */
-router.patch('/:id', async (req, res) => {
+router.patch('/:id', validate(customerSchemas.update), async (req, res, next) => {
     try {
         const { name, contact_info } = req.body;
-
         const customerId = String(req.params.id ?? '').trim();
-        const customer = await Customer.findOne({ $or: [{ id: customerId }, { _id: customerId }] });
-
+        
+        const customer = await resolveCustomerId(customerId);
         if (!customer) {
-            return res.status(404).json({ error: 'Customer not found' });
+            throw new APIError('Customer not found', 404, ErrorCodes.NOT_FOUND);
         }
 
         // Update fields
@@ -159,10 +147,11 @@ router.patch('/:id', async (req, res) => {
 
         await customer.save();
 
+        logger.info('Customer updated', { customerId, name: customer.name });
+
         res.json(customer);
     } catch (error) {
-        console.error('Update customer error:', error);
-        res.status(500).json({ error: error.message });
+        next(error);
     }
 });
 
@@ -170,30 +159,37 @@ router.patch('/:id', async (req, res) => {
  * POST /api/customers/delete-secure
  * Delete customer with PIN verification (cascade delete transactions)
  */
-router.post('/delete-secure', authMiddleware, requireAdmin, async (req, res) => {
+router.post('/delete-secure', authMiddleware, requireAdmin, async (req, res, next) => {
     try {
         const { id, pin } = req.body;
+
+        if (!id) {
+            throw new APIError('Customer ID is required', 400, ErrorCodes.VALIDATION_ERROR);
+        }
 
         // Verify admin PIN
         await verifyAdminPin(pin, req.currentUser);
 
         const customer = await Customer.findOne({ id });
-
         if (!customer) {
-            return res.status(404).json({ error: 'Customer not found' });
+            throw new APIError('Customer not found', 404, ErrorCodes.NOT_FOUND);
         }
 
         // Cascade delete transactions
-        await Transaction.deleteMany({ customer_id: id });
+        const deleteResult = await Transaction.deleteMany({ customer_id: id });
 
         // Delete customer
         await Customer.deleteOne({ id });
 
+        logger.warn('Customer deleted', { 
+            customerId: id, 
+            customerName: customer.name,
+            deletedTransactions: deleteResult.deletedCount 
+        });
+
         res.json({ message: 'Đã xóa khách hàng và toàn bộ dữ liệu liên quan' });
     } catch (error) {
-        console.error('Delete customer error:', error);
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({ error: error.message });
+        next(error);
     }
 });
 

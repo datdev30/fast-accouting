@@ -219,7 +219,7 @@ export async function generatePDF(customer, transactions) {
             doc.moveDown(0.3);
 
             doc.font('TimesNewRoman-Bold').fontSize(11);
-            doc.text('0342.789.046 — 0367.973.948', { align: 'center' });
+            doc.text('0342 789 046 — 0367 973 948', { align: 'center' });
             doc.moveDown(0.5);
 
             // Divider line
@@ -424,7 +424,12 @@ export async function generatePDF(customer, transactions) {
                 globalInterest += monthInterest;
             }
 
-            // Grand totals
+            // Đảm bảo có chỗ cho tổng cuối + "Bằng chữ" + chữ ký (~160pt) trước khi sang trang
+            const spaceForTotalsAndSignatures = 160;
+            if (doc.y + spaceForTotalsAndSignatures > doc.page.height - doc.page.margins.bottom) {
+                doc.addPage();
+                doc.y = doc.page.margins.top;
+            }
             doc.moveDown(1);
 
             // Two-column totals like PrintableReport (label left, value right)
@@ -457,18 +462,22 @@ export async function generatePDF(customer, transactions) {
             // Right-aligned "Bằng chữ" like PrintableReport
             drawRightAlignedMixed(doc, 'Bằng chữ: ', readMoney(globalPrincipal + globalInterest), { fontSize: 11 });
 
-            doc.moveDown(3);
-
-            // Signature area
-            doc.font('TimesNewRoman-Bold').fontSize(11);
+            // Khu vực chữ ký: đặt ngay dưới "Bằng chữ" với khoảng cách vừa phải (tránh cách quá xa)
+            doc.moveDown(2.5);
             const sigY = doc.y;
+            const { left: contentLeft, width: contentWidth } = getContentBox(doc);
+            const sigGap = 50;
+            const sigBlockW = (contentWidth - sigGap) / 2;
+            const sigLeftX = contentLeft;
+            const sigRightX = contentLeft + sigBlockW + sigGap;
 
-            doc.text('Đại diện bên trả nợ', 80, sigY, { width: 200, align: 'center' });
-            doc.text('Đại diện bên nhận nợ', 350, sigY, { width: 200, align: 'center' });
+            doc.font('TimesNewRoman-Bold').fontSize(11);
+            doc.text('Đại diện bên trả nợ', sigLeftX, sigY, { width: sigBlockW, align: 'center' });
+            doc.text('Đại diện bên nhận nợ', sigRightX, sigY, { width: sigBlockW, align: 'center' });
 
             doc.font('TimesNewRoman-Italic').fontSize(10);
-            doc.text('(Ký và ghi rõ họ tên)', 80, sigY + 20, { width: 200, align: 'center' });
-            doc.text('(Ký và ghi rõ họ tên)', 350, sigY + 20, { width: 200, align: 'center' });
+            doc.text('(Ký và ghi rõ họ tên)', sigLeftX, sigY + 20, { width: sigBlockW, align: 'center' });
+            doc.text('(Ký và ghi rõ họ tên)', sigRightX, sigY + 20, { width: sigBlockW, align: 'center' });
 
             // Finalize PDF
             doc.end();

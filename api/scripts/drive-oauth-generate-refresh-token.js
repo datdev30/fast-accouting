@@ -1,5 +1,13 @@
 import http from 'http';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
 import { google } from 'googleapis';
+
+// Đọc api/.env (client_id, client_secret) kể cả khi chạy từ thư mục gốc
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
+dotenv.config();
 
 const SCOPES = ['https://www.googleapis.com/auth/drive'];
 
@@ -68,6 +76,9 @@ async function main() {
 
             if (!tokens.refresh_token) {
                 console.log('\nNOTE: No refresh_token returned. Try again after revoking access at https://myaccount.google.com/permissions and rerun this script.');
+            } else {
+                console.log('\n--- Cập nhật api/.env ---');
+                console.log('Thay GOOGLE_DRIVE_OAUTH_REFRESH_TOKEN bằng giá trị refresh_token ở trên, rồi khởi động lại API.');
             }
 
             server.close();

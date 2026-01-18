@@ -6,6 +6,9 @@ import archiver from 'archiver';
 import fs from 'fs/promises';
 import path from 'path';
 import { removeAccents } from '../utils/helpers.js';
+import { APIError, ErrorCodes } from '../utils/errors.js';
+import logger from '../utils/logger.js';
+import { resolveCustomerId } from '../utils/customerHelpers.js';
 
 const router = express.Router();
 
@@ -52,9 +55,10 @@ router.get('/:customer_id/pdf', async (req, res) => {
         // Generate PDF
         const pdfBuffer = await generatePDF(customer, transactions);
 
-        // Send as download
+        // Send as download: Phieu_TTCN_<tên KH>.pdf
+        const safeName = sanitizeFilename(customer.name || customer_id);
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename=report_${customer_id}.pdf`);
+        res.setHeader('Content-Disposition', `attachment; filename=Phieu_TTCN_${safeName}.pdf`);
         res.send(pdfBuffer);
     } catch (error) {
         console.error('PDF generation error:', error);
@@ -68,7 +72,7 @@ router.get('/:customer_id/pdf', async (req, res) => {
  * - If `output_path` is provided: write PDFs to that folder and return JSON.
  * - Otherwise: return a downloadable ZIP of PDFs.
  */
-router.post('/batch-export', async (req, res) => {
+router.post('/batch-export', async (req, res, next) => {
     try {
         const outputPath = req.body?.output_path ? String(req.body.output_path) : null;
 
@@ -141,8 +145,7 @@ router.post('/batch-export', async (req, res) => {
 
         await archive.finalize();
     } catch (error) {
-        console.error('Batch export error:', error);
-        res.status(500).json({ error: error.message });
+        next(error);
     }
 });
 

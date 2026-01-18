@@ -23,8 +23,8 @@ export function removeAccents(inputStr) {
 export async function verifyAdminPin(pin, userOrModel, userId = null) {
     const pinValue = pin !== null && pin !== undefined ? String(pin) : '';
     if (!pinValue) {
-        const error = new Error('Sai mã PIN');
-        error.statusCode = 401;
+        const error = new Error('Vui lòng nhập mã PIN');
+        error.statusCode = 403; // 403: đã đăng nhập nhưng từ chối thao tác (tránh nhầm 401 → redirect /login)
         throw error;
     }
 
@@ -50,7 +50,7 @@ export async function verifyAdminPin(pin, userOrModel, userId = null) {
     const isValid = await admin.comparePin(pinValue);
     if (!isValid) {
         const error = new Error('Sai mã PIN');
-        error.statusCode = 401;
+        error.statusCode = 403; // 403: đã đăng nhập nhưng từ chối thao tác (tránh nhầm 401 → redirect /login)
         throw error;
     }
 

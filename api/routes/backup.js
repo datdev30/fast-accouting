@@ -8,6 +8,8 @@ import User from '../models/User.js';
 import Counter from '../models/Counter.js';
 
 import { authMiddleware, requireAdmin } from '../middleware/auth.js';
+import { APIError, ErrorCodes } from '../utils/errors.js';
+import logger from '../utils/logger.js';
 
 const router = express.Router();
 
@@ -79,10 +81,15 @@ async function upsertMany(model, docs) {
 }
 
 // ADMIN: download a single EJSON bundle of all collections
-router.get('/export', authMiddleware, requireAdmin, async (req, res) => {
+router.get('/export', authMiddleware, requireAdmin, async (req, res, next) => {
     try {
         const bundle = await exportAllCollections();
         const filename = `fastaccounting-backup-${formatTimestampForFilename()}.ejson.json`;
+
+        logger.info('Backup exported', { 
+            counts: bundle.meta.counts,
+            filename 
+        });
 
         res.setHeader('Content-Type', 'application/json; charset=utf-8');
         res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
@@ -90,8 +97,7 @@ router.get('/export', authMiddleware, requireAdmin, async (req, res) => {
         const body = EJSON.stringify(bundle, { relaxed: false, indent: 2 });
         res.send(body);
     } catch (error) {
-        console.error('Backup export error:', error);
-        res.status(500).json({ error: 'Cannot export backup' });
+        next(error);
     }
 });
 
@@ -101,22 +107,22 @@ router.post(
     authMiddleware,
     requireAdmin,
     express.text({ type: '*/*', limit: '50mb' }),
-    async (req, res) => {
+    async (req, res, next) => {
         try {
             if (!req.body || typeof req.body !== 'string') {
-                return res.status(400).json({ error: 'Missing backup file content' });
+                throw new APIError('Missing backup file content', 400, ErrorCodes.VALIDATION_ERROR);
             }
 
             let parsed;
             try {
                 parsed = EJSON.parse(req.body, { relaxed: false });
             } catch {
-                return res.status(400).json({ error: 'Invalid backup format (expected EJSON)' });
+                throw new APIError('Invalid backup format (expected EJSON)', 400, ErrorCodes.VALIDATION_ERROR);
             }
 
             const collections = parsed?.collections;
             if (!collections || typeof collections !== 'object') {
-                return res.status(400).json({ error: 'Backup file missing collections' });
+                throw new APIError('Backup file missing collections', 400, ErrorCodes.VALIDATION_ERROR);
             }
 
             const results = {};
@@ -126,14 +132,18 @@ router.post(
             results.users = await upsertMany(User, collections.users || []);
             results.counters = await upsertMany(Counter, collections.counters || []);
 
+            logger.warn('Backup imported', { 
+                results,
+                importedAt: new Date().toISOString()
+            });
+
             res.json({
                 ok: true,
                 imported_at: new Date().toISOString(),
                 results
             });
         } catch (error) {
-            console.error('Backup import error:', error);
-            res.status(500).json({ error: 'Cannot import backup' });
+            next(error);
         }
     }
 );

@@ -1,6 +1,9 @@
 import express from 'express';
 import User from '../models/User.js';
 import { authMiddleware } from '../middleware/auth.js';
+import { validate, authSchemas } from '../middleware/validation.js';
+import { APIError, ErrorCodes } from '../utils/errors.js';
+import logger from '../utils/logger.js';
 
 const router = express.Router();
 
@@ -8,19 +11,14 @@ const router = express.Router();
  * POST /api/auth/register
  * Register new user
  */
-router.post('/register', async (req, res) => {
+router.post('/register', validate(authSchemas.register), async (req, res, next) => {
     try {
         const { username, password, display_name } = req.body;
-
-        // Validation
-        if (!username || !password) {
-            return res.status(400).json({ error: 'Username and password are required' });
-        }
 
         // Check if user exists
         const existingUser = await User.findOne({ username });
         if (existingUser) {
-            return res.status(400).json({ error: 'Username already exists' });
+            throw new APIError('Username already exists', 400, ErrorCodes.ALREADY_EXISTS);
         }
 
         // Hash password
@@ -37,13 +35,14 @@ router.post('/register', async (req, res) => {
 
         await user.save();
 
+        logger.info('User registered', { username: user.username });
+
         res.status(201).json({
             message: 'User created successfully',
             username: user.username
         });
     } catch (error) {
-        console.error('Register error:', error);
-        res.status(500).json({ error: 'Server error during registration' });
+        next(error);
     }
 });
 
@@ -51,29 +50,26 @@ router.post('/register', async (req, res) => {
  * POST /api/auth/login
  * Login user and return JWT token
  */
-router.post('/login', async (req, res) => {
+router.post('/login', validate(authSchemas.login), async (req, res, next) => {
     try {
         const { username, password } = req.body;
-
-        // Validation
-        if (!username || !password) {
-            return res.status(400).json({ error: 'Username and password are required' });
-        }
 
         // Find user
         const user = await User.findOne({ username });
         if (!user) {
-            return res.status(401).json({ error: 'Invalid username or password' });
+            throw new APIError('Tên đăng nhập hoặc mật khẩu không đúng', 401, ErrorCodes.INVALID_CREDENTIALS);
         }
 
         // Compare password
         const isMatch = await user.comparePassword(password);
         if (!isMatch) {
-            return res.status(401).json({ error: 'Invalid username or password' });
+            throw new APIError('Tên đăng nhập hoặc mật khẩu không đúng', 401, ErrorCodes.INVALID_CREDENTIALS);
         }
 
         // Generate JWT token
         const token = user.generateToken();
+
+        logger.info('User logged in', { username: user.username, role: user.role });
 
         res.json({
             token,
@@ -82,8 +78,7 @@ router.post('/login', async (req, res) => {
             role: user.role || null
         });
     } catch (error) {
-        console.error('Login error:', error);
-        res.status(500).json({ error: 'Server error during login' });
+        next(error);
     }
 });
 
@@ -100,7 +95,7 @@ router.post('/logout', (req, res) => {
  * GET /api/auth/me
  * Get current user info (protected route)
  */
-router.get('/me', authMiddleware, async (req, res) => {
+router.get('/me', authMiddleware, async (req, res, next) => {
     try {
         const userId = req.user?.id;
         const username = req.user?.username;
@@ -124,8 +119,7 @@ router.get('/me', authMiddleware, async (req, res) => {
             role: user.role || null
         });
     } catch (error) {
-        console.error('Get me error:', error);
-        res.status(500).json({ error: 'Server error' });
+        next(error);
     }
 });
 

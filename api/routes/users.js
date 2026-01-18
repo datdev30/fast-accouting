@@ -2,6 +2,9 @@ import express from 'express';
 import User from '../models/User.js';
 import { authMiddleware, requireAdmin } from '../middleware/auth.js';
 import { verifyAdminPin } from '../utils/helpers.js';
+import { validate, userSchemas } from '../middleware/validation.js';
+import { APIError, ErrorCodes } from '../utils/errors.js';
+import logger from '../utils/logger.js';
 
 const router = express.Router();
 
@@ -16,7 +19,7 @@ function normalizeRole(role) {
  * GET /api/users
  * Admin only - list users
  */
-router.get('/', authMiddleware, requireAdmin, async (req, res) => {
+router.get('/', authMiddleware, requireAdmin, async (req, res, next) => {
     try {
         const users = await User.find()
             .select('username display_name role legacy_password')
@@ -24,8 +27,7 @@ router.get('/', authMiddleware, requireAdmin, async (req, res) => {
 
         res.json(users);
     } catch (error) {
-        console.error('Get users error:', error);
-        res.status(500).json({ error: error.message });
+        next(error);
     }
 });
 
@@ -33,17 +35,13 @@ router.get('/', authMiddleware, requireAdmin, async (req, res) => {
  * POST /api/users
  * Admin only - create user
  */
-router.post('/', authMiddleware, requireAdmin, async (req, res) => {
+router.post('/', authMiddleware, requireAdmin, validate(userSchemas.create), async (req, res, next) => {
     try {
         const { username, password, display_name, role, pin } = req.body;
 
-        if (!username || !password) {
-            return res.status(400).json({ error: 'Username and password are required' });
-        }
-
         const existing = await User.findOne({ username: String(username).trim() });
         if (existing) {
-            return res.status(400).json({ error: 'Username already exists' });
+            throw new APIError('Username already exists', 400, ErrorCodes.ALREADY_EXISTS);
         }
 
         const hashedPassword = await User.hashPassword(password);
@@ -65,6 +63,8 @@ router.post('/', authMiddleware, requireAdmin, async (req, res) => {
 
         await user.save();
 
+        logger.info('User created', { username: user.username, role: user.role });
+
         res.status(201).json({
             _id: user._id,
             username: user.username,
@@ -73,8 +73,7 @@ router.post('/', authMiddleware, requireAdmin, async (req, res) => {
             legacy_password: user.legacy_password
         });
     } catch (error) {
-        console.error('Create user error:', error);
-        res.status(500).json({ error: error.message });
+        next(error);
     }
 });
 
@@ -82,13 +81,13 @@ router.post('/', authMiddleware, requireAdmin, async (req, res) => {
  * PATCH /api/users/:id
  * Admin only - update user fields
  */
-router.patch('/:id', authMiddleware, requireAdmin, async (req, res) => {
+router.patch('/:id', authMiddleware, requireAdmin, validate(userSchemas.update), async (req, res, next) => {
     try {
         const { display_name, role, password, pin } = req.body;
 
         const user = await User.findById(req.params.id);
         if (!user) {
-            return res.status(404).json({ error: 'User not found' });
+            throw new APIError('User not found', 404, ErrorCodes.NOT_FOUND);
         }
 
         if (display_name !== undefined) {
@@ -98,7 +97,7 @@ router.patch('/:id', authMiddleware, requireAdmin, async (req, res) => {
         if (role !== undefined) {
             const normalizedRole = normalizeRole(role);
             if (!normalizedRole) {
-                return res.status(400).json({ error: 'Invalid role. Use ADMIN or SALE.' });
+                throw new APIError('Invalid role. Use ADMIN or SALE.', 400, ErrorCodes.VALIDATION_ERROR);
             }
             user.role = normalizedRole;
         }
@@ -114,6 +113,8 @@ router.patch('/:id', authMiddleware, requireAdmin, async (req, res) => {
 
         await user.save();
 
+        logger.info('User updated', { userId: user._id, username: user.username, role: user.role });
+
         res.json({
             _id: user._id,
             username: user.username,
@@ -122,8 +123,7 @@ router.patch('/:id', authMiddleware, requireAdmin, async (req, res) => {
             legacy_password: user.legacy_password
         });
     } catch (error) {
-        console.error('Update user error:', error);
-        res.status(500).json({ error: error.message });
+        next(error);
     }
 });
 
@@ -131,23 +131,28 @@ router.patch('/:id', authMiddleware, requireAdmin, async (req, res) => {
  * POST /api/users/delete-secure
  * Admin only - delete user with PIN verification
  */
-router.post('/delete-secure', authMiddleware, requireAdmin, async (req, res) => {
+router.post('/delete-secure', authMiddleware, requireAdmin, async (req, res, next) => {
     try {
         const { id, pin } = req.body;
+
+        if (!id) {
+            throw new APIError('User ID is required', 400, ErrorCodes.VALIDATION_ERROR);
+        }
 
         await verifyAdminPin(pin, req.currentUser);
 
         const user = await User.findById(id);
         if (!user) {
-            return res.status(404).json({ error: 'User not found' });
+            throw new APIError('User not found', 404, ErrorCodes.NOT_FOUND);
         }
 
         await User.deleteOne({ _id: id });
+
+        logger.warn('User deleted', { userId: id, username: user.username });
+
         res.json({ message: 'Đã xóa user' });
     } catch (error) {
-        console.error('Delete user error:', error);
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({ error: error.message });
+        next(error);
     }
 });
 

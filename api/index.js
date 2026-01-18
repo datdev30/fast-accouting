@@ -1,7 +1,12 @@
 import express from 'express';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import cors from 'cors';
 import connectDB from './config/db.js';
+import { errorHandler } from './utils/errors.js';
+import { apiRateLimiter, authRateLimiter } from './middleware/rateLimiter.js';
+import logger from './utils/logger.js';
 
 // Import routes
 import authRoutes from './routes/auth.js';
@@ -13,8 +18,10 @@ import userRoutes from './routes/users.js';
 import infoRoutes from './routes/info.js';
 import backupRoutes from './routes/backup.js';
 
-// Load environment variables
-dotenv.config();
+// Load environment variables: ưu tiên api/.env (kể cả khi chạy từ thư mục gốc)
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(__dirname, '.env') });
+dotenv.config(); // fallback: .env tại cwd
 
 // Initialize Express app
 const app = express();
@@ -48,7 +55,7 @@ app.use(cors({
         if (allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
-            console.warn(`CORS blocked origin: ${origin}. Allowed: ${allowedOrigins.join(', ')}`);
+            logger.warn('CORS blocked origin', { origin, allowed: allowedOrigins });
             callback(new Error('Not allowed by CORS'));
         }
     },
@@ -71,6 +78,12 @@ app.get('/', (req, res) => {
     });
 });
 
+// Rate limiting - Apply stricter limit to auth endpoints
+app.use('/api/auth', authRateLimiter);
+
+// Apply standard rate limiting to all other API routes
+app.use('/api', apiRateLimiter);
+
 // Ensure DB connection for requests that need it (skip CORS preflight)
 app.use(async (req, res, next) => {
     if (req.method === 'OPTIONS') return next();
@@ -79,9 +92,10 @@ app.use(async (req, res, next) => {
         await connectDB();
         return next();
     } catch (err) {
-        console.error('MongoDB connection failed:', err);
+        logger.error('MongoDB connection failed', { error: err.message, stack: err.stack });
         return res.status(500).json({
-            error: 'Database connection failed'
+            error: 'Database connection failed',
+            code: 'DATABASE_ERROR'
         });
     }
 });
@@ -98,27 +112,21 @@ app.use('/api/backup', backupRoutes);
 
 // 404 handler
 app.use((req, res) => {
-    res.status(404).json({ error: 'Route not found' });
-});
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-    console.error('Error:', err);
-
-    const statusCode = err.statusCode || 500;
-    const message = err.message || 'Internal Server Error';
-
-    res.status(statusCode).json({
-        error: message,
-        ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+    res.status(404).json({ 
+        error: 'Route not found',
+        code: 'NOT_FOUND'
     });
 });
+
+// Error handling middleware (must be last)
+app.use(errorHandler);
 
 // Start server (only if not in Vercel)
 const PORT = process.env.PORT || 3000;
 
 if (process.env.NODE_ENV !== 'production') {
     app.listen(PORT, () => {
+        logger.info('Server started', { port: PORT, env: process.env.NODE_ENV });
         console.log(`🚀 Server running on port ${PORT}`);
         console.log(`📍 http://localhost:${PORT}`);
     });

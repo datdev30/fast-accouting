@@ -3,6 +3,9 @@ import InterestConfig from '../models/InterestConfig.js';
 import User from '../models/User.js';
 import { verifyAdminPin } from '../utils/helpers.js';
 import { authMiddleware, requireAdmin } from '../middleware/auth.js';
+import { validate, interestConfigSchemas } from '../middleware/validation.js';
+import { APIError, ErrorCodes } from '../utils/errors.js';
+import logger from '../utils/logger.js';
 
 const router = express.Router();
 
@@ -10,13 +13,12 @@ const router = express.Router();
  * GET /api/interest-configs
  * Get all interest configurations
  */
-router.get('/', async (req, res) => {
+router.get('/', async (req, res, next) => {
     try {
         const configs = await InterestConfig.find();
         res.json(configs);
     } catch (error) {
-        console.error('Get interest configs error:', error);
-        res.status(500).json({ error: error.message });
+        next(error);
     }
 });
 
@@ -58,18 +60,17 @@ router.post('/', async (req, res) => {
  * GET /api/interest-configs/:code
  * Get single interest configuration
  */
-router.get('/:code', async (req, res) => {
+router.get('/:code', async (req, res, next) => {
     try {
-        const config = await InterestConfig.findOne({ code: req.params.code });
+        const config = await InterestConfig.findOne({ code: req.params.code.toUpperCase() });
 
         if (!config) {
-            return res.status(404).json({ error: 'Config not found' });
+            throw new APIError('Config not found', 404, ErrorCodes.NOT_FOUND);
         }
 
         res.json(config);
     } catch (error) {
-        console.error('Get interest config error:', error);
-        res.status(500).json({ error: error.message });
+        next(error);
     }
 });
 
@@ -77,14 +78,14 @@ router.get('/:code', async (req, res) => {
  * PATCH /api/interest-configs/:code
  * Update interest configuration
  */
-router.patch('/:code', async (req, res) => {
+router.patch('/:code', validate(interestConfigSchemas.update), async (req, res, next) => {
     try {
         const { name, rate_per_month, description } = req.body;
 
-        const config = await InterestConfig.findOne({ code: req.params.code });
+        const config = await InterestConfig.findOne({ code: req.params.code.toUpperCase() });
 
         if (!config) {
-            return res.status(404).json({ error: 'Config not found' });
+            throw new APIError('Config not found', 404, ErrorCodes.NOT_FOUND);
         }
 
         // Update fields
@@ -94,10 +95,11 @@ router.patch('/:code', async (req, res) => {
 
         await config.save();
 
+        logger.info('Interest config updated', { code: config.code, name: config.name });
+
         res.json(config);
     } catch (error) {
-        console.error('Update interest config error:', error);
-        res.status(500).json({ error: error.message });
+        next(error);
     }
 });
 
@@ -105,26 +107,31 @@ router.patch('/:code', async (req, res) => {
  * POST /api/interest-configs/delete-secure
  * Delete interest configuration with PIN verification
  */
-router.post('/delete-secure', authMiddleware, requireAdmin, async (req, res) => {
+router.post('/delete-secure', authMiddleware, requireAdmin, async (req, res, next) => {
     try {
         const { code, pin } = req.body;
+
+        if (!code) {
+            throw new APIError('Config code is required', 400, ErrorCodes.VALIDATION_ERROR);
+        }
 
         // Verify admin PIN
         await verifyAdminPin(pin, req.currentUser);
 
-        const config = await InterestConfig.findOne({ code });
+        const normalizedCode = String(code).trim().toUpperCase();
+        const config = await InterestConfig.findOne({ code: normalizedCode });
 
         if (!config) {
-            return res.status(404).json({ error: 'Config not found' });
+            throw new APIError('Config not found', 404, ErrorCodes.NOT_FOUND);
         }
 
-        await InterestConfig.deleteOne({ code });
+        await InterestConfig.deleteOne({ code: normalizedCode });
+
+        logger.warn('Interest config deleted', { code: normalizedCode, name: config.name });
 
         res.json({ message: 'Đã xóa cấu hình' });
     } catch (error) {
-        console.error('Delete interest config error:', error);
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({ error: error.message });
+        next(error);
     }
 });
 
