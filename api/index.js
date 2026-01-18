@@ -87,11 +87,10 @@ app.get('/', (req, res) => {
     });
 });
 
-// Rate limiting - Apply stricter limit to auth endpoints
-app.use('/api/auth', authRateLimiter);
-
-// Apply standard rate limiting to all other API routes
-app.use('/api', apiRateLimiter);
+// Rate limiting - DISABLED for internal system
+// Uncomment below lines if you want to enable rate limiting
+// app.use('/api/auth', authRateLimiter);
+// app.use('/api', apiRateLimiter);
 
 // Ensure DB connection for requests that need it (skip CORS preflight)
 app.use(async (req, res, next) => {

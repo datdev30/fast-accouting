@@ -93,10 +93,13 @@ export function readMoney(soTien) {
         ketqua += tmp;
         if (viTri[i] > 0) ketqua += " " + Tien[i];
 
-        if (i > 0 && tmp.length > 0) ketqua += ",";
+        if (i > 0 && tmp.length > 0) ketqua += ", ";
     }
 
-    if (ketqua.endsWith(",")) {
+    // Remove trailing comma and space if exists
+    if (ketqua.endsWith(", ")) {
+        ketqua = ketqua.slice(0, -2);
+    } else if (ketqua.endsWith(",")) {
         ketqua = ketqua.slice(0, -1);
     }
 

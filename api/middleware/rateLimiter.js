@@ -11,6 +11,30 @@ function getClientIdentifier(req) {
     return req.ip || req.connection.remoteAddress || 'unknown';
 }
 
+/**
+ * Clear rate limit for a specific client (by IP or username)
+ * @param {string} identifier - Client identifier (IP address or username)
+ */
+export function clearRateLimit(identifier) {
+    const keysToDelete = [];
+    for (const key of requestCounts.keys()) {
+        if (key.startsWith(`${identifier}:`)) {
+            keysToDelete.push(key);
+        }
+    }
+    keysToDelete.forEach(key => requestCounts.delete(key));
+    return keysToDelete.length;
+}
+
+/**
+ * Clear all rate limits (use with caution, mainly for development)
+ */
+export function clearAllRateLimits() {
+    const count = requestCounts.size;
+    requestCounts.clear();
+    return count;
+}
+
 function cleanupOldEntries() {
     const now = Date.now();
     const oneMinute = 60 * 1000;

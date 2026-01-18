@@ -25,7 +25,8 @@ function sanitizeFilename(input) {
 router.get('/:customer_id/pdf', async (req, res) => {
     try {
         const { customer_id } = req.params;
-        const { start_date, end_date } = req.query;
+        const { start_date, end_date, include_all } = req.query;
+        const includeAll = include_all === 'true';
 
         // Fetch customer
         const customerKey = customer_id.trim();
@@ -52,17 +53,39 @@ router.get('/:customer_id/pdf', async (req, res) => {
 
         const transactions = await Transaction.find(query).sort({ transaction_date: 1 });
 
-        // Generate PDF
-        const pdfBuffer = await generatePDF(customer, transactions);
+        // Ensure transactions have valid dates and convert to plain objects if needed
+        const normalizedTransactions = transactions.map(tx => {
+            const txObj = tx.toObject ? tx.toObject() : tx;
+            // Ensure transaction_date is a Date object
+            if (txObj.transaction_date && !(txObj.transaction_date instanceof Date)) {
+                txObj.transaction_date = new Date(txObj.transaction_date);
+            }
+            return txObj;
+        });
 
-        // Send as download: Phieu_TTCN_<tên KH>.pdf
+        // Generate PDF with includeAll flag
+        const pdfBuffer = await generatePDF(customer, normalizedTransactions, includeAll);
+
+        // Send as download with appropriate filename
         const safeName = sanitizeFilename(customer.name || customer_id);
+        const filename = includeAll 
+            ? `Tat_ca_giao_dich_${safeName}.pdf`
+            : `Phieu_TTCN_${safeName}.pdf`;
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename=Phieu_TTCN_${safeName}.pdf`);
+        res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
         res.send(pdfBuffer);
     } catch (error) {
         console.error('PDF generation error:', error);
-        res.status(500).json({ error: error.message });
+        logger.error('PDF generation failed', { 
+            customer_id, 
+            error: error.message, 
+            stack: error.stack,
+            includeAll 
+        });
+        res.status(500).json({ 
+            error: error.message || 'Lỗi khi tạo PDF',
+            code: 'PDF_GENERATION_ERROR'
+        });
     }
 });
 
