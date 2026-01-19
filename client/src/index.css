@@ -162,6 +162,7 @@ body {
     color-scheme: light;
     /* Remove default browser styling */
     -webkit-appearance: none;
+    appearance: none;
     -moz-appearance: textfield;
   }
 
