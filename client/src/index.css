@@ -1,12 +1,15 @@
 @import "tailwindcss";
 
 :root {
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  /* Typography - Modern Professional (Poppins + Open Sans) */
+  --font-heading: 'Poppins', system-ui, -apple-system, sans-serif;
+  --font-body: 'Open Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
+  font-family: var(--font-body);
 
   /* Design System - Fintech Color Palette (from UI-UX Pro Max) */
-  --color-primary: #3B82F6;
-  --color-primary-hover: #2563EB;
-  --color-secondary: #60A5FA;
+  --color-primary: #2563EB;
+  --color-primary-hover: #1D4ED8;
+  --color-secondary: #3B82F6;
   --color-cta: #F97316;
   --color-cta-hover: #EA580C;
   --color-background: #F8FAFC;
@@ -36,8 +39,6 @@ body,
   overflow: hidden;
   /* Prevent body scroll, delegate to Layout */
   overscroll-behavior: none;
-  /* Disable pull-to-refresh / rubber banding */
-  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   background-color: var(--color-background);
 }
 
@@ -61,26 +62,41 @@ body {
 
 @layer components {
 
-  /* Typography */
+  /* Typography - Desktop (Poppins for headings, Open Sans for body) */
   .section-title {
-    @apply text-xl md:text-xl lg:text-2xl font-bold tracking-tight text-slate-900;
+    @apply text-2xl lg:text-3xl font-bold tracking-tight text-slate-900;
+    font-family: var(--font-heading);
   }
 
   .section-subtitle {
-    @apply text-slate-500 text-xs md:text-sm font-medium;
+    @apply text-slate-500 text-sm lg:text-base font-medium;
+    font-family: var(--font-body);
   }
 
   .section-kicker {
     @apply font-bold text-slate-800 uppercase tracking-wider text-sm flex items-center gap-2;
+    font-family: var(--font-heading);
   }
 
-  /* Surfaces */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+  }
+
+  body, p, span, div, input, textarea, select, button {
+    font-family: var(--font-body);
+  }
+
+  /* Surfaces - Design Spec */
   .card {
     @apply bg-white rounded-2xl shadow-sm border border-slate-200;
   }
 
   .card-soft {
     @apply bg-white rounded-2xl shadow-sm border border-slate-100;
+  }
+
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-lg hover:border-blue-200;
   }
 
   .card-header {
@@ -93,23 +109,26 @@ body {
   }
 
   .btn-md {
-    @apply px-5 py-2.5 text-sm md:min-h-[44px] md:py-3 md:text-base;
+    @apply px-7 py-3.5 text-base;
   }
 
   .btn-lg {
-    @apply px-6 py-3 text-sm sm:text-base font-bold md:min-h-[44px] md:py-3.5;
+    @apply px-8 py-4 text-lg font-bold;
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100 bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-200;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100 bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-200/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2;
+    min-height: 44px;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-blue-600 hover:border-blue-200 shadow-sm;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-blue-600 hover:border-blue-200 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2;
+    min-height: 44px;
   }
 
   .btn-danger {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100 bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-200;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100 bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-200/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2;
+    min-height: 44px;
   }
 
   .btn-success {
@@ -117,13 +136,12 @@ body {
   }
 
   .icon-btn {
-    @apply p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed md:min-w-[44px] md:min-h-[44px] md:flex md:items-center md:justify-center;
+    @apply p-2.5 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed;
   }
 
-  /* Inputs */
-  /* Tablet: font-size >= 16px to prevent iOS auto-zoom */
+  /* Inputs - Desktop */
   .input {
-    @apply w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm transition-all text-base md:text-base lg:text-sm font-medium text-slate-700 placeholder:text-slate-400 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed md:py-3;
+    @apply w-full bg-white border border-slate-200 rounded-xl px-5 py-4 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm transition-all text-base font-medium text-slate-700 placeholder:text-slate-400 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed;
   }
 
   .input-error {
@@ -140,7 +158,7 @@ body {
 
   /* Date Picker Styling */
   input[type="date"] {
-    @apply w-full bg-transparent text-sm md:text-base px-3 py-2.5 outline-none font-medium text-slate-600 border-0 focus:ring-0;
+    @apply w-full bg-transparent text-base px-4 py-4 outline-none font-medium text-slate-600 border-0 focus:ring-0;
     color-scheme: light;
     /* Remove default browser styling */
     -webkit-appearance: none;
@@ -189,11 +207,11 @@ body {
   }
 
   .select {
-    @apply w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm transition-all text-base md:text-base lg:text-sm font-medium text-slate-700 placeholder:text-slate-400 appearance-none cursor-pointer disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed md:py-3;
+    @apply w-full bg-white border border-slate-200 rounded-xl px-5 py-4 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm transition-all text-base font-medium text-slate-700 placeholder:text-slate-400 appearance-none cursor-pointer disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed;
   }
 
   .textarea {
-    @apply w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm transition-all text-base md:text-base lg:text-sm font-medium text-slate-700 placeholder:text-slate-400 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed resize-none md:py-3;
+    @apply w-full bg-white border border-slate-200 rounded-xl px-5 py-4 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm transition-all text-base font-medium text-slate-700 placeholder:text-slate-400 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed resize-none;
   }
 
   /* Form Field Helpers */
@@ -214,29 +232,35 @@ body {
     @apply text-sm text-slate-500 mt-1.5;
   }
 
-  /* Tables */
+  /* Tables - Design Spec */
   .table {
     @apply w-full text-left;
   }
 
   .table-head {
-    @apply bg-white border-b border-slate-100 text-[11px] md:text-xs font-bold text-slate-400 uppercase tracking-wider;
+    @apply bg-slate-50 border-b border-slate-100 text-xs font-bold text-slate-500 uppercase tracking-wider;
   }
 
   .table-th {
-    @apply px-3 py-3 md:px-6 md:py-4;
+    @apply px-6 py-4;
+    min-height: 44px;
   }
 
   .table-th-sortable {
-    @apply cursor-pointer hover:text-slate-600 transition-colors select-none;
+    @apply cursor-pointer hover:bg-slate-100 hover:text-slate-700 transition-colors select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500;
   }
 
   .table-td {
-    @apply px-3 py-3 md:px-6 md:py-4;
+    @apply px-6 py-4 text-sm text-slate-800;
+    min-height: 52px;
   }
 
   .table-row {
-    @apply hover:bg-slate-50/80 transition-colors;
+    @apply hover:bg-slate-50 transition-colors border-b border-slate-100;
+  }
+
+  .table-row-clickable {
+    @apply cursor-pointer;
   }
 
   /* Badges */
@@ -349,25 +373,25 @@ body {
     @apply bg-blue-50 border-blue-200 text-blue-800;
   }
 
-  /* Modal Utilities */
+  /* Modal Utilities - Design Spec */
   .modal-overlay {
-    @apply fixed inset-0 bg-black/50 backdrop-blur-sm z-40 flex items-center justify-center p-4;
+    @apply fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4;
   }
 
   .modal-content {
-    @apply bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col;
+    @apply bg-white rounded-[2rem] shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col;
   }
 
   .modal-header {
-    @apply px-6 py-4 border-b border-slate-200 flex items-center justify-between;
+    @apply px-8 py-6 border-b border-slate-100 bg-white flex items-center justify-between;
   }
 
   .modal-body {
-    @apply px-6 py-4 overflow-y-auto flex-1;
+    @apply px-8 py-6 overflow-y-auto flex-1;
   }
 
   .modal-footer {
-    @apply px-6 py-4 border-t border-slate-200 flex items-center justify-end gap-3;
+    @apply px-8 py-6 border-t border-slate-100 bg-slate-50 flex items-center justify-end gap-3;
   }
 
   /* Focus States - Enhanced for Accessibility */
@@ -457,6 +481,39 @@ body {
 
 .animate-slide-up {
   animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideInFromBottom {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in-bottom {
+  animation: slideInFromBottom 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes glow {
+  0%, 100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+
+.animate-glow {
+  animation: glow 2s ease-in-out infinite;
 }
 
 /* Accessibility - Reduced Motion Support */

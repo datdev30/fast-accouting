@@ -97,9 +97,11 @@ const Modal = ({
                 {(title || showCloseButton) && (
                     <div className="modal-header">
                         {title && (
-                            <h2 id="modal-title" className="text-xl font-bold text-slate-900">
-                                {title}
-                            </h2>
+                            <div>
+                                <h2 id="modal-title" className="text-lg font-bold text-slate-900">
+                                    {title}
+                                </h2>
+                            </div>
                         )}
                         {showCloseButton && (
                             <button
@@ -108,14 +110,14 @@ const Modal = ({
                                 aria-label="Đóng"
                                 type="button"
                             >
-                                <X size={20} />
+                                <X size={18} />
                             </button>
                         )}
                     </div>
                 )}
 
                 {/* Body */}
-                <div className="modal-body">
+                <div className="modal-body" style={{ padding: '3rem' }}>
                     {children}
                 </div>
 

@@ -47,14 +47,14 @@ export default function Login() {
             <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
             <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-blue-500/15 rounded-full blur-3xl translate-x-1/2 translate-y-1/2"></div>
 
-            <div className="w-full max-w-md relative z-10">
-                <div className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl shadow-2xl overflow-hidden p-8">
-                    <div className="text-center mb-8">
-                        <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/30">
-                            <Lock className="text-white" size={32} />
+            <div className="w-full max-w-xl relative z-10">
+                <div className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-[2rem] shadow-2xl overflow-hidden p-12">
+                    <div className="text-center mb-12">
+                        <div className="w-24 h-24 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-blue-500/30">
+                            <Lock className="text-white w-12 h-12" />
                         </div>
-                        <h2 className="text-3xl font-bold text-white tracking-tight mb-2">FastAccounting</h2>
-                        <p className="text-blue-200">Hệ thống quản lý công nợ an toàn</p>
+                        <h2 className="text-5xl font-bold text-white tracking-tight mb-3">FastAccounting</h2>
+                        <p className="text-blue-200 text-xl">Hệ thống quản lý công nợ an toàn</p>
                     </div>
 
                     {error && (
@@ -84,7 +84,7 @@ export default function Login() {
                                     type="text"
                                     required
                                     autoComplete="username"
-                                    className="w-full bg-slate-800/50 border border-slate-700/50 text-white placeholder-slate-500 rounded-xl pl-10 pr-4 py-3 md:py-3.5 md:text-base outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all font-medium min-h-[44px]"
+                                    className="w-full bg-slate-800/50 border border-slate-700/50 text-white placeholder-slate-500 rounded-xl pl-12 pr-5 py-4.5 text-lg outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all font-medium min-h-[52px]"
                                     placeholder="Nhập tên đăng nhập"
                                     value={formData.username}
                                     onChange={e => setFormData({ ...formData, username: e.target.value })}
@@ -107,7 +107,7 @@ export default function Login() {
                                     type={showPassword ? 'text' : 'password'}
                                     required
                                     autoComplete="current-password"
-                                    className="w-full bg-slate-800/50 border border-slate-700/50 text-white placeholder-slate-500 rounded-xl pl-10 pr-12 py-3 md:py-3.5 md:text-base outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all font-medium min-h-[44px]"
+                                    className="w-full bg-slate-800/50 border border-slate-700/50 text-white placeholder-slate-500 rounded-xl pl-12 pr-14 py-4.5 text-lg outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all font-medium min-h-[52px]"
                                     placeholder="••••••••"
                                     value={formData.password}
                                     onChange={e => setFormData({ ...formData, password: e.target.value })}
@@ -115,11 +115,11 @@ export default function Login() {
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-blue-300 hover:text-white transition-colors focus:outline-none focus:text-white min-w-[44px] min-h-[44px] justify-center"
+                                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-blue-300 hover:text-white transition-colors focus:outline-none focus:text-white min-w-[52px] min-h-[52px] justify-center"
                                     aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
                                     tabIndex={0}
                                 >
-                                    {showPassword ? <EyeOff size={20} className="md:w-5 md:h-5" /> : <Eye size={20} className="md:w-5 md:h-5" />}
+                                    {showPassword ? <EyeOff size={24} /> : <Eye size={24} />}
                                 </button>
                             </div>
                         </div>
@@ -127,7 +127,7 @@ export default function Login() {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 md:py-4 rounded-xl font-bold shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:-translate-y-0.5 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 flex items-center justify-center gap-2 group min-h-[44px] md:min-h-[48px] md:text-base"
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-5 rounded-xl font-bold shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:-translate-y-0.5 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 flex items-center justify-center gap-2 group min-h-[52px] text-lg"
                         >
                             {isLoading ? (
                                 <>

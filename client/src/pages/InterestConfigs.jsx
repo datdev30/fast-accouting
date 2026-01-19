@@ -31,6 +31,13 @@ export default function InterestConfigs() {
         retry: 1
     });
 
+    // Define handleClose before mutations that use it
+    const handleClose = () => {
+        setIsOpen(false);
+        setIsEditing(false);
+        setFormData({ code: '', name: '', rate_per_month: 2.0, description: '' });
+    };
+
     const createMutation = useMutation({
         mutationFn: createInterestConfig,
         onSuccess: () => {
@@ -75,13 +82,6 @@ export default function InterestConfigs() {
         }
     };
 
-
-    const handleClose = () => {
-        setIsOpen(false);
-        setIsEditing(false);
-        setFormData({ code: '', name: '', rate_per_month: 2.0, description: '' });
-    };
-
     const handleEdit = (config) => {
         setIsEditing(true);
         setFormData({
@@ -113,33 +113,23 @@ export default function InterestConfigs() {
     );
 
     if (isLoading) return (
-        <div className="space-y-6">
+        <div className="space-y-4 lg:space-y-6">
             <div className="h-20 skeleton"></div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 lg:gap-6">
                 <LoadingSkeleton.Card count={5} />
             </div>
         </div>
     );
 
     return (
-        <div className="space-y-6">
-            {/* Header Section - Portrait: Stack layout, Landscape: All in 1 Row */}
-            <div className="space-y-4 md:space-y-5 xl:space-y-0">
-                {/* Portrait: Stack layout */}
-                <div className="xl:hidden space-y-4 md:space-y-5">
-                    {/* Row 1: Title & Subtitle */}
-                    <div>
-                        <h2 className="section-title text-2xl md:text-3xl">Cấu Hình Lãi Suất</h2>
-                        <p className="section-subtitle text-sm md:text-base mt-1">Tùy chỉnh các mức lãi suất mặc định cho giao dịch</p>
-                    </div>
-                </div>
-
-                {/* Landscape: All in 1 Row */}
-                <div className="hidden xl:flex xl:items-center xl:justify-between xl:gap-6">
+        <div className="space-y-4 lg:space-y-6">
+            {/* Header Section */}
+            <div className="space-y-0">
+                <div className="flex items-center justify-between gap-6">
                     {/* Left: Title & Subtitle */}
                     <div>
-                        <h2 className="section-title text-2xl 2xl:text-3xl">Cấu Hình Lãi Suất</h2>
-                        <p className="section-subtitle text-sm 2xl:text-base mt-1">Tùy chỉnh các mức lãi suất mặc định cho giao dịch</p>
+                        <h2 className="section-title text-3xl">Cấu Hình Lãi Suất</h2>
+                        <p className="section-subtitle text-base mt-1">Tùy chỉnh các mức lãi suất mặc định cho giao dịch</p>
                     </div>
 
                     {/* Right: Create Button */}
@@ -153,18 +143,9 @@ export default function InterestConfigs() {
                 </div>
             </div>
 
-            {/* FAB Button - Only for Portrait (hidden on landscape) */}
-            <button
-                onClick={() => { setIsEditing(false); setIsOpen(true); }}
-                className="fixed bottom-6 left-1/2 -translate-x-1/2 xl:hidden z-50 w-16 h-16 md:w-20 md:h-20 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-2xl shadow-blue-500/50 flex items-center justify-center transition-all hover:scale-110 active:scale-95"
-                aria-label="Thêm cấu hình mới"
-            >
-                <Plus size={28} className="md:w-8 md:h-8" />
-            </button>
-
             {isOpen && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-50 p-0 sm:p-4 transition-all overflow-hidden">
-                    <div className="bg-white sm:rounded-[2.5rem] w-full h-full sm:h-auto sm:max-w-md shadow-2xl overflow-hidden animate-in fade-in sm:zoom-in sm:duration-300 duration-300 flex flex-col transition-all">
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-all overflow-hidden">
+                    <div className="bg-white rounded-[2.5rem] w-full h-auto max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 flex flex-col transition-all">
                         <div className="px-8 py-6 border-b border-slate-100 bg-white flex justify-between items-center relative z-10">
                             <div className="flex items-center gap-3">
                                 <div className={clsx(
@@ -174,7 +155,7 @@ export default function InterestConfigs() {
                                     {isEditing ? <Edit2 size={22} /> : <Plus size={22} />}
                                 </div>
                                 <div>
-                                    <h3 className="text-lg sm:text-xl font-bold text-slate-900 leading-tight">
+                                    <h3 className="text-xl font-bold text-slate-900 leading-tight">
                                         {isEditing ? 'Cập Nhật Cấu Hình' : 'Thêm Quy Tắc Mới'}
                                     </h3>
                                     <p className="text-xs font-medium text-slate-400 uppercase tracking-widest mt-0.5">
@@ -187,7 +168,7 @@ export default function InterestConfigs() {
                             </button>
                         </div>
                         <form onSubmit={handleSubmit} className="p-8 space-y-6 overflow-y-auto flex-1">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                            <div className="grid grid-cols-2 gap-5">
                                 <div className="space-y-2">
                                     <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Mã (Duy nhất)</label>
                                     <div className="relative group">
@@ -220,7 +201,19 @@ export default function InterestConfigs() {
                                             step="0.1"
                                             className="input input-icon"
                                             value={formData.rate_per_month}
-                                            onChange={e => setFormData({ ...formData, rate_per_month: parseFloat(e.target.value) })}
+                                            onChange={e => {
+                                                const value = e.target.value;
+                                                if (value === '' || value === '-') {
+                                                    setFormData({ ...formData, rate_per_month: '' });
+                                                    return;
+                                                }
+                                                const num = parseFloat(value);
+                                                if (!isNaN(num) && num >= 0 && num <= 100) {
+                                                    setFormData({ ...formData, rate_per_month: num });
+                                                }
+                                            }}
+                                            min="0"
+                                            max="100"
                                         />
                                     </div>
                                 </div>
@@ -285,7 +278,7 @@ export default function InterestConfigs() {
                 isDeleting={deleteMutation.isPending}
             />
 
-            <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 md:gap-4">
+            <div className="grid grid-cols-4 gap-4">
                 {configs?.map(config => {
                     const colors = getInterestConfigColorScheme(config.code);
                     const isLiquidation = config.code?.toLowerCase().includes('tl') || config.name?.toLowerCase().includes('thanh lý');
@@ -294,35 +287,35 @@ export default function InterestConfigs() {
                         <div
                             key={config._id}
                             onClick={() => handleEdit(config)}
-                            className="group relative bg-white rounded-xl border border-slate-100 p-3 md:p-4 shadow-sm hover:shadow-lg hover:shadow-slate-200 transition-all duration-500 cursor-pointer overflow-hidden flex flex-col items-center text-center"
+                            className="group relative bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-lg hover:shadow-blue-500/10 hover:border-blue-200 transition-all duration-300 cursor-pointer overflow-hidden flex flex-col items-center text-center card-hover"
                         >
                             {/* Visual Pattern Overlays */}
                             <div className={`absolute top-0 right-0 w-20 h-20 bg-gradient-to-br ${colors.gradient} opacity-[0.03] group-hover:opacity-[0.08] rounded-full -mr-10 -mt-10 transition-all duration-700 group-hover:scale-150`}></div>
 
                             <div className="relative z-10 flex flex-col items-center w-full">
                                 <div className="flex justify-between items-start w-full mb-3">
-                                    <div className={`w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br ${colors.gradient} rounded-lg flex items-center justify-center ${colors.icon} shadow-md shadow-current/10 ring-2 ring-white`}>
-                                        <Percent size={16} className="md:w-5 md:h-5" strokeWidth={2.5} />
+                                    <div className={`w-10 h-10 bg-gradient-to-br ${colors.gradient} rounded-lg flex items-center justify-center ${colors.icon} shadow-md shadow-current/10 ring-2 ring-white`}>
+                                        <Percent size={20} strokeWidth={2.5} />
                                     </div>
 
                                     <div className="flex flex-col items-end gap-0.5">
-                                        <span className={`px-1.5 py-0.5 rounded text-[8px] md:text-[9px] font-bold uppercase tracking-widest border shadow-sm ${isLiquidation ? 'border-amber-200 bg-amber-50 text-amber-600' : 'border-blue-200 bg-blue-50 text-blue-600'}`}>
+                                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest border shadow-sm ${isLiquidation ? 'border-amber-200 bg-amber-50 text-amber-600' : 'border-blue-200 bg-blue-50 text-blue-600'}`}>
                                             {isLiquidation ? 'Thanh lý' : 'Định kỳ'}
                                         </span>
-                                        <span className="text-[8px] md:text-[9px] font-semibold text-slate-400 font-mono">#{config.code}</span>
+                                        <span className="text-[9px] font-semibold text-slate-400 font-mono">#{config.code}</span>
                                     </div>
                                 </div>
 
                                 <div className="mb-1 w-full">
-                                    <h3 className="text-sm md:text-base font-bold text-slate-900 leading-tight mb-2 group-hover:text-blue-600 transition-colors truncate">
+                                    <h3 className="text-base font-bold text-slate-900 leading-tight mb-2 group-hover:text-blue-600 transition-colors truncate">
                                         {config.name}
                                     </h3>
                                     <div className="flex justify-center">
                                         <div className={`px-3 py-1.5 rounded-lg ${colors.bgIcon} flex items-center gap-1 shadow-md shadow-current/20`}>
-                                            <span className="text-xl md:text-2xl font-bold text-white leading-none">
+                                            <span className="text-2xl font-bold text-white leading-none">
                                                 {config.rate_per_month}%
                                             </span>
-                                            <span className="text-[8px] md:text-[9px] font-bold text-white/90 uppercase">/ Th</span>
+                                            <span className="text-[9px] font-bold text-white/90 uppercase">/ Th</span>
                                         </div>
                                     </div>
                                 </div>

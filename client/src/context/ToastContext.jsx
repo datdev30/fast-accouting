@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 import Toast from '../components/Toast';
 
 const ToastContext = createContext(null);
@@ -13,27 +13,40 @@ export const useToast = () => {
 
 export const ToastProvider = ({ children }) => {
     const [toast, setToast] = useState(null);
-    const [timerId, setTimerId] = useState(null);
+    const timerIdRef = useRef(null);
+
+    // Cleanup timer on unmount
+    useEffect(() => {
+        return () => {
+            if (timerIdRef.current) {
+                clearTimeout(timerIdRef.current);
+            }
+        };
+    }, []);
 
     const showToast = useCallback((title, message, type = 'info', duration = 3000) => {
-        if (timerId) {
-            clearTimeout(timerId);
+        // Clear existing timer
+        if (timerIdRef.current) {
+            clearTimeout(timerIdRef.current);
+            timerIdRef.current = null;
         }
 
         setToast({ title, message, type });
 
-        const id = setTimeout(() => {
+        // Set new timer
+        timerIdRef.current = setTimeout(() => {
             setToast(null);
+            timerIdRef.current = null;
         }, duration);
-        setTimerId(id);
-    }, [timerId]);
+    }, []);
 
     const hideToast = useCallback(() => {
-        if (timerId) {
-            clearTimeout(timerId);
+        if (timerIdRef.current) {
+            clearTimeout(timerIdRef.current);
+            timerIdRef.current = null;
         }
         setToast(null);
-    }, [timerId]);
+    }, []);
 
     return (
         <ToastContext.Provider value={{ showToast, hideToast }}>

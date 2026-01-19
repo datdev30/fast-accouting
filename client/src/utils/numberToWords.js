@@ -105,10 +105,13 @@ export const readMoney = (SoTien) => {
         tmp = docSo3ChuSo(ViTri[i]);
         ketqua += tmp;
         if (ViTri[i] > 0) ketqua += " " + Tien[i];
-        if ((i > 0) && (tmp.length > 0)) ketqua += ","; // Comma separation
+        if ((i > 0) && (tmp.length > 0)) ketqua += ", "; // Comma separation with space
     }
 
-    if (ketqua.substring(ketqua.length - 1) === ',') {
+    // Remove trailing comma and space if exists
+    if (ketqua.substring(ketqua.length - 2) === ', ') {
+        ketqua = ketqua.substring(0, ketqua.length - 2);
+    } else if (ketqua.substring(ketqua.length - 1) === ',') {
         ketqua = ketqua.substring(0, ketqua.length - 1);
     }
 

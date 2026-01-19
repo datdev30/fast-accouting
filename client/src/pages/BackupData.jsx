@@ -99,29 +99,19 @@ export default function BackupData() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {/* Header Section - Portrait: Stack layout, Landscape: All in 1 Row */}
-      <div className="space-y-4 md:space-y-5 xl:space-y-0">
-        {/* Portrait: Stack layout */}
-        <div className="xl:hidden space-y-4 md:space-y-5">
+      {/* Header Section */}
+      <div className="space-y-0">
+        <div className="space-y-5">
           {/* Row 1: Title & Subtitle */}
           <div>
-            <h2 className="section-title text-2xl md:text-3xl">Backup Data</h2>
-            <p className="section-subtitle text-sm md:text-base mt-1">Tải xuống & khôi phục toàn bộ dữ liệu database (ADMIN)</p>
-          </div>
-        </div>
-
-        {/* Landscape: All in 1 Row */}
-        <div className="hidden xl:flex xl:items-center xl:justify-between xl:gap-6">
-          {/* Left: Title & Subtitle */}
-          <div>
-            <h2 className="section-title text-2xl 2xl:text-3xl">Backup Data</h2>
-            <p className="section-subtitle text-sm 2xl:text-base mt-1">Tải xuống & khôi phục toàn bộ dữ liệu database (ADMIN)</p>
+            <h2 className="section-title text-3xl">Backup Data</h2>
+            <p className="section-subtitle text-base mt-1">Tải xuống & khôi phục toàn bộ dữ liệu database (ADMIN)</p>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/50 p-6 sm:p-8">
+      <div className="grid grid-cols-2 gap-6">
+        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/50 p-8">
           <div className="flex items-start gap-4">
             <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center">
               <Database size={22} />
@@ -149,7 +139,7 @@ export default function BackupData() {
           </div>
         </div>
 
-        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/50 p-6 sm:p-8">
+        <div className="bg-white rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/50 p-8">
           <div className="flex items-start gap-4">
             <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
               <Upload size={22} />

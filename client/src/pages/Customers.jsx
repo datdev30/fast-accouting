@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { getCustomers, createCustomer, updateCustomer, deleteCustomerSecure, getTransactions, getInterestConfigs, updateTransaction, deleteTransactionSecure, fetchTransactionImageBlob } from '../services/api';
-import { Plus, Search, Edit2, Trash2, User, MapPin, ChevronRight, Users, Check, Award, X, History, Clock, FileText, Calendar, Tag, Image as ImageIcon } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, User, MapPin, ChevronRight, Users, Check, Award, X, History, Clock, FileText, Calendar, Tag, Image as ImageIcon, AlertCircle } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
@@ -29,10 +29,13 @@ export default function Customers() {
     };
     const [isOpen, setIsOpen] = useState(false);
     const [isEdit, setIsEdit] = useState(false);
+    const [isHistoryView, setIsHistoryView] = useState(false);
     const [currentId, setCurrentId] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
 
     const [formData, setFormData] = useState({ name: '', contact_info: '' });
+    const [nameError, setNameError] = useState('');
+    const [contactInfoError, setContactInfoError] = useState('');
 
     // Modal refs for focus trap
     const customerModalRef = useRef(null);
@@ -65,11 +68,11 @@ export default function Customers() {
         retry: 1
     });
 
-    // Fetch transactions for the currently edited customer
+    // Fetch transactions chỉ khi mở xem lịch sử (nút History)
     const { data: customerTransactions, isLoading: isLoadingTransactions } = useQuery({
         queryKey: ['transactions', currentId],
         queryFn: () => getTransactions(currentId),
-        enabled: !!currentId && isEdit && isOpen
+        enabled: !!currentId && isHistoryView && isOpen
     });
 
     const { data: configs } = useQuery({ queryKey: ['interest-configs'], queryFn: getInterestConfigs });
@@ -152,26 +155,72 @@ export default function Customers() {
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        if (!validateCustomerForm()) {
+            nameInputRef.current?.focus();
+            return;
+        }
+        // Trim và normalize data trước khi submit
+        const normalizedData = {
+            name: formData.name.trim(),
+            contact_info: formData.contact_info?.trim() || ''
+        };
         if (isEdit) {
-            updateMutation.mutate({ id: currentId, data: formData });
+            updateMutation.mutate({ id: currentId, data: normalizedData });
         } else {
-            createMutation.mutate(formData);
+            createMutation.mutate(normalizedData);
         }
     };
 
     const handleEdit = (c) => {
+        setIsHistoryView(false);
         setIsEdit(true);
-        setCurrentId(c.id);
+        setCurrentId(c.id || c._id);
         setFormData({ name: c.name ?? '', contact_info: c.contact_info ?? '' });
         setIsOpen(true);
     };
 
-    const handleClose = () => {
+    const handleOpenHistory = (c) => {
+        setIsEdit(false);
+        setIsHistoryView(true);
+        setCurrentId(c.id || c._id);
+        setFormData({ name: c.name ?? '', contact_info: c.contact_info ?? '' });
+        setIsOpen(true);
+    };
+
+    const validateCustomerForm = () => {
+        let isValid = true;
+        setNameError('');
+        setContactInfoError('');
+
+        const name = formData.name.trim();
+        if (!name) {
+            setNameError('Vui lòng nhập tên khách hàng');
+            isValid = false;
+        } else if (name.length < 2) {
+            setNameError('Tên khách hàng phải có ít nhất 2 ký tự');
+            isValid = false;
+        } else if (name.length > 100) {
+            setNameError('Tên khách hàng không được vượt quá 100 ký tự');
+            isValid = false;
+        }
+
+        if (formData.contact_info && formData.contact_info.length > 200) {
+            setContactInfoError('Thông tin liên hệ không được vượt quá 200 ký tự');
+            isValid = false;
+        }
+
+        return isValid;
+    };
+
+    const handleClose = useCallback(() => {
         setIsOpen(false);
         setIsEdit(false);
+        setIsHistoryView(false);
         setCurrentId(null);
         setFormData({ name: '', contact_info: '' });
-    };
+        setNameError('');
+        setContactInfoError('');
+    }, []);
 
     // ESC key handler for customer modal
     useEffect(() => {
@@ -186,7 +235,7 @@ export default function Customers() {
 
         document.addEventListener('keydown', handleEscKey);
         return () => document.removeEventListener('keydown', handleEscKey);
-    }, [isOpen]);
+    }, [isOpen, handleClose]);
 
     // Focus trap for customer modal
     useEffect(() => {
@@ -202,7 +251,28 @@ export default function Customers() {
         return () => document.removeEventListener('keydown', handleTabKey);
     }, [isOpen]);
 
+    // Define revokeTxImageUrl before handleTxClose
+    const revokeTxImageUrl = useCallback(() => {
+        if (txImageUrl) {
+            try {
+                URL.revokeObjectURL(txImageUrl);
+            } catch {
+                // ignore
+            }
+        }
+        setTxImageUrl(null);
+    }, [txImageUrl]);
 
+    // Define handleTxClose before useEffect that uses it
+    const handleTxClose = useCallback(() => {
+        setIsTxModalOpen(false);
+        setEditingTxId(null);
+        setTxHasImage(false);
+        setIsTxImageModalOpen(false);
+        setTxImageLoading(false);
+        setTxImageError('');
+        revokeTxImageUrl();
+    }, [revokeTxImageUrl]);
 
     // ESC key handler for transaction modal
     useEffect(() => {
@@ -217,19 +287,7 @@ export default function Customers() {
 
         document.addEventListener('keydown', handleEscKey);
         return () => document.removeEventListener('keydown', handleEscKey);
-    }, [isTxModalOpen]);
-
-
-    const revokeTxImageUrl = () => {
-        if (txImageUrl) {
-            try {
-                URL.revokeObjectURL(txImageUrl);
-            } catch {
-                // ignore
-            }
-        }
-        setTxImageUrl(null);
-    };
+    }, [isTxModalOpen, handleTxClose]);
 
     const handleOpenTxImage = async () => {
         if (!editingTxId) return;
@@ -302,16 +360,6 @@ export default function Customers() {
         setIsTxModalOpen(true);
     };
 
-    const handleTxClose = () => {
-        setIsTxModalOpen(false);
-        setEditingTxId(null);
-        setTxHasImage(false);
-        setIsTxImageModalOpen(false);
-        setTxImageLoading(false);
-        setTxImageError('');
-        revokeTxImageUrl();
-    };
-
     const handleTxSubmit = (e) => {
         e.preventDefault();
 
@@ -339,120 +387,82 @@ export default function Customers() {
     );
 
     return (
-        <div className="space-y-6">
-            {/* Header Section - Portrait: Stack layout, Landscape: All in 1 Row */}
-            <div className="space-y-4 md:space-y-5 xl:space-y-0">
-                {/* Portrait: Stack layout */}
-                <div className="xl:hidden space-y-4 md:space-y-5">
-                    {/* Row 1: Title & Subtitle */}
-                    <div>
-                        <h2 className="section-title text-2xl md:text-3xl">Danh Sách Khách Hàng</h2>
-                        <p className="section-subtitle text-sm md:text-base mt-1">Quản lý thông tin đối tác và khách hàng</p>
-                    </div>
+        <div className="space-y-4 lg:space-y-6">
+            {/* Header Section */}
+            <div className="flex items-center justify-between gap-4 lg:gap-6">
+                {/* Left: Title & Subtitle */}
+                <div>
+                    <h2 className="section-title">Danh Sách Khách Hàng</h2>
+                    <p className="section-subtitle mt-1">Quản lý thông tin đối tác và khách hàng</p>
+                </div>
 
-                    {/* Row 2: Search (full width) */}
-                    <div className="relative group flex-1">
-                        <div className="absolute inset-y-0 left-0 pl-3 md:pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors">
-                            <Search size={20} className="md:w-5 md:h-5" />
+                {/* Right: Search & Create Button */}
+                <div className="flex items-center gap-5">
+                    {/* Search */}
+                    <div className="relative group">
+                        <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors">
+                            <Search size={24} />
                         </div>
                         <input
                             type="text"
                             placeholder="Tìm kiếm khách hàng..."
-                            className="input input-icon pr-10 md:pr-12 w-full text-sm md:text-base min-h-[44px]"
+                            className="input input-icon pr-16 min-w-[400px] min-h-[52px]"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
-                </div>
 
-                {/* Landscape: All in 1 Row */}
-                <div className="hidden xl:flex xl:items-center xl:justify-between xl:gap-6">
-                    {/* Left: Title & Subtitle */}
-                    <div>
-                        <h2 className="section-title text-2xl 2xl:text-3xl">Danh Sách Khách Hàng</h2>
-                        <p className="section-subtitle text-sm 2xl:text-base mt-1">Quản lý thông tin đối tác và khách hàng</p>
-                    </div>
-
-                    {/* Right: Search & Create Button */}
-                    <div className="flex items-center gap-3">
-                        {/* Search */}
-                        <div className="relative group">
-                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors">
-                                <Search size={20} />
-                            </div>
-                            <input
-                                type="text"
-                                placeholder="Tìm kiếm khách hàng..."
-                                className="input input-icon pr-12 min-w-[300px] text-base min-h-[44px]"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                        </div>
-
-                        {/* Create Button */}
-                        <button
-                            onClick={() => setIsOpen(true)}
-                            className="btn-primary btn-md justify-center text-base min-h-[44px] px-6 py-3 whitespace-nowrap shrink-0"
-                        >
-                            <Plus size={20} className="shrink-0" />
-                            <span>Thêm Khách Hàng</span>
-                        </button>
-                    </div>
+                    {/* Create Button */}
+                    <button
+                        onClick={() => setIsOpen(true)}
+                        className="btn-primary btn-lg justify-center whitespace-nowrap shrink-0"
+                    >
+                        <Plus size={24} className="shrink-0" />
+                        <span>Thêm Khách Hàng</span>
+                    </button>
                 </div>
             </div>
-
-            {/* FAB Button - Only for Portrait (hidden on landscape) */}
-            <button
-                onClick={() => setIsOpen(true)}
-                className="fixed bottom-6 left-1/2 -translate-x-1/2 xl:hidden z-50 w-16 h-16 md:w-20 md:h-20 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-2xl shadow-blue-500/50 flex items-center justify-center transition-all hover:scale-110 active:scale-95"
-                aria-label="Thêm khách hàng mới"
-            >
-                <Plus size={28} className="md:w-8 md:h-8" />
-            </button>
             {/* Modal */}
             {isOpen && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-50 p-0 sm:p-4 transition-all overflow-hidden">
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-50 p-10 transition-all overflow-hidden">
                     <div
                         ref={customerModalRef}
                         className={clsx(
-                            "bg-white sm:rounded-[2.5rem] w-full h-full sm:h-auto shadow-2xl overflow-hidden animate-in fade-in sm:zoom-in sm:duration-300 duration-300 flex flex-col transition-all",
-                            isEdit ? "sm:max-w-7xl" : "sm:max-w-md"
+                            "bg-white rounded-[2.5rem] w-full h-auto shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 flex flex-col transition-all",
+                            isHistoryView ? "max-w-[90vw] max-h-[90vh]" : "max-w-lg max-h-[90vh]"
                         )}
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="customer-modal-title"
                     >
-                        <div className="px-8 py-6 border-b border-slate-100 bg-white flex justify-between items-center relative z-10">
-                            <div className="flex items-center gap-3">
+                        <div className="px-6 lg:px-8 xl:px-10 py-5 lg:py-6 xl:py-8 border-b border-slate-100 bg-white flex justify-between items-center relative z-10">
+                            <div className="flex items-center gap-4">
                                 <div className={clsx(
-                                    "p-2.5 rounded-2xl flex items-center justify-center",
-                                    isEdit ? "bg-blue-50 text-blue-600" : "bg-emerald-50 text-emerald-600"
+                                    "p-3.5 rounded-2xl flex items-center justify-center",
+                                    isHistoryView ? "bg-blue-50 text-blue-600" : isEdit ? "bg-blue-50 text-blue-600" : "bg-emerald-50 text-emerald-600"
                                 )}>
-                                    {isEdit ? <Edit2 size={22} /> : <Plus size={22} />}
+                                    {isHistoryView ? <History size={28} /> : isEdit ? <Edit2 size={28} /> : <Plus size={28} />}
                                 </div>
                                 <div>
-                                    <h3 id="customer-modal-title" className="text-lg sm:text-xl font-bold text-slate-900 leading-tight">
-                                        {isEdit ? 'Cập Nhật Thông Tin' : 'Thêm Khách Hàng Mới'}
+                                    <h3 id="customer-modal-title" className="text-2xl font-bold text-slate-900 leading-tight">
+                                        {isHistoryView ? 'Lịch sử giao dịch' : isEdit ? 'Cập Nhật Thông Tin' : 'Thêm Khách Hàng Mới'}
                                     </h3>
-                                    <p className="text-xs font-medium text-slate-400 uppercase tracking-widest mt-0.5">
-                                        {isEdit ? 'Chỉnh sửa hồ sơ & xem lịch sử' : 'Khởi tạo đối tác mới'}
-                                    </p>
+                                    {!isHistoryView && (
+                                        <p className="text-sm font-medium text-slate-400 uppercase tracking-widest mt-0.5">
+                                            {isEdit ? 'Chỉnh sửa hồ sơ khách hàng' : 'Khởi tạo đối tác mới'}
+                                        </p>
+                                    )}
                                 </div>
                             </div>
-                            <button onClick={handleClose} className="p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-2xl transition-all active:scale-90">
-                                <X size={24} />
+                            <button onClick={handleClose} className="p-3.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-2xl transition-all active:scale-90">
+                                <X size={28} />
                             </button>
                         </div>
-                        <div className={clsx(
-                            'flex-1 overflow-hidden flex flex-col',
-                            isEdit && 'lg:flex-row'
-                        )}>
-                            {/* Left Side: Form */}
-                            <div className={clsx(
-                                'p-6 sm:p-8 space-y-6 overflow-y-auto w-full',
-                                isEdit && 'lg:w-1/3 lg:border-r lg:border-slate-100 lg:flex-none'
-                            )}>
-                                <form onSubmit={handleSubmit} className="space-y-6">
+                        <div className="flex-1 overflow-hidden flex flex-col">
+                            {/* Form: thêm mới hoặc chỉnh sửa — ẩn khi chỉ xem lịch sử */}
+                            {!isHistoryView && (
+                            <div className="p-6 lg:p-8 xl:p-10 space-y-6 lg:space-y-8 overflow-y-auto w-full">
+                                <form onSubmit={handleSubmit} className="space-y-5 lg:space-y-6">
                                     <div className="space-y-2">
                                         <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Họ và tên</label>
                                         <div className="relative group">
@@ -462,12 +472,27 @@ export default function Customers() {
                                             <input
                                                 ref={nameInputRef}
                                                 required
-                                                className="w-full bg-slate-50 border border-slate-100 rounded-[1.25rem] pl-11 pr-4 py-3.5 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all text-base font-medium text-slate-800 placeholder:text-slate-300 shadow-inner"
+                                                className={`w-full bg-slate-50 border rounded-[1.25rem] pl-11 pr-4 py-3.5 outline-none focus:ring-4 focus:bg-white transition-all text-base font-medium text-slate-800 placeholder:text-slate-300 shadow-inner ${
+                                                    nameError
+                                                        ? 'border-red-300 focus:ring-red-500/20 focus:border-red-500'
+                                                        : 'border-slate-100 focus:ring-blue-500/10 focus:border-blue-500'
+                                                }`}
                                                 value={formData.name}
-                                                onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                                onChange={e => {
+                                                    setFormData({ ...formData, name: e.target.value });
+                                                    setNameError('');
+                                                }}
                                                 placeholder="Nhập tên khách hàng..."
+                                                aria-invalid={!!nameError}
+                                                aria-describedby={nameError ? 'name-error' : undefined}
                                             />
                                         </div>
+                                        {nameError && (
+                                            <p id="name-error" className="text-xs text-red-600 flex items-center gap-1.5 mt-1">
+                                                <AlertCircle size={12} className="shrink-0" />
+                                                {nameError}
+                                            </p>
+                                        )}
                                     </div>
 
                                     <div className="space-y-2">
@@ -477,12 +502,27 @@ export default function Customers() {
                                                 <MapPin size={18} />
                                             </div>
                                             <input
-                                                className="w-full bg-slate-50 border border-slate-100 rounded-[1.25rem] pl-11 pr-4 py-3.5 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all text-base font-medium text-slate-800 placeholder:text-slate-300 shadow-inner"
+                                                className={`w-full bg-slate-50 border rounded-[1.25rem] pl-11 pr-4 py-3.5 outline-none focus:ring-4 focus:bg-white transition-all text-base font-medium text-slate-800 placeholder:text-slate-300 shadow-inner ${
+                                                    contactInfoError
+                                                        ? 'border-red-300 focus:ring-red-500/20 focus:border-red-500'
+                                                        : 'border-slate-100 focus:ring-blue-500/10 focus:border-blue-500'
+                                                }`}
                                                 value={formData.contact_info ?? ''}
-                                                onChange={e => setFormData({ ...formData, contact_info: e.target.value })}
+                                                onChange={e => {
+                                                    setFormData({ ...formData, contact_info: e.target.value });
+                                                    setContactInfoError('');
+                                                }}
                                                 placeholder="SĐT, Địa chỉ, Ghi chú..."
+                                                aria-invalid={!!contactInfoError}
+                                                aria-describedby={contactInfoError ? 'contact-info-error' : undefined}
                                             />
                                         </div>
+                                        {contactInfoError && (
+                                            <p id="contact-info-error" className="text-xs text-red-600 flex items-center gap-1.5 mt-1">
+                                                <AlertCircle size={12} className="shrink-0" />
+                                                {contactInfoError}
+                                            </p>
+                                        )}
                                     </div>
 
                                     <div className="flex flex-col gap-4 pt-4">
@@ -508,21 +548,26 @@ export default function Customers() {
                                     </div>
                                 </form>
                             </div>
+                            )}
 
-                            {/* Right Side: Transaction History (Now visible on all screens in Edit Mode) */}
-                            {isEdit && (
-                                <div className="flex flex-col w-full lg:w-2/3 bg-slate-50/30 overflow-hidden border-t sm:border-t-0 border-slate-100">
-                                    <div className="px-6 py-4 border-b border-slate-100 bg-white/50 flex items-center justify-between">
-                                        <div className="flex items-center gap-2 text-slate-800">
-                                            <History size={18} className="text-blue-500" />
-                                            <span className="font-bold text-xs uppercase tracking-widest">Lịch sử giao dịch</span>
+                            {/* Lịch sử giao dịch — chỉ khi bấm nút History */}
+                            {isHistoryView && (
+                                <div className="flex flex-col w-full bg-slate-50/30 overflow-hidden border-slate-100">
+                                    <div className="px-10 py-6 border-b border-slate-100 bg-white/50 flex items-center justify-between">
+                                        <div className="flex items-center gap-3 text-slate-800">
+                                            <History size={24} className="text-blue-600" />
+                                            <div className="flex flex-col">
+                                                <span className="font-bold text-base text-slate-900">
+                                                    {customers?.find(x => (x.id || x._id) === currentId)?.name || '—'}
+                                                </span>
+                                            </div>
                                         </div>
-                                        <span className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase">
+                                        <span className="bg-blue-100 text-blue-600 px-5 py-2 rounded-full text-xs font-bold uppercase">
                                             {customerTransactions?.length || 0} GD
                                         </span>
                                     </div>
 
-                                    <div className="flex-1 overflow-y-auto p-6 space-y-4 max-h-[500px]">
+                                    <div className="flex-1 overflow-y-auto p-6 lg:p-8 xl:p-10 space-y-4 lg:space-y-6 max-h-[700px]">
                                         {isLoadingTransactions ? (
                                             <div className="h-48 flex items-center justify-center">
                                                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
@@ -544,28 +589,28 @@ export default function Customers() {
                                                                         : "bg-white border-slate-100 hover:border-blue-200"
                                                                 )}
                                                             >
-                                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                                                    <div className="flex items-center gap-4 min-w-0">
+                                                                <div className="flex flex-row items-center justify-between gap-6">
+                                                                    <div className="flex items-center gap-6 min-w-0">
                                                                         <div className={clsx(
-                                                                            "w-12 h-12 rounded-2xl flex items-center justify-center flex-none",
+                                                                            "w-16 h-16 rounded-2xl flex items-center justify-center flex-none",
                                                                             tx.status === 'PAID' ? "bg-emerald-50 text-emerald-600" : "bg-blue-50 text-blue-600"
                                                                         )}>
-                                                                            {tx.status === 'PAID' ? <Check size={20} /> : <Clock size={20} />}
+                                                                            {tx.status === 'PAID' ? <Check size={28} /> : <Clock size={28} />}
                                                                         </div>
                                                                         <div className="min-w-0">
-                                                                            <div className="flex items-center gap-2 mb-1">
-                                                                                <span className="text-xs font-bold uppercase tracking-widest text-slate-400">
+                                                                            <div className="flex items-center gap-3 mb-1">
+                                                                                <span className="text-sm font-bold uppercase tracking-widest text-slate-400">
                                                                                     {formatDate(tx.transaction_date)}
                                                                                 </span>
                                                                                 <span className="w-1 h-1 rounded-full bg-slate-200"></span>
                                                                                 <span className={clsx(
-                                                                                    "text-[10px] font-bold uppercase tracking-widest",
+                                                                                    "text-xs font-bold uppercase tracking-widest",
                                                                                     tx.status === 'PAID' ? "text-emerald-500" : "text-amber-500"
                                                                                 )}>
                                                                                     {tx.status === 'PAID' ? 'ĐÃ THANH TOÁN' : 'CHƯA THU'}
                                                                                 </span>
                                                                             </div>
-                                                                            <div className="text-sm font-medium text-slate-800 leading-tight space-y-1">
+                                                                            <div className="text-base font-medium text-slate-800 leading-tight space-y-1">
                                                                                 {String(tx.content ?? '')
                                                                                     .split(/\r?\n/)
                                                                                     .filter(line => line.trim() !== '')
@@ -575,11 +620,11 @@ export default function Customers() {
                                                                             </div>
                                                                         </div>
                                                                     </div>
-                                                                    <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center border-t sm:border-t-0 border-slate-50 pt-3 sm:pt-0">
-                                                                        <p className="text-base font-semibold text-slate-900 tracking-tight">
-                                                                            {formatMoneyComma(tx.amount || 0)} <span className="text-[10px] font-normal">đ</span>
+                                                                    <div className="flex flex-col items-end justify-center">
+                                                                        <p className="text-xl font-semibold text-slate-900 tracking-tight">
+                                                                            {formatMoneyComma(tx.amount || 0)} <span className="text-xs font-normal">đ</span>
                                                                         </p>
-                                                                        <span className="text-[10px] font-bold uppercase tracking-widest text-blue-500">
+                                                                        <span className="text-xs font-bold uppercase tracking-widest text-blue-500 mt-1">
                                                                             {typeConfig?.name || tx.type}
                                                                         </span>
                                                                     </div>
@@ -616,22 +661,22 @@ export default function Customers() {
             {/* Transaction Edit Modal */}
             {
                 isTxModalOpen && (
-                    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[60] p-0 sm:p-4 transition-all">
+                    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[60] p-10 transition-all">
                         <div
                             ref={txModalRef}
-                            className="bg-white sm:rounded-[2.5rem] w-full h-full sm:h-auto sm:max-w-xl shadow-2xl overflow-hidden animate-in fade-in sm:zoom-in sm:duration-300 duration-300 flex flex-col"
+                            className="bg-white rounded-[2.5rem] w-full h-auto max-w-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 flex flex-col max-h-[90vh]"
                             role="dialog"
                             aria-modal="true"
                             aria-labelledby="tx-modal-title"
                         >
-                            <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-white">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2.5 bg-blue-50 text-blue-600 rounded-2xl">
-                                        <Edit2 size={22} />
+                            <div className="px-12 py-8 border-b border-slate-100 flex justify-between items-center bg-white">
+                                <div className="flex items-center gap-4">
+                                    <div className="p-3.5 bg-blue-50 text-blue-600 rounded-2xl">
+                                        <Edit2 size={28} />
                                     </div>
                                     <div>
-                                        <h3 id="tx-modal-title" className="text-lg sm:text-xl font-bold text-slate-900 leading-tight">Chỉnh Sửa Giao Dịch</h3>
-                                        <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mt-0.5">Cập nhật thông tin chi tiết</p>
+                                        <h3 id="tx-modal-title" className="text-2xl font-bold text-slate-900 leading-tight">Chỉnh Sửa Giao Dịch</h3>
+                                        <p className="text-sm font-medium text-slate-400 uppercase tracking-widest mt-0.5">Cập nhật thông tin chi tiết</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2">
@@ -658,11 +703,11 @@ export default function Customers() {
                                 </div>
                             </div>
 
-                            <form onSubmit={handleTxSubmit} className="p-8 space-y-6 flex-1 overflow-y-auto">
+                            <form onSubmit={handleTxSubmit} className="p-6 lg:p-8 xl:p-10 space-y-6 lg:space-y-8 flex-1 overflow-y-auto">
                                 {/* Type config selector */}
                                 <div>
-                                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-3 ml-1">Loại giao dịch</label>
-                                    <div className="flex flex-wrap gap-2">
+                                    <label className="block text-sm font-bold text-slate-400 uppercase tracking-[0.2em] mb-4 ml-1">Loại giao dịch</label>
+                                    <div className="flex flex-wrap gap-3">
                                         {configs?.map((config) => {
                                             const colors = getInterestConfigColorScheme(config.code);
                                             const isSelected = txFormData.type === config.code;
@@ -672,7 +717,7 @@ export default function Customers() {
                                                     type="button"
                                                     onClick={() => setTxFormData({ ...txFormData, type: config.code })}
                                                     className={clsx(
-                                                        "px-4 py-2 rounded-xl text-xs font-bold border transition-all whitespace-nowrap",
+                                                        "px-6 py-3 rounded-xl text-sm font-bold border transition-all whitespace-nowrap",
                                                         isSelected ? `${colors.badge} ring-2 ${colors.ring}` : "bg-slate-50 text-slate-500 border-slate-100 hover:border-slate-200"
                                                     )}
                                                 >
@@ -684,24 +729,24 @@ export default function Customers() {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-3 ml-1">Nội dung</label>
+                                    <label className="block text-sm font-bold text-slate-400 uppercase tracking-[0.2em] mb-4 ml-1">Nội dung</label>
                                     <textarea
                                         ref={txContentRef}
                                         required
-                                        className="w-full bg-slate-50 border border-slate-100 rounded-[1.25rem] px-5 py-4 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all text-base font-medium text-slate-800 placeholder:text-slate-300 shadow-inner min-h-[100px] resize-none underline-none"
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-[1.25rem] px-7 py-6 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all text-lg font-medium text-slate-800 placeholder:text-slate-300 shadow-inner min-h-[140px] resize-none underline-none"
                                         value={txFormData.content}
                                         onChange={e => setTxFormData({ ...txFormData, content: e.target.value })}
                                     />
                                 </div>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                <div className="grid grid-cols-2 gap-8">
                                     <div className="space-y-2">
-                                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Số tiền gốc</label>
+                                        <label className="block text-sm font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Số tiền gốc</label>
                                         <div className="relative group">
-                                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 font-bold">đ</div>
+                                            <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-slate-400 font-bold">đ</div>
                                             <input
                                                 required
-                                                className="w-full bg-slate-50 border border-slate-100 rounded-[1.25rem] pl-10 pr-4 py-3.5 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all text-base font-semibold text-slate-800 shadow-inner"
+                                                className="w-full bg-slate-50 border border-slate-100 rounded-[1.25rem] pl-14 pr-6 py-5 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all text-lg font-semibold text-slate-800 shadow-inner"
                                                 value={formatMoneyComma(txFormData.amount)}
                                                 onChange={e => {
                                                     const val = e.target.value.replace(/,/g, '');
@@ -711,12 +756,12 @@ export default function Customers() {
                                         </div>
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Ngày giao dịch</label>
+                                        <label className="block text-sm font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Ngày giao dịch</label>
                                         <div className="relative group">
-                                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400"><Calendar size={18} /></div>
+                                            <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-slate-400"><Calendar size={24} /></div>
                                             <DateInput
                                                 required
-                                                className="w-full bg-slate-50 border border-slate-100 rounded-[1.25rem] pl-11 pr-4 py-3.5 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all text-base font-medium text-slate-800 shadow-inner"
+                                                className="w-full bg-slate-50 border border-slate-100 rounded-[1.25rem] pl-14 pr-6 py-5 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all text-lg font-medium text-slate-800 shadow-inner"
                                                 value={txFormData.transaction_date}
                                                 onChange={e => setTxFormData({ ...txFormData, transaction_date: e.target.value })}
                                             />
@@ -724,9 +769,9 @@ export default function Customers() {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                <div className="grid grid-cols-2 gap-8">
                                     <div className="space-y-2">
-                                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Trạng thái</label>
+                                        <label className="block text-sm font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Trạng thái</label>
                                         <StatusDropdown
                                             value={txFormData.status}
                                             onChange={(next) => setTxFormData({ ...txFormData, status: next })}
@@ -735,12 +780,12 @@ export default function Customers() {
                                     </div>
                                     {txFormData.status === 'PAID' && (
                                         <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
-                                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Ngày thanh toán</label>
+                                            <label className="block text-sm font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Ngày thanh toán</label>
                                             <div className="relative group">
-                                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400"><Check size={18} /></div>
+                                                <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-slate-400"><Check size={24} /></div>
                                                 <DateInput
                                                     required
-                                                    className="w-full bg-slate-50 border border-slate-100 rounded-[1.25rem] pl-11 pr-4 py-3.5 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all text-base font-medium text-slate-800 shadow-inner"
+                                                    className="w-full bg-slate-50 border border-slate-100 rounded-[1.25rem] pl-14 pr-6 py-5 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all text-lg font-medium text-slate-800 shadow-inner"
                                                     value={txFormData.closed_at}
                                                     onChange={e => setTxFormData({ ...txFormData, closed_at: e.target.value })}
                                                 />
@@ -778,38 +823,38 @@ export default function Customers() {
             {/* Transaction Image Viewer (lazy-load on click) */}
             {
                 isTxImageModalOpen && (
-                    <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center z-[70] p-0 sm:p-4">
-                        <div className="bg-white w-full h-full sm:h-auto sm:max-w-3xl sm:rounded-[2rem] shadow-2xl overflow-hidden flex flex-col">
-                            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-blue-50 text-blue-600 rounded-2xl">
-                                        <ImageIcon size={20} />
+                    <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center z-[70] p-10">
+                        <div className="bg-white w-full h-auto max-w-4xl rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                            <div className="px-10 py-6 border-b border-slate-100 flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                    <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl">
+                                        <ImageIcon size={28} />
                                     </div>
                                     <div>
-                                        <h4 className="text-base sm:text-lg font-bold text-slate-900 leading-tight">Ảnh giao dịch</h4>
-                                        <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mt-0.5">Chỉ tải khi bấm xem</p>
+                                        <h4 className="text-2xl font-bold text-slate-900 leading-tight">Ảnh giao dịch</h4>
+                                        <p className="text-sm font-medium text-slate-400 uppercase tracking-widest mt-0.5">Chỉ tải khi bấm xem</p>
                                     </div>
                                 </div>
                                 <button
                                     type="button"
                                     onClick={handleCloseTxImage}
-                                    className="p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-2xl transition-all"
+                                    className="p-3.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-2xl transition-all"
                                     aria-label="Đóng"
                                 >
-                                    <X size={22} />
+                                    <X size={28} />
                                 </button>
                             </div>
 
-                            <div className="p-6 flex-1 overflow-auto bg-slate-50">
+                            <div className="p-10 flex-1 overflow-auto bg-slate-50">
                                 {txImageLoading && (
-                                    <div className="h-full min-h-[220px] flex items-center justify-center text-slate-400">
-                                        <div className="text-sm font-medium">Đang tải ảnh...</div>
+                                    <div className="h-full min-h-[400px] flex items-center justify-center text-slate-400">
+                                        <div className="text-lg font-medium">Đang tải ảnh...</div>
                                     </div>
                                 )}
 
                                 {!txImageLoading && txImageError && (
-                                    <div className="h-full min-h-[220px] flex items-center justify-center">
-                                        <div className="text-sm font-medium text-slate-500">{txImageError}</div>
+                                    <div className="h-full min-h-[400px] flex items-center justify-center">
+                                        <div className="text-lg font-medium text-slate-500">{txImageError}</div>
                                     </div>
                                 )}
 
@@ -818,7 +863,7 @@ export default function Customers() {
                                         <img
                                             src={txImageUrl}
                                             alt="Ảnh giao dịch"
-                                            className="max-h-[calc(100vh-160px)] sm:max-h-[70vh] w-auto max-w-full rounded-2xl border border-slate-200 shadow-sm"
+                                            className="max-h-[80vh] w-auto max-w-full rounded-2xl border border-slate-200 shadow-sm"
                                         />
                                     </div>
                                 )}
@@ -854,7 +899,7 @@ export default function Customers() {
                     showDetails={true}
                 />
             ) : (
-                <div className="grid grid-cols-3 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 lg:gap-6">
+                <div className="grid grid-cols-4 gap-8">
             {isLoadingCustomers ? (
                 // Show skeleton loaders while loading
                 Array.from({ length: 8 }).map((_, i) => (
@@ -882,7 +927,7 @@ export default function Customers() {
                         <div
                             key={customer._id}
                             onClick={() => handleEdit(customer)}
-                            className="group relative bg-white rounded-[2rem] border border-slate-100 p-5 shadow-sm hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 cursor-pointer overflow-hidden flex flex-col"
+                            className="group relative bg-white rounded-[2rem] border border-slate-200 p-6 shadow-sm hover:shadow-xl hover:shadow-blue-500/10 hover:border-blue-200 transition-all duration-300 cursor-pointer overflow-hidden flex flex-col card-hover"
                         >
                             {/* Decorative Background Element */}
                             <div className="absolute -top-12 -right-12 w-32 h-32 bg-gradient-to-br from-blue-50 to-indigo-50/30 rounded-full group-hover:scale-150 transition-transform duration-500 ease-out z-0 opacity-60"></div>
@@ -901,12 +946,19 @@ export default function Customers() {
                                 <div className="w-14 h-14 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center border border-slate-200 group-hover:bg-blue-50 group-hover:text-blue-500 group-hover:border-blue-100 transition-colors duration-300">
                                     <User size={28} />
                                 </div>
-                                <div className="flex-1 min-w-0 text-center sm:text-left">
-                                    <h3 className="text-lg font-bold text-slate-900 truncate group-hover:text-blue-600 transition-colors">
+                                <div className="flex-1 min-w-0 text-left">
+                                    <h3 className="text-2xl font-bold text-slate-900 truncate group-hover:text-blue-600 transition-colors">
                                         {customer.name}
                                     </h3>
-
                                 </div>
+                                <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); handleOpenHistory(customer); }}
+                                    aria-label="Lịch sử giao dịch"
+                                    className="p-2 rounded-xl text-slate-400 hover:bg-slate-100 hover:text-blue-600 transition-colors duration-200 active:opacity-70 flex-shrink-0 cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center"
+                                >
+                                    <History size={22} />
+                                </button>
                             </div>
 
                             <div className="space-y-3 mb-6 relative z-10">

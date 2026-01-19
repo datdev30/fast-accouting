@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- External storage paths -->
+    <external-path name="external" path="." />
+    <external-path name="downloads" path="Download/" />
+    
+    <!-- Cache paths -->
+    <cache-path name="my_cache_images" path="." />
+    <cache-path name="cache" path="." />
+    <cache-path name="fastaccounting_cache" path="FastAccounting/" />
+    
+    <!-- External files paths -->
+    <external-files-path name="documents" path="Documents/" />
+    
+    <!-- Internal files paths -->
+    <files-path name="documents" path="Documents/" />
+    <files-path name="files" path="." />
+    <files-path name="fastaccounting" path="FastAccounting/" />
+</paths>

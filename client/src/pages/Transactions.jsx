@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getTransactions, createTransaction, updateTransaction, getCustomers, getInterestConfigs, createCustomer, uploadTransactionImage, fetchTransactionImageBlob, deleteTransactionImage } from '../services/api';
 import { Plus, Edit2, Search, Calendar, Tag, Filter, X, ChevronRight, Check, Clock, User, UserPlus, ArrowUpDown, ArrowUp, ArrowDown, Trash2, Camera, Image as ImageIcon, Loader2, ZoomIn, ZoomOut, RotateCw, Download } from 'lucide-react';
@@ -141,6 +141,31 @@ export default function Transactions() {
         return result;
     }, [sortedTransactions, customerSearchTerm, selectedCustomerId, startDate, endDate]);
 
+    // Define handleClose before useEffect that uses it
+    const handleClose = useCallback(() => {
+        setIsOpen(false);
+        setEditingId(null);
+        setEditingHasImage(true);
+        setTxImageLoading(false);
+        setTxImageError('');
+        setTxImageUrl(prev => {
+            if (prev) URL.revokeObjectURL(prev);
+            return null;
+        });
+        setPendingUploadFile(null); // Clear pending file on close
+        setIsImageDetailOpen(false);
+        setIsImagePickerOpen(false);
+        setFormData({
+            customer_id: '',
+            type: '',
+            amount: '',
+            content: '',
+            transaction_date: new Date().toISOString().split('T')[0],
+            status: 'OPEN',
+            closed_at: new Date().toISOString().split('T')[0]
+        });
+        setCustomerSearch('');
+    }, []);
 
     // Click outside to close comboboxes
     useEffect(() => {
@@ -181,7 +206,7 @@ export default function Transactions() {
 
         document.addEventListener('keydown', handleEscKey);
         return () => document.removeEventListener('keydown', handleEscKey);
-    }, [isOpen]);
+    }, [isOpen, handleClose]);
 
     // Focus trap for transaction modal
     useEffect(() => {
@@ -525,31 +550,6 @@ export default function Transactions() {
         }
     };
 
-    const handleClose = () => {
-        setIsOpen(false);
-        setEditingId(null);
-        setEditingHasImage(true);
-        setTxImageLoading(false);
-        setTxImageError('');
-        setTxImageUrl(prev => {
-            if (prev) URL.revokeObjectURL(prev);
-            return null;
-        });
-        setPendingUploadFile(null); // Clear pending file on close
-        setIsImageDetailOpen(false);
-        setIsImagePickerOpen(false);
-        setFormData({
-            customer_id: '',
-            type: '',
-            amount: '',
-            content: '',
-            transaction_date: new Date().toISOString().split('T')[0],
-            status: 'OPEN',
-            closed_at: new Date().toISOString().split('T')[0]
-        });
-        setCustomerSearch('');
-    };
-
     const handleQuickCreateSubmit = (e) => {
         e.preventDefault();
         createCustomerMutation.mutate({
@@ -561,19 +561,58 @@ export default function Transactions() {
     const handleSubmit = (e) => {
         e.preventDefault();
 
+        // Validate amount
+        const amount = parseFloat(formData.amount) || 0;
+        if (!formData.amount || amount <= 0) {
+            showToast('Lỗi', 'Số tiền phải lớn hơn 0', 'error');
+            return;
+        }
+        if (amount > 999999999999) {
+            showToast('Lỗi', 'Số tiền quá lớn (tối đa 999,999,999,999)', 'error');
+            return;
+        }
+
+        // Validate customer
+        if (!formData.customer_id) {
+            showToast('Lỗi', 'Vui lòng chọn khách hàng', 'error');
+            return;
+        }
+
+        // Validate content
+        if (!formData.content || !formData.content.trim()) {
+            showToast('Lỗi', 'Vui lòng nhập nội dung giao dịch', 'error');
+            return;
+        }
+
+        // Validate dates
         if (formData.status === 'PAID') {
             const txDate = new Date(formData.transaction_date);
             const paidDate = new Date(formData.closed_at);
-            if (!isNaN(txDate.getTime()) && !isNaN(paidDate.getTime()) && paidDate < txDate) {
+            if (isNaN(txDate.getTime())) {
+                showToast('Lỗi', 'Ngày giao dịch không hợp lệ', 'error');
+                return;
+            }
+            if (isNaN(paidDate.getTime())) {
+                showToast('Lỗi', 'Ngày thanh toán không hợp lệ', 'error');
+                return;
+            }
+            if (paidDate < txDate) {
                 showToast('Lỗi', 'Ngày thanh toán không được nhỏ hơn ngày giao dịch', 'error');
                 return;
             }
         }
 
+        // Normalize data
+        const normalizedData = {
+            ...formData,
+            amount: amount,
+            content: formData.content.trim()
+        };
+
         if (editingId) {
-            updateMutation.mutate({ id: editingId, data: formData });
+            updateMutation.mutate({ id: editingId, data: normalizedData });
         } else {
-            createMutation.mutate(formData);
+            createMutation.mutate(normalizedData);
         }
     };
 
@@ -634,7 +673,7 @@ export default function Transactions() {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4 lg:space-y-6">
             <AlertModal
                 isOpen={alertState.isOpen}
                 onClose={() => setAlertState({ ...alertState, isOpen: false })}
@@ -642,18 +681,35 @@ export default function Transactions() {
                 message={alertState.message}
                 type={alertState.type}
             />
-            {/* Header Section - Portrait: Stack 2 Rows, Landscape: All in 1 Row */}
-            <div className="space-y-4 md:space-y-5 xl:space-y-0">
-                {/* Portrait: Stack layout */}
-                <div className="xl:hidden space-y-4 md:space-y-5">
-                    {/* Row 1: Title & Subtitle */}
-                <div>
-                        <h2 className="section-title text-2xl md:text-3xl">Danh Sách Giao Dịch</h2>
-                        <p className="section-subtitle text-sm md:text-base mt-1">Quản lý các giao dịch vay và nợ</p>
-                </div>
+            {/* Header Section */}
+            <div className="space-y-0">
+                <div className="space-y-5">
+                    {/* Row 1: Title & Subtitle & Create Button */}
+                    <div className="flex items-center justify-between gap-4 lg:gap-6">
+                        <div>
+                            <h2 className="section-title">Danh Sách Giao Dịch</h2>
+                            <p className="section-subtitle mt-1">Quản lý các giao dịch vay và nợ</p>
+                        </div>
+                        <button
+                            onClick={() => {
+                                if (selectedCustomerId) {
+                                    const selected = customers?.find(c => c.id === selectedCustomerId);
+                                    if (selected) {
+                                        setFormData(prev => ({ ...prev, customer_id: selected.id }));
+                                        setCustomerSearch(selected.name);
+                                    }
+                                }
+                                setIsOpen(true);
+                            }}
+                            className="btn-primary btn-md justify-center text-base min-h-[44px] px-6 py-3 whitespace-nowrap shrink-0"
+                        >
+                            <Plus size={20} className="shrink-0" />
+                            <span>Tạo giao dịch</span>
+                        </button>
+                    </div>
 
                     {/* Row 2: Date Filter & Customer Search (same row) */}
-                    <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="flex flex-row gap-3">
                         {/* Date Range Picker - Inline Style */}
                         <div className="flex flex-1 items-center gap-1.5 border-b-2 border-slate-200 pb-2 focus-within:border-blue-500 transition-colors">
                             <div className="flex-1 min-w-0">
@@ -684,12 +740,12 @@ export default function Transactions() {
 
                         {/* Customer Search */}
                         <div className="relative group flex-1" ref={filterComboboxRef}>
-                            <div className="absolute inset-y-0 left-0 pl-3 md:pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors">
-                                <Search size={20} className="md:w-5 md:h-5" />
+                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors">
+                                <Search size={20} className="w-5 h-5" />
                         </div>
                         <input
                             type="text"
-                                className="input input-icon pr-10 md:pr-12 w-full text-sm md:text-base"
+                                className="input input-icon pr-12 w-full text-base"
                             value={customerSearchTerm}
                             onChange={e => {
                                 setCustomerSearchTerm(e.target.value);
@@ -710,13 +766,13 @@ export default function Transactions() {
                                     setSelectedCustomerId('');
                                     setHighlightedFilterIndex(-1);
                                 }}
-                                    className="absolute inset-y-0 right-0 pr-3 md:pr-4 flex items-center text-slate-400 hover:text-red-500 transition-colors min-w-[44px] min-h-[44px]"
+                                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-red-500 transition-colors min-w-[44px] min-h-[44px]"
                                     aria-label="Xóa tìm kiếm"
                             >
                                     <X size={18} />
                             </button>
                         ) : (
-                                <div className="absolute inset-y-0 right-0 pr-3 md:pr-4 flex items-center pointer-events-none text-slate-400">
+                                <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-slate-400">
                                     <ArrowUpDown size={18} className="opacity-50" />
                             </div>
                         )}
@@ -734,25 +790,25 @@ export default function Transactions() {
                                             setHighlightedFilterIndex(-1);
                                         }}
                                         className={clsx(
-                                                "px-4 md:px-5 py-3 md:py-3.5 cursor-pointer flex items-center gap-3 transition-colors min-h-[44px]",
+                                                "px-5 py-3.5 cursor-pointer flex items-center gap-3 transition-colors min-h-[44px]",
                                             highlightedFilterIndex === index ? "bg-blue-50" : "hover:bg-slate-50",
                                             selectedCustomerId === customer.id && "bg-blue-50/50"
                                         )}
                                     >
-                                            <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
-                                                <User size={18} className="md:w-5 md:h-5" />
+                                            <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+                                                <User size={20} />
                                         </div>
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-sm md:text-base font-medium text-slate-700 truncate">{customer.name}</p>
+                                                <p className="text-base font-medium text-slate-700 truncate">{customer.name}</p>
                                                 {customer.contact_info && (
-                                                    <p className="text-xs md:text-sm text-slate-400 truncate">{customer.contact_info}</p>
+                                                    <p className="text-sm text-slate-400 truncate">{customer.contact_info}</p>
                                                 )}
                                             </div>
-                                            {selectedCustomerId === customer.id && <Check size={18} className="md:w-5 md:h-5 shrink-0 text-blue-600" />}
+                                            {selectedCustomerId === customer.id && <Check size={20} className="shrink-0 text-blue-600" />}
                                         </div>
                                     ))}
                                     {filteredCustomersForFilter?.length === 0 && (
-                                        <div className="px-4 py-3 text-slate-400 text-sm md:text-base text-center">
+                                        <div className="px-4 py-3 text-slate-400 text-base text-center">
                                             Không tìm thấy khách hàng
                                         </div>
                                     )}
@@ -761,161 +817,8 @@ export default function Transactions() {
                         </div>
                     </div>
                 </div>
-
-                {/* Landscape: All in 1 Row */}
-                <div className="hidden xl:flex xl:items-center xl:justify-between xl:gap-6">
-                    {/* Left: Title & Subtitle */}
-                                        <div>
-                        <h2 className="section-title text-2xl 2xl:text-3xl">Danh Sách Giao Dịch</h2>
-                        <p className="section-subtitle text-sm 2xl:text-base mt-1">Quản lý các giao dịch vay và nợ</p>
-                    </div>
-
-                    {/* Right: Date Filter, Search & Button */}
-                    <div className="flex items-center gap-3">
-                        {/* Date Range Filter - Inline Style */}
-                        <div className="flex items-center gap-1.5 border-b-2 border-slate-200 pb-2 focus-within:border-blue-500 transition-colors">
-                            <div className="w-32">
-                                <DatePicker
-                                    value={startDate}
-                                    onChange={e => setStartDate(e.target.value)}
-                                    placeholder="Từ ngày"
-                                />
-                            </div>
-                            <span className="text-slate-300 text-base font-medium shrink-0">-</span>
-                            <div className="w-32">
-                                <DatePicker
-                                    value={endDate}
-                                    onChange={e => setEndDate(e.target.value)}
-                                    placeholder="Đến ngày"
-                                />
-                            </div>
-                            {(startDate || endDate) && (
-                                <button
-                                    onClick={() => { setStartDate(''); setEndDate(''); }}
-                                    className="ml-1 p-1.5 min-w-[32px] min-h-[32px] flex items-center justify-center text-red-500 hover:bg-red-50 rounded-md transition-colors shrink-0"
-                                    aria-label="Xóa bộ lọc ngày"
-                                >
-                                    <X size={16} />
-                                </button>
-                            )}
-                        </div>
-
-                        {/* Customer Search */}
-                        <div className="relative group" ref={filterComboboxRef}>
-                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors">
-                                <Search size={20} />
-                            </div>
-                            <input
-                                type="text"
-                                className="input input-icon pr-12 min-w-[300px] text-base"
-                                value={customerSearchTerm}
-                                onChange={e => {
-                                    setCustomerSearchTerm(e.target.value);
-                                    setIsFilterComboboxOpen(true);
-                                    setHighlightedFilterIndex(-1);
-                                    if (selectedCustomerId) {
-                                        setSelectedCustomerId('');
-                                    }
-                                }}
-                                onFocus={() => setIsFilterComboboxOpen(true)}
-                                onKeyDown={handleFilterComboboxKeyDown}
-                                placeholder="Tìm kiếm khách hàng..."
-                            />
-                            {customerSearchTerm ? (
-                                <button
-                                    onClick={() => {
-                                        setCustomerSearchTerm('');
-                                        setSelectedCustomerId('');
-                                        setHighlightedFilterIndex(-1);
-                                    }}
-                                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-red-500 transition-colors min-w-[44px] min-h-[44px]"
-                                    aria-label="Xóa tìm kiếm"
-                                >
-                                    <X size={18} />
-                                </button>
-                            ) : (
-                                <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-slate-400">
-                                    <ArrowUpDown size={18} className="opacity-50" />
-                                </div>
-                            )}
-
-                            {/* Filter Dropdown */}
-                            {isFilterComboboxOpen && (
-                                <div className="absolute z-[60] mt-2 w-full bg-white border border-slate-100 rounded-xl shadow-xl py-2 max-h-80 overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
-                                    {filteredCustomersForFilter?.map((customer, index) => (
-                                        <div
-                                            key={customer.id}
-                                            onClick={() => {
-                                                setSelectedCustomerId(customer.id);
-                                                setCustomerSearchTerm(customer.name);
-                                                setIsFilterComboboxOpen(false);
-                                                setHighlightedFilterIndex(-1);
-                                            }}
-                                            className={clsx(
-                                                "px-5 py-3.5 cursor-pointer flex items-center gap-3 transition-colors min-h-[44px]",
-                                                highlightedFilterIndex === index ? "bg-blue-50" : "hover:bg-slate-50",
-                                                selectedCustomerId === customer.id && "bg-blue-50/50"
-                                            )}
-                                        >
-                                            <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
-                                                <User size={20} />
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-base font-medium text-slate-700 truncate">{customer.name}</p>
-                                            {customer.contact_info && (
-                                                    <p className="text-sm text-slate-400 truncate">{customer.contact_info}</p>
-                                            )}
-                                        </div>
-                                            {selectedCustomerId === customer.id && <Check size={20} className="shrink-0 text-blue-600" />}
-                                    </div>
-                                ))}
-                                {filteredCustomersForFilter?.length === 0 && (
-                                        <div className="px-4 py-3 text-slate-400 text-base text-center">
-                                        Không tìm thấy khách hàng
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-
-                        {/* Create Button */}
-                    <button
-                        onClick={() => {
-                            if (selectedCustomerId) {
-                                const selected = customers?.find(c => c.id === selectedCustomerId);
-                                if (selected) {
-                                    setFormData(prev => ({ ...prev, customer_id: selected.id }));
-                                    setCustomerSearch(selected.name);
-                                }
-                            }
-                            setIsOpen(true);
-                        }}
-                            className="btn-primary btn-md justify-center text-base min-h-[44px] px-6 py-3 whitespace-nowrap shrink-0"
-                    >
-                            <Plus size={20} className="shrink-0" />
-                            <span>Tạo Giao Dịch</span>
-                    </button>
-                    </div>
-                </div>
             </div>
 
-            {/* FAB Button - Only for Portrait (hidden on landscape) */}
-            <button
-                onClick={() => {
-                    if (selectedCustomerId) {
-                        const selected = customers?.find(c => c.id === selectedCustomerId);
-                        if (selected) {
-                            setFormData(prev => ({ ...prev, customer_id: selected.id }));
-                            setCustomerSearch(selected.name);
-                        }
-                    }
-                    setIsOpen(true);
-                }}
-                className="fixed bottom-6 left-1/2 -translate-x-1/2 xl:hidden z-50 w-16 h-16 md:w-20 md:h-20 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-2xl shadow-blue-500/50 flex items-center justify-center transition-all hover:scale-110 active:scale-95"
-                aria-label="Tạo giao dịch mới"
-            >
-                <Plus size={28} className="md:w-8 md:h-8" />
-            </button>
 
             {/* Quick Create Customer Modal */}
             {isQuickCreateOpen && (
@@ -961,12 +864,12 @@ export default function Transactions() {
                 <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all">
                     <div
                         ref={txModalRef}
-                        className="bg-white w-full sm:max-w-2xl md:max-w-2xl lg:max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-300"
+                        className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-300"
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="tx-modal-title"
                     >
-                        <div className="p-6 sm:p-8 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                        <div className="p-8 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
                             <div className="flex items-center gap-4">
                                 <div className="w-11 h-11 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-200 shrink-0">
                                     {editingId ? <Edit2 size={20} /> : <Plus size={22} />}
@@ -1020,10 +923,10 @@ export default function Transactions() {
                         </div>
 
                         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
-                            <div className="flex-1 overflow-y-auto p-6 sm:p-8 custom-scrollbar min-h-0">
-                                <div className="space-y-6">
+                            <div className="flex-1 overflow-y-auto p-8 custom-scrollbar min-h-0">
+                                <div className="space-y-4 lg:space-y-6">
                                     {/* Row 1: Date & Customer - Same row for portrait */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="grid grid-cols-2 gap-6">
                                         {/* Date Input */}
                                         <div className="space-y-2">
                                             <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Ngày giao dịch</label>
@@ -1161,7 +1064,7 @@ export default function Transactions() {
                                 <div className="space-y-2 mt-8">
                                     <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Loại giao dịch</label>
                                     {/* 4 cols on all screens */}
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                    <div className="grid grid-cols-4 gap-3">
                                         {configs?.map((config) => (
                                             <button
                                                 key={config.code}
@@ -1204,7 +1107,7 @@ export default function Transactions() {
                                 </div>
 
                                 {editingId && (
-                                    <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 gap-8 mt-8 pt-8 border-t border-slate-50">
+                                    <div className="grid grid-cols-2 gap-8 mt-8 pt-8 border-t border-slate-50">
                                         <div className="space-y-2">
                                             <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Trạng thái</label>
                                             <button
@@ -1273,7 +1176,7 @@ export default function Transactions() {
                             </div>
 
                             {!editingId && (
-                                <div className="px-6 pb-2 sm:px-8">
+                                <div className="px-8 pb-2">
                                     <label className="flex items-center gap-2 cursor-pointer select-none w-fit">
                                         <div className="relative flex items-center">
                                             <input
@@ -1304,14 +1207,14 @@ export default function Transactions() {
                                 </div>
                             )}
 
-                            <div className="p-6 sm:p-8 bg-slate-50/50 border-t border-slate-100 flex flex-col-reverse sm:flex-row items-center justify-between gap-4 sm:gap-0">
+                            <div className="p-8 bg-slate-50/50 border-t border-slate-100 flex flex-row items-center justify-between gap-0">
                                 {/* Left Side: Delete (or empty if not eligible) */}
-                                <div className="w-full sm:w-auto mt-2 sm:mt-0">
+                                <div className="w-auto mt-0">
                                     {editingId && isAdmin && (
                                         <button
                                             type="button"
                                             onClick={() => setIsDeleteModalOpen(true)}
-                                            className="btn-danger btn-md w-full sm:w-auto flex items-center justify-center gap-2"
+                                            className="btn-danger btn-md w-auto flex items-center justify-center gap-2"
                                         >
                                             <Trash2 size={16} />
                                             Xóa giao dịch
@@ -1320,18 +1223,18 @@ export default function Transactions() {
                                 </div>
 
                                 {/* Right Side: Actions */}
-                                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 w-full sm:w-auto">
+                                <div className="flex flex-row items-center justify-end gap-3 w-auto">
                                     <button
                                         type="button"
                                         onClick={handleClose}
-                                        className="btn-secondary btn-lg w-full sm:w-auto"
+                                        className="btn-secondary btn-lg w-auto"
                                     >
                                         Hủy
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={createMutation.isPending || updateMutation.isPending}
-                                        className="btn-primary btn-lg w-full sm:w-auto disabled:cursor-wait"
+                                        className="btn-primary btn-lg w-auto disabled:cursor-wait"
                                     >
                                         {createMutation.isPending || updateMutation.isPending
                                             ? 'Đang xử lý...'
@@ -1355,13 +1258,13 @@ export default function Transactions() {
             />
 
 
-            <div className="card">
+            <div className="card overflow-hidden">
                 {isLoadingTransactions ? (
                     <SkeletonTable rows={8} columns={10} />
                 ) : (
                     <>
                         {/* Mobile Card View (<= md) */}
-                        <div className="md:hidden divide-y divide-slate-100">
+                        <div className="hidden divide-y divide-slate-100">
                             {filteredTransactions?.map((tx) => {
                                 const customerName = customers?.find(c => c.id === (tx.customer_id || tx.customer?.id || tx.customer))?.name || 'Không xác định';
                                 const typeConfig = configs?.find(c => c.code === tx.type);
@@ -1458,174 +1361,25 @@ export default function Transactions() {
                             )}
                         </div>
 
-                        {/* Tablet Portrait Card View (md - xl, portrait orientation) */}
-                        <div className="hidden md:block xl:hidden">
-                            <div className="space-y-4">
-                                {filteredTransactions?.map((tx) => {
-                                    const customerName = customers?.find(c => c.id === (tx.customer_id || tx.customer?.id || tx.customer))?.name || 'Không xác định';
-                                    const typeConfig = configs?.find(c => c.code === tx.type);
-                                    const typeName = typeConfig ? typeConfig.name : tx.type;
-                                    const calc = tx.interest_calculation;
-                                    const total = tx.amount + (calc?.rounded_interest || 0);
-
-                                    return (
-                                        <div
-                                            key={tx._id}
-                                            onClick={() => handleEdit(tx)}
-                                            className={clsx(
-                                                "relative rounded-2xl border p-7 md:p-8 hover:shadow-lg transition-all cursor-pointer overflow-hidden",
-                                                tx.status === 'PAID' 
-                                                    ? "bg-emerald-50 border-emerald-200 hover:bg-emerald-100/80" 
-                                                    : "bg-white border-slate-200"
-                                            )}
-                                        >
-                                            {/* Badge "ĐÃ THANH TOÁN" - Góc trên phải */}
-                                            {tx.status === 'PAID' && (
-                                                <div className="absolute top-0 right-0 bg-emerald-500 text-white px-4 md:px-5 py-1.5 md:py-2 text-xs md:text-sm font-bold uppercase tracking-wider shadow-lg z-10">
-                                                    <div className="flex items-center gap-1.5">
-                                                        <Check size={14} className="md:w-4 md:h-4" />
-                                                        <span>ĐÃ THANH TOÁN</span>
-                                                    </div>
-                                                    {/* Ribbon corner effect */}
-                                                    <div className="absolute -bottom-2 right-0 w-0 h-0 border-l-[12px] md:border-l-[16px] border-l-transparent border-t-[12px] md:border-t-[16px] border-t-emerald-600"></div>
-                                                </div>
-                                            )}
-
-                                            {/* Top Section: Date, Type */}
-                                            <div className="flex items-center gap-3 flex-wrap mb-5 pb-5 border-b border-slate-100">
-                                                <div className="flex items-center gap-2">
-                                                    {tx.status === 'PAID' && (
-                                                        <Check size={20} className="text-emerald-600 shrink-0" />
-                                                    )}
-                                                    {tx.status === 'OPEN' && (
-                                                        <Clock size={20} className="text-amber-600 shrink-0" />
-                                                    )}
-                                                    <div className="text-lg font-semibold text-slate-600">
-                                                        {formatDate(tx.transaction_date)}
-                                                    </div>
-                                                </div>
-                                                <span className={clsx(
-                                                    "px-4 py-2 rounded-lg text-base font-bold",
-                                                    tx.type?.includes('TIEN_MAT')
-                                                        ? 'bg-emerald-50 text-emerald-700'
-                                                        : tx.type?.includes('MUA_HANG')
-                                                            ? 'bg-blue-50 text-blue-700'
-                                                            : 'bg-slate-100 text-slate-900'
-                                                )}>
-                                                    {typeName}
-                                                </span>
-                                                {calc && (
-                                                    <div className="flex items-center gap-2 text-sm text-slate-500">
-                                                        <span className="badge-neutral text-sm">{tx.interest_rate_snapshot}%</span>
-                                                        <span className="badge-neutral text-sm">{calc?.months.toFixed(1) || 0} tháng</span>
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {/* Customer Name & Content - 2 Columns */}
-                                            <div className="grid grid-cols-2 gap-5 mb-5">
-                                                {/* Customer Name */}
-                                                <div>
-                                                    <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Khách hàng</div>
-                                                    <div className="font-bold text-xl text-slate-900">
-                                                        {customerName}
-                                                    </div>
-                                                </div>
-
-                                                {/* Content */}
-                                                <div>
-                                                    <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Nội dung</div>
-                                                    <div className="text-base text-slate-600 leading-relaxed line-clamp-3">
-                                                        {tx.content ? (
-                                                            tx.content.includes('-') ? (
-                                                                <div className="whitespace-pre-wrap">
-                                                                    {tx.content
-                                                                        .split(/\n/)
-                                                                        .flatMap(line => {
-                                                                            // Nếu dòng có dấu -, split theo dấu - và giữ lại dấu -
-                                                                            if (line.includes('-')) {
-                                                                                return line.split(/(?=-)/).filter(part => part.trim());
-                                                                            }
-                                                                            return [line];
-                                                                        })
-                                                                        .filter(part => part.trim())
-                                                                        .map((part, idx) => {
-                                                                            const trimmed = part.trim();
-                                                                            return (
-                                                                                <React.Fragment key={idx}>
-                                                                                    {idx > 0 && <br />}
-                                                                                    {trimmed}
-                                                                                </React.Fragment>
-                                                                            );
-                                                                        })}
-                                                                </div>
-                                                            ) : (
-                                                                <div>{tx.content}</div>
-                                                            )
-                                                        ) : (
-                                                            <span className="text-slate-400">-</span>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* Financial Info Grid */}
-                                            <div className="grid grid-cols-3 gap-5 bg-gradient-to-br from-slate-50 to-slate-100/50 rounded-xl p-6 border border-slate-200">
-                                                <div>
-                                                    <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2.5">Tiền gốc</div>
-                                                    <div className="font-mono text-xl font-bold text-slate-700">
-                                                        {tx.amount.toLocaleString('vi-VN')}
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    <div className="text-xs font-bold text-blue-400 uppercase tracking-widest mb-2.5">Tiền lãi</div>
-                                                    <div className="font-mono text-xl font-bold text-blue-600">
-                                                        {calc ? `+ ${calc?.rounded_interest.toLocaleString('vi-VN')}` : '-'}
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2.5">Tổng cộng</div>
-                                                    <div className="font-mono text-2xl font-black text-slate-900">
-                                                        {calc ? total.toLocaleString('vi-VN') : tx.amount.toLocaleString('vi-VN')}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                                {filteredTransactions?.length === 0 && (
-                                    <div className="py-16 text-center">
-                                        <div className="flex flex-col items-center justify-center text-slate-400">
-                                            <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 border border-dashed border-slate-200">
-                                                <Search size={32} className="opacity-40" />
-                                            </div>
-                                            <p className="font-medium text-slate-500">Chưa có giao dịch nào</p>
-                                            <p className="text-sm mt-1">Thử thay đổi bộ lọc hoặc tạo giao dịch mới</p>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Desktop/Tablet Landscape Table View (>= xl) - Rút gọn cột */}
-                        <div className="hidden xl:block overflow-x-auto xl:overflow-visible">
-                            <table className="table lg:w-full">
+                        {/* Desktop Table View */}
+                        <div className="overflow-x-auto overflow-visible">
+                            <table className="table w-full">
                                 <thead className="table-head">
                                     <tr>
-                                        <th className="table-th text-base md:text-lg py-4">
+                                        <th className="table-th text-xs py-4">
                                             <div className="flex items-center gap-2">Ngày GD</div>
                                         </th>
-                                        <th className="table-th text-base md:text-lg py-4 max-w-[200px]">
+                                        <th className="table-th text-xs py-4 max-w-[200px]">
                                             <div className="flex items-center gap-2">Khách hàng</div>
                                         </th>
-                                        <th className="table-th text-center text-base md:text-lg py-4 min-w-[240px] w-[240px]">
+                                        <th className="table-th text-center text-xs py-4 min-w-[240px] w-[240px]">
                                             <div className="flex items-center justify-center gap-2">Loại</div>
                                         </th>
-                                        <th className="table-th max-w-xs text-base md:text-lg py-4">Nội dung</th>
-                                        <th className="table-th text-right text-base md:text-lg py-4">
+                                        <th className="table-th max-w-xs text-xs py-4">Nội dung</th>
+                                        <th className="table-th text-right text-xs py-4">
                                             <div className="flex items-center justify-end gap-2">Tiền gốc</div>
                                         </th>
-                                        <th className="table-th text-right text-base md:text-lg py-4">Tổng cộng</th>
+                                        <th className="table-th text-right text-xs py-4">Tổng cộng</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
@@ -1650,7 +1404,7 @@ export default function Transactions() {
                                                 }}
                                                 title="Click để chỉnh sửa, Double-click để đổi trạng thái"
                                             >
-                                                <td className="table-td whitespace-nowrap text-base md:text-lg py-4">
+                                                <td className="table-td whitespace-nowrap text-base py-4">
                                                     <div className="flex items-center gap-2">
                                                         {tx.status === 'PAID' && (
                                                             <Check size={18} className="text-emerald-600 shrink-0" />
@@ -1661,7 +1415,7 @@ export default function Transactions() {
                                                         <span className="font-medium">{formatDate(tx.transaction_date)}</span>
                                                     </div>
                                                 </td>
-                                                <td className="table-td font-medium text-slate-800 text-base md:text-lg py-4 max-w-[200px]">
+                                                <td className="table-td font-medium text-slate-800 text-base py-4 max-w-[200px]">
                                                     <div className="truncate" title={customerName}>{customerName}</div>
                                                 </td>
                                                 <td className="table-td text-center py-4 min-w-[240px] w-[240px]">
@@ -1685,14 +1439,13 @@ export default function Transactions() {
                                                         )}
                                                     </div>
                                                 </td>
-                                                <td className="table-td text-slate-600 max-w-xs leading-relaxed font-normal text-base md:text-lg py-4">
+                                                <td className="table-td text-slate-600 max-w-xs leading-relaxed font-normal text-base py-4">
                                                     {tx.content ? (
                                                         tx.content.includes('-') ? (
                                                             <div className="whitespace-pre-wrap line-clamp-5">
                                                                 {tx.content
                                                                     .split(/\n/)
                                                                     .flatMap(line => {
-                                                                        // Nếu dòng có dấu -, split theo dấu - và giữ lại dấu -
                                                                         if (line.includes('-')) {
                                                                             return line.split(/(?=-)/).filter(part => part.trim());
                                                                         }
@@ -1716,13 +1469,13 @@ export default function Transactions() {
                                                 </td>
                                                 <td className="table-td whitespace-nowrap text-right py-4">
                                                     <div className="flex flex-col items-end gap-1">
-                                                        <span className="font-mono font-medium text-slate-700 text-base md:text-lg">{tx.amount.toLocaleString('vi-VN')}</span>
+                                                        <span className="font-mono font-medium text-slate-700 text-base">{tx.amount.toLocaleString('vi-VN')}</span>
                                                         {calc && calc.rounded_interest > 0 && (
                                                             <span className="font-mono text-base text-blue-600">+ {calc.rounded_interest.toLocaleString('vi-VN')}</span>
                                                         )}
                                                     </div>
                                                 </td>
-                                                <td className="table-td whitespace-nowrap text-right font-mono font-semibold text-slate-900 text-lg md:text-xl py-4">
+                                                <td className="table-td whitespace-nowrap text-right font-mono font-semibold text-slate-900 text-lg py-4">
                                                     {calc ? total.toLocaleString('vi-VN') : tx.amount.toLocaleString('vi-VN')}
                                                 </td>
                                             </tr>
@@ -1828,7 +1581,7 @@ export default function Transactions() {
                 title="Xóa Ảnh Giao Dịch"
                 warningMessage="Bạn có chắc chắn muốn xóa ảnh này không? Hành động này không thể hoàn tác."
             />
-        </div >
+        </div>
     );
 }
 
@@ -1937,25 +1690,25 @@ function ImageDetailModal({ isOpen, imageUrl, onClose, onDelete, onUpdate, isDel
         >
             {/* Toolbar */}
             <div className="flex items-center justify-between p-4 text-white/90 absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/50 to-transparent pointer-events-none">
-                <div className="flex items-center gap-3 md:gap-4 pointer-events-auto">
-                    <button onClick={onClose} className="p-2 md:p-2.5 hover:bg-white/10 rounded-full transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center" aria-label="Đóng">
-                        <X size={24} className="md:w-6 md:h-6" />
+                <div className="flex items-center gap-4 pointer-events-auto">
+                    <button onClick={onClose} className="p-2.5 hover:bg-white/10 rounded-full transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center" aria-label="Đóng">
+                        <X size={24} />
                     </button>
-                    <span className="font-medium text-sm md:text-base hidden sm:inline">Chi tiết ảnh</span>
+                    <span className="font-medium text-base">Chi tiết ảnh</span>
                 </div>
 
                 {/* Center Controls */}
-                <div className="flex items-center gap-2 md:gap-3 bg-black/40 backdrop-blur-md px-3 md:px-4 py-2 md:py-2.5 rounded-full border border-white/10 pointer-events-auto shadow-xl">
-                    <button onClick={() => setZoom(z => Math.max(0.5, z - 0.5))} className="p-2 md:p-2.5 hover:bg-white/10 rounded-full transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center" title="Thu nhỏ (-)">
-                        <ZoomOut size={20} className="md:w-5 md:h-5" />
+                <div className="flex items-center gap-3 bg-black/40 backdrop-blur-md px-4 py-2.5 rounded-full border border-white/10 pointer-events-auto shadow-xl">
+                    <button onClick={() => setZoom(z => Math.max(0.5, z - 0.5))} className="p-2.5 hover:bg-white/10 rounded-full transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center" title="Thu nhỏ (-)">
+                        <ZoomOut size={20} />
                     </button>
-                    <span className="text-xs md:text-sm font-mono w-10 md:w-12 text-center select-none">{Math.round(zoom * 100)}%</span>
-                    <button onClick={() => setZoom(z => Math.min(5, z + 0.5))} className="p-2 md:p-2.5 hover:bg-white/10 rounded-full transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center" title="Phóng to (+)">
-                        <ZoomIn size={20} className="md:w-5 md:h-5" />
+                    <span className="text-sm font-mono w-12 text-center select-none">{Math.round(zoom * 100)}%</span>
+                    <button onClick={() => setZoom(z => Math.min(5, z + 0.5))} className="p-2.5 hover:bg-white/10 rounded-full transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center" title="Phóng to (+)">
+                        <ZoomIn size={20} />
                     </button>
-                    <div className="w-px h-5 md:h-6 bg-white/20 mx-1 md:mx-2" />
-                    <button onClick={() => setRotation(r => r + 90)} className="p-2 md:p-2.5 hover:bg-white/10 rounded-full transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center" title="Xoay">
-                        <RotateCw size={20} className="md:w-5 md:h-5" />
+                    <div className="w-px h-6 bg-white/20 mx-2" />
+                    <button onClick={() => setRotation(r => r + 90)} className="p-2.5 hover:bg-white/10 rounded-full transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center" title="Xoay">
+                        <RotateCw size={20} />
                     </button>
                 </div>
 
@@ -1983,10 +1736,10 @@ function ImageDetailModal({ isOpen, imageUrl, onClose, onDelete, onUpdate, isDel
                         <a
                             href={imageUrl}
                             download="transaction-image"
-                            className="p-2 md:p-2.5 hover:bg-white/10 rounded-full transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+                            className="p-2.5 hover:bg-white/10 rounded-full transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
                             title="Tải xuống"
                         >
-                            <Download size={20} className="md:w-5 md:h-5" />
+                            <Download size={20} />
                         </a>
                     )}
                 </div>

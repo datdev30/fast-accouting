@@ -44,6 +44,13 @@ export default function UserManagement() {
         return name || 'User';
     }, [formData.display_name, formData.username]);
 
+    // Define handleClose before mutations that use it
+    const handleClose = () => {
+        setIsOpen(false);
+        setIsEditing(false);
+        setFormData({ _id: '', username: '', display_name: '', role: 'SALE', password: '', pin: '' });
+    };
+
     const createMutation = useMutation({
         mutationFn: createUser,
         onSuccess: () => {
@@ -81,12 +88,6 @@ export default function UserManagement() {
         }
     });
 
-    const handleClose = () => {
-        setIsOpen(false);
-        setIsEditing(false);
-        setFormData({ _id: '', username: '', display_name: '', role: 'SALE', password: '', pin: '' });
-    };
-
     const openCreate = () => {
         setIsEditing(false);
         setFormData({ _id: '', username: '', display_name: '', role: 'SALE', password: '', pin: '' });
@@ -115,27 +116,75 @@ export default function UserManagement() {
         }
 
         if (!isEditing) {
-            if (!formData.username || !formData.password) {
-                showToast('Thiếu thông tin', 'Username và mật khẩu là bắt buộc', 'error');
+            // Validate username
+            const username = formData.username?.trim() || '';
+            if (!username) {
+                showToast('Thiếu thông tin', 'Username là bắt buộc', 'error');
                 return;
             }
+            if (username.length < 3 || username.length > 30) {
+                showToast('Lỗi', 'Username phải từ 3-30 ký tự', 'error');
+                return;
+            }
+            if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+                showToast('Lỗi', 'Username chỉ được chứa chữ, số và dấu gạch dưới', 'error');
+                return;
+            }
+
+            // Validate password
+            const password = formData.password || '';
+            if (!password) {
+                showToast('Thiếu thông tin', 'Mật khẩu là bắt buộc', 'error');
+                return;
+            }
+            if (password.length < 4) {
+                showToast('Lỗi', 'Mật khẩu phải có ít nhất 4 ký tự', 'error');
+                return;
+            }
+
+            // Validate PIN if provided
+            if (formData.pin) {
+                const pin = formData.pin.trim();
+                if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+                    showToast('Lỗi', 'PIN phải là 4 chữ số', 'error');
+                    return;
+                }
+            }
+
             createMutation.mutate({
-                username: formData.username,
-                password: formData.password,
-                display_name: formData.display_name,
+                username: username,
+                password: password,
+                display_name: formData.display_name?.trim() || '',
                 role: formData.role,
-                ...(formData.pin ? { pin: formData.pin } : {})
+                ...(formData.pin ? { pin: formData.pin.trim() } : {})
             });
             return;
+        }
+
+        // Validate password if provided
+        if (formData.password) {
+            if (formData.password.length < 4) {
+                showToast('Lỗi', 'Mật khẩu phải có ít nhất 4 ký tự', 'error');
+                return;
+            }
+        }
+
+        // Validate PIN if provided
+        if (formData.pin) {
+            const pin = formData.pin.trim();
+            if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+                showToast('Lỗi', 'PIN phải là 4 chữ số', 'error');
+                return;
+            }
         }
 
         updateMutation.mutate({
             id: formData._id,
             data: {
-                display_name: formData.display_name,
+                display_name: formData.display_name?.trim() || '',
                 role: formData.role,
                 ...(formData.password ? { password: formData.password } : {}),
-                ...(formData.pin ? { pin: formData.pin } : {})
+                ...(formData.pin ? { pin: formData.pin.trim() } : {})
             }
         });
     };
@@ -155,23 +204,13 @@ export default function UserManagement() {
 
     return (
         <div className="space-y-6">
-            {/* Header Section - Portrait: Stack layout, Landscape: All in 1 Row */}
-            <div className="space-y-4 md:space-y-5 xl:space-y-0">
-                {/* Portrait: Stack layout */}
-                <div className="xl:hidden space-y-4 md:space-y-5">
-                    {/* Row 1: Title & Subtitle */}
-                    <div>
-                        <h2 className="section-title text-2xl md:text-3xl">Quản Lý User</h2>
-                        <p className="section-subtitle text-sm md:text-base mt-1">Tạo và phân quyền user (SALE/ADMIN)</p>
-                    </div>
-                </div>
-
-                {/* Landscape: All in 1 Row */}
-                <div className="hidden xl:flex xl:items-center xl:justify-between xl:gap-6">
+            {/* Header Section */}
+            <div className="space-y-0">
+                <div className="flex items-center justify-between gap-6">
                     {/* Left: Title & Subtitle */}
                     <div>
-                        <h2 className="section-title text-2xl 2xl:text-3xl">Quản Lý User</h2>
-                        <p className="section-subtitle text-sm 2xl:text-base mt-1">Tạo và phân quyền user (SALE/ADMIN)</p>
+                        <h2 className="section-title text-3xl">Quản Lý User</h2>
+                        <p className="section-subtitle text-base mt-1">Tạo và phân quyền user (SALE/ADMIN)</p>
                     </div>
 
                     {/* Right: Create Button */}
@@ -184,15 +223,6 @@ export default function UserManagement() {
                     </button>
                 </div>
             </div>
-
-            {/* FAB Button - Only for Portrait (hidden on landscape) */}
-            <button
-                onClick={openCreate}
-                className="fixed bottom-6 left-1/2 -translate-x-1/2 xl:hidden z-50 w-16 h-16 md:w-20 md:h-20 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-2xl shadow-blue-500/50 flex items-center justify-center transition-all hover:scale-110 active:scale-95"
-                aria-label="Thêm user mới"
-            >
-                <Plus size={28} className="md:w-8 md:h-8" />
-            </button>
 
             <div className="card p-0 overflow-hidden">
                 <div className="overflow-auto">
@@ -236,14 +266,14 @@ export default function UserManagement() {
                                     <td className="table-td text-right">
                                         <div className="inline-flex items-center gap-2">
                                             <button
-                                                className="p-2 md:min-w-[44px] md:min-h-[44px] md:flex md:items-center md:justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                                className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                                                 onClick={() => openEdit(u)}
                                                 title="Sửa"
                                             >
                                                 <Pencil size={18} />
                                             </button>
                                             <button
-                                                className="p-2 md:min-w-[44px] md:min-h-[44px] md:flex md:items-center md:justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                                className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                                                 onClick={() => { openEdit(u); setIsDeleteModalOpen(true); }}
                                                 title="Xóa"
                                             >
@@ -271,8 +301,8 @@ export default function UserManagement() {
             </div>
 
             {isOpen && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-50 p-0 sm:p-4 overflow-hidden">
-                    <div className="bg-white sm:rounded-[2.5rem] w-full h-full sm:h-auto sm:max-w-lg shadow-2xl overflow-hidden flex flex-col">
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-50 p-4 overflow-hidden">
+                    <div className="bg-white rounded-[2.5rem] w-full h-auto max-w-lg shadow-2xl overflow-hidden flex flex-col">
                         <div className="px-8 py-6 border-b border-slate-100 bg-white flex justify-between items-center">
                             <div>
                                 <h3 className="text-lg font-bold text-slate-900">{isEditing ? 'Cập nhật user' : 'Thêm user'}</h3>
@@ -284,7 +314,7 @@ export default function UserManagement() {
                         </div>
 
                         <form onSubmit={handleSubmit} className="p-8 space-y-4 overflow-auto">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="label">Username</label>
                                     <input
@@ -343,7 +373,7 @@ export default function UserManagement() {
                                 />
                             </div>
 
-                            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                            <div className="flex flex-row gap-3 pt-2">
                                 <button type="submit" className="btn btn-primary btn-md" disabled={createMutation.isPending || updateMutation.isPending}>
                                     {isEditing ? 'Lưu thay đổi' : 'Tạo user'}
                                 </button>

@@ -1,11 +1,12 @@
 import React, { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { getTransactions, getCustomers, getInterestConfigs, getCustomer } from '../services/api';
+import { getTransactions, getCustomers, getInterestConfigs, getCustomer, downloadAllTransactionsPdf } from '../services/api';
 import api from '../services/api'; // Import default api instance
 import { useReactToPrint } from 'react-to-print';
 import PrintableReport from '../components/PrintableReport';
-import { ArrowLeft, Printer, Calendar, X, ChevronRight, FileText, Wallet, Percent, PiggyBank, CheckCircle, AlertCircle, Check, Clock, Search } from 'lucide-react';
+import PrintableAllTransactions from '../components/PrintableAllTransactions';
+import { ArrowLeft, Printer, Calendar, X, ChevronRight, FileText, Wallet, Percent, PiggyBank, CheckCircle, AlertCircle, Check, Clock, Search, Download, Loader2 } from 'lucide-react';
 import { clsx } from 'clsx';
 import DateInput from '../components/DateInput';
 import DatePicker from '../components/DatePicker';
@@ -24,20 +25,67 @@ const CustomerDebtDetail = () => {
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [showPreview, setShowPreview] = useState(false);
+    const [showAllTransactionsPreview, setShowAllTransactionsPreview] = useState(false);
 
     // Bulk Pay State
     const [bulkPayOpen, setBulkPayOpen] = useState(false);
     const [bulkPin, setBulkPin] = useState('');
     const [bulkDate, setBulkDate] = useState(new Date().toISOString().split('T')[0]);
     const [bulkError, setBulkError] = useState('');
+    const [bulkPinError, setBulkPinError] = useState('');
 
-    // Print Ref
+    // Print Refs
     const printRef = useRef();
+    const printAllTransactionsRef = useRef();
+    const [downloadAllTransactionsPdfLoading, setDownloadAllTransactionsPdfLoading] = useState(false);
 
     const handlePrint = useReactToPrint({
         contentRef: printRef,
         documentTitle: `Bao_cao_cong_no_${id}`,
     });
+
+    const handlePrintAllTransactions = useReactToPrint({
+        contentRef: printAllTransactionsRef,
+        documentTitle: `Tat_ca_giao_dich_${id}`,
+    });
+
+    const handleDownloadAllTransactionsPdf = async () => {
+        // Prevent multiple simultaneous downloads
+        if (downloadAllTransactionsPdfLoading) return;
+        
+        setDownloadAllTransactionsPdfLoading(true);
+        try {
+            const { blob, filename } = await downloadAllTransactionsPdf(id, startDate || undefined, endDate || undefined);
+            
+            // Validate blob
+            if (!blob || !(blob instanceof Blob)) {
+                throw new Error('Dữ liệu PDF không hợp lệ');
+            }
+            
+            // Check if blob is empty
+            if (blob.size === 0) {
+                throw new Error('File PDF rỗng');
+            }
+            
+            // Create download link
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            
+            showToast('Thành công', 'File PDF đã được tải xuống', 'success');
+        } catch (e) {
+            console.error('Download All Transactions PDF error:', e);
+            const errorMessage = e?.message || e?.response?.data?.error || 'Không thể tải PDF';
+            showToast('Lỗi', errorMessage, 'error');
+        } finally {
+            setDownloadAllTransactionsPdfLoading(false);
+        }
+    };
 
     // Fetch single customer details directly
     const { data: customerData, isLoading: isCustomerLoading } = useQuery({
@@ -70,24 +118,50 @@ const CustomerDebtDetail = () => {
             setBulkPayOpen(false);
             setBulkPin('');
             setBulkError('');
-
-            setBulkPin('');
-            setBulkError('');
+            setBulkPinError('');
 
             showToast('Thành công', `Đã thanh toán ${data.count} giao dịch`, 'success');
         },
         onError: (err) => {
-            setBulkError(err.response?.data?.detail || "Lỗi thanh toán");
+            const errorMsg = err.response?.data?.detail || err.response?.data?.error || "Lỗi thanh toán";
+            if (errorMsg.toLowerCase().includes('pin') || errorMsg.toLowerCase().includes('mã')) {
+                setBulkPinError(errorMsg);
+            } else {
+                setBulkError(errorMsg);
+            }
         }
     });
 
     const handleBulkPay = (e) => {
         e.preventDefault();
         setBulkError('');
+        setBulkPinError('');
+
+        // Validate PIN
+        const pin = bulkPin.trim();
+        if (!pin) {
+            setBulkPinError('Vui lòng nhập mã PIN');
+            return;
+        }
+        if (pin.length !== 4 || !/^\d{4}$/.test(pin)) {
+            setBulkPinError('PIN phải là 4 chữ số');
+            return;
+        }
+
+        // Validate date
+        if (!bulkDate) {
+            setBulkError('Vui lòng chọn ngày thanh toán');
+            return;
+        }
+        const payDate = new Date(bulkDate);
+        if (isNaN(payDate.getTime())) {
+            setBulkError('Ngày thanh toán không hợp lệ');
+            return;
+        }
         bulkPayMutation.mutate({
             customer_id: id,
             payment_date: bulkDate,
-            pin: bulkPin
+            pin: pin
         });
     };
 
@@ -163,17 +237,16 @@ const CustomerDebtDetail = () => {
     if (!customer) return <div className="p-8 text-center text-slate-500">Đang tải dữ liệu khách hàng...</div>;
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4 lg:space-y-6">
             {/* Header */}
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6">
+            <div className="flex flex-row items-center justify-between gap-4 lg:gap-6">
                 <div>
-                    <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-500 mb-2">
+                    <div className="flex items-center gap-2 text-sm text-slate-500 mb-2">
                         <Link to="/customers" className="hover:text-blue-600 transition-colors uppercase tracking-wider font-semibold">Khách hàng</Link>
                         <ChevronRight size={14} className="opacity-50" />
                         <span className="text-slate-900 font-bold uppercase tracking-wider">Chi tiết công nợ</span>
                     </div>
-                    <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+                    <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
                         {customer.name}
                     </h1>
                     <p className="text-slate-500 mt-1.5 flex items-center gap-2 text-sm">
@@ -181,43 +254,43 @@ const CustomerDebtDetail = () => {
                         {customer.contact_info || 'Không có thông tin liên hệ'}
                     </p>
                 </div>
-                <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex flex-row gap-3">
                     <button
                         onClick={() => setBulkPayOpen(true)}
-                        className="w-full sm:w-auto btn btn-primary btn-md"
+                        className="btn btn-primary btn-md"
                     >
                         <Wallet size={18} />
                         Thanh toán tất cả
                     </button>
                     <button
                         onClick={() => setShowPreview(true)}
-                        className="w-full sm:w-auto btn btn-secondary btn-md group"
+                        className="btn btn-secondary btn-md group"
                     >
                         <Printer size={18} className="text-slate-400 group-hover:text-blue-600 transition-colors" />
                         <span>In Phiếu Nợ</span>
+                    </button>
+                    <button
+                        onClick={() => setShowAllTransactionsPreview(true)}
+                        className="btn btn-secondary btn-md group"
+                    >
+                        <FileText size={18} className="text-slate-400 group-hover:text-blue-600 transition-colors" />
+                        <span>In tất cả GD</span>
                     </button>
                 </div>
             </div>
 
             {/* Bulk Pay Modal */}
             {bulkPayOpen && (
-                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[60] p-0 sm:p-4 animate-in fade-in duration-200">
-                    <div className="bg-white sm:rounded-2xl w-full h-full sm:h-auto sm:max-w-sm shadow-2xl overflow-hidden flex flex-col sm:animate-in sm:zoom-in sm:duration-200">
-                        <div className="px-6 py-5 border-b border-slate-100 flex justify-between items-center sm:hidden">
-                            <h3 className="text-base font-bold text-slate-800">Thanh toán tất cả</h3>
-                            <button onClick={() => setBulkPayOpen(false)} className="p-1 hover:bg-slate-100 rounded-full transition-colors">
-                                <X size={24} className="text-slate-400" />
-                            </button>
-                        </div>
-
+                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl w-full h-auto max-w-sm shadow-2xl overflow-hidden flex flex-col animate-in zoom-in duration-200">
                         <div className="p-6 flex-1 overflow-y-auto">
-                            <h3 className="hidden sm:block text-xl font-bold text-slate-800 mb-2">Xác nhận thanh toán</h3>
+                            <h3 className="text-xl font-bold text-slate-800 mb-2">Xác nhận thanh toán</h3>
                             <p className="text-slate-500 text-sm mb-8 leading-relaxed">
                                 Bạn đang thực hiện thanh toán cho <b className="text-slate-800">tất cả các khoản nợ</b> của khách hàng này.
                                 Vui lòng nhập ngày thanh toán và mã PIN xác thực.
                             </p>
 
-                            <form onSubmit={handleBulkPay} className="space-y-6">
+                            <form onSubmit={handleBulkPay} className="space-y-4 lg:space-y-6">
                                 <div>
                                     <label className="block text-[10px] font-bold text-slate-400 uppercase mb-2 ml-1 tracking-widest">Ngày thanh toán</label>
                                     <div className="relative">
@@ -242,10 +315,22 @@ const CustomerDebtDetail = () => {
                                         inputMode="numeric"
                                         maxLength={4}
                                         placeholder="••••"
-                                        className="input border-2 border-slate-100 px-4 py-4 md:py-5 font-mono font-bold text-center text-3xl md:text-4xl tracking-[0.5em] text-slate-800 placeholder:text-slate-200"
+                                        className={`input border-2 px-4 py-5 font-mono font-bold text-center text-4xl tracking-[0.5em] text-slate-800 placeholder:text-slate-200 ${
+                                            bulkPinError ? 'border-red-300 focus:border-red-500 focus:ring-red-500/20' : 'border-slate-100'
+                                        }`}
                                         value={bulkPin}
-                                        onChange={e => setBulkPin(e.target.value.replace(/\D/g, ''))}
+                                        onChange={e => {
+                                            setBulkPin(e.target.value.replace(/\D/g, ''));
+                                            setBulkPinError('');
+                                        }}
+                                        aria-invalid={!!bulkPinError}
+                                        aria-describedby={bulkPinError ? 'bulk-pin-error' : undefined}
                                     />
+                                    {bulkPinError && (
+                                        <p id="bulk-pin-error" className="text-xs text-red-600 mt-1 text-center">
+                                            {bulkPinError}
+                                        </p>
+                                    )}
                                 </div>
 
                                 {bulkError && (
@@ -254,18 +339,18 @@ const CustomerDebtDetail = () => {
                                     </div>
                                 )}
 
-                                <div className="flex flex-col sm:flex-row gap-3 pt-6 sm:border-t sm:border-slate-50 mt-4">
+                                <div className="flex flex-row gap-3 pt-6 border-t border-slate-50 mt-4">
                                     <button
                                         type="button"
                                         onClick={() => setBulkPayOpen(false)}
-                                        className="hidden sm:block flex-1 btn btn-secondary btn-md"
+                                        className="flex-1 btn btn-secondary btn-md"
                                     >
                                         Hủy bỏ
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={bulkPayMutation.isPending}
-                                        className="w-full sm:flex-1 btn btn-primary btn-md"
+                                        className="flex-1 btn btn-primary btn-md"
                                     >
                                         {bulkPayMutation.isPending ? 'Đang xử lý...' : 'Xác nhận ngay'}
                                     </button>
@@ -320,59 +405,57 @@ const CustomerDebtDetail = () => {
                 </div>
             )}
 
-            {/* Summary Cards */}
-            {/* Tablet: 2 cols portrait, 3 cols landscape; Desktop: 5 cols */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-                {/* 1. Lifetime Principal */}
-                <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-5 rounded-2xl text-white shadow-lg shadow-blue-200 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-10"><Wallet size={80} /></div>
-                    <div className="relative z-10">
-                        <p className="text-blue-100 text-sm font-medium mb-1 flex items-center gap-2"><Wallet size={14} /> Tổng tiền gốc</p>
-                        <p className="text-2xl font-bold tracking-tight">{lifetimePrincipal.toLocaleString('vi-VN')} <span className="text-sm font-normal opacity-80">đ</span></p>
-                    </div>
-                </div>
+            {/* Print All Transactions Preview Modal */}
+            {showAllTransactionsPreview && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200 print:hidden">
+                    <div className="bg-slate-100 w-full max-w-5xl h-[90vh] rounded-2xl flex flex-col shadow-2xl relative overflow-hidden">
+                        {/* Header */}
+                        <div className="bg-white px-6 py-4 border-b border-slate-200 flex justify-between items-center shadow-sm z-10">
+                            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                <FileText className="text-blue-600" /> Xem trước tất cả giao dịch
+                            </h3>
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={handleDownloadAllTransactionsPdf}
+                                    disabled={downloadAllTransactionsPdfLoading}
+                                    className="btn btn-secondary btn-md"
+                                >
+                                    {downloadAllTransactionsPdfLoading ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
+                                    Tải xuống
+                                </button>
+                                <button
+                                    onClick={() => handlePrintAllTransactions()}
+                                    className="btn btn-primary btn-md"
+                                >
+                                    <Printer size={18} /> In ngay
+                                </button>
+                                <button
+                                    onClick={() => setShowAllTransactionsPreview(false)}
+                                    className="icon-btn"
+                                >
+                                    <X size={24} />
+                                </button>
+                            </div>
+                        </div>
 
-                {/* 2. Lifetime Interest */}
-                <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
-                    <div className="absolute top-0 right-0 p-4 text-blue-50 opacity-50 group-hover:scale-110 transition-transform"><Percent size={80} /></div>
-                    <div className="relative z-10">
-                        <p className="text-slate-500 text-sm font-medium mb-1 flex items-center gap-2"><Percent size={14} className="text-blue-600" /> Tổng tiền lãi</p>
-                        <p className="text-2xl font-bold text-slate-900 tracking-tight">{lifetimeInterest.toLocaleString('vi-VN')} <span className="text-sm font-normal text-slate-400">đ</span></p>
+                        {/* Scrollable Preview Area */}
+                        <div className="flex-1 overflow-y-auto p-8 bg-slate-200/50 flex justify-center">
+                            <div className="shadow-xl bg-white animate-in zoom-in-95 duration-300">
+                                <PrintableAllTransactions
+                                    ref={printAllTransactionsRef}
+                                    customer={customer}
+                                    groupedTransactions={groupedTransactions}
+                                    transactions={transactions}
+                                />
+                            </div>
+                        </div>
                     </div>
                 </div>
-
-                {/* 3. Lifetime Total Payment */}
-                <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
-                    <div className="absolute top-0 right-0 p-4 text-blue-50 opacity-50 group-hover:scale-110 transition-transform"><PiggyBank size={80} /></div>
-                    <div className="relative z-10">
-                        <p className="text-slate-500 text-sm font-medium mb-1 flex items-center gap-2"><PiggyBank size={14} className="text-blue-600" /> Tổng tiền</p>
-                        <p className="text-2xl font-bold text-slate-900 tracking-tight">{(lifetimePrincipal + lifetimeInterest).toLocaleString('vi-VN')} <span className="text-sm font-normal text-slate-400">đ</span></p>
-                    </div>
-                </div>
-
-                {/* 4. Total Paid */}
-                <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
-                    <div className="absolute top-0 right-0 p-4 text-emerald-50 opacity-50 group-hover:scale-110 transition-transform"><CheckCircle size={80} /></div>
-                    <div className="relative z-10">
-                        <p className="text-slate-500 text-sm font-medium mb-1 flex items-center gap-2"><CheckCircle size={14} className="text-emerald-500" /> Đã thanh toán</p>
-                        <p className="text-2xl font-bold text-emerald-600 tracking-tight">{totalPaid.toLocaleString('vi-VN')} <span className="text-sm font-normal text-emerald-300">đ</span></p>
-                    </div>
-                </div>
-
-                {/* 5. Total Remaining */}
-                <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm relative overflow-hidden group hover:shadow-md transition-all">
-                    <div className="absolute top-0 right-0 p-4 text-amber-50 opacity-50 group-hover:scale-110 transition-transform"><AlertCircle size={80} /></div>
-                    <div className="relative z-10">
-                        <p className="text-slate-500 text-sm font-medium mb-1 flex items-center gap-2"><AlertCircle size={14} className="text-amber-500" /> Còn lại</p>
-                        <p className="text-2xl font-bold text-amber-600 tracking-tight">{totalRemaining.toLocaleString('vi-VN')} <span className="text-sm font-normal text-amber-300">đ</span></p>
-                    </div>
-                </div>
-            </div>
+            )}
 
             {/* Filters - Inline Style */}
             <div className="flex items-center gap-1.5 border-b-2 border-slate-200 pb-2 focus-within:border-blue-500 transition-colors">
-                {/* Portrait: Inline */}
-                <div className="xl:hidden flex flex-1 items-center gap-1.5">
+                <div className="flex flex-1 items-center gap-1.5">
                     <div className="flex-1 min-w-0">
                         <DatePicker
                             value={startDate}
@@ -382,34 +465,6 @@ const CustomerDebtDetail = () => {
                     </div>
                     <span className="text-slate-300 text-base font-medium shrink-0">-</span>
                     <div className="flex-1 min-w-0">
-                        <DatePicker
-                            value={endDate}
-                            onChange={e => setEndDate(e.target.value)}
-                            placeholder="Đến ngày"
-                        />
-                    </div>
-                    {(startDate || endDate) && (
-                        <button
-                            onClick={() => { setStartDate(''); setEndDate(''); }}
-                            className="ml-1 p-1.5 min-w-[32px] min-h-[32px] flex items-center justify-center text-red-500 hover:bg-red-50 rounded-md transition-colors shrink-0"
-                            title="Xóa lọc"
-                        >
-                            <X size={16} />
-                        </button>
-                    )}
-                </div>
-
-                {/* Landscape: Inline */}
-                <div className="hidden xl:flex xl:items-center xl:gap-1.5">
-                    <div className="w-32">
-                        <DatePicker
-                            value={startDate}
-                            onChange={e => setStartDate(e.target.value)}
-                            placeholder="Từ ngày"
-                        />
-                    </div>
-                    <span className="text-slate-300 text-base font-medium shrink-0">-</span>
-                    <div className="w-32">
                         <DatePicker
                             value={endDate}
                             onChange={e => setEndDate(e.target.value)}
@@ -478,177 +533,7 @@ const CustomerDebtDetail = () => {
                                         </div>
                                     </div>
 
-                                    {/* Mobile Card View (< md) */}
-                                    <div className="md:hidden divide-y divide-slate-100">
-                                        {sortedTxs.map(tx => {
-                                            const typeConfig = configs?.find(c => c.code === tx.type);
-                                            const typeName = typeConfig ? typeConfig.name : tx.type;
-                                            const calc = tx.interest_calculation;
-                                            const total = (tx.amount || 0) + (calc?.rounded_interest || 0);
-                                            const isCash = tx.type === 'TIEN_MAT';
-
-                                            return (
-                                                <div key={tx._id} className={clsx(
-                                                    "p-4",
-                                                    tx.status === 'PAID' ? "bg-emerald-50/60" : ""
-                                                )}>
-                                                    <div className="flex items-start justify-between gap-3 mb-3">
-                                                        <div className="min-w-0 flex-1">
-                                                            <div className="text-xs font-semibold text-slate-500 mb-1">
-                                                                {formatDate(tx.transaction_date)}
-                                                            </div>
-                                                            <div className="flex items-center gap-2 flex-wrap mb-2">
-                                                                <span className={clsx(
-                                                                    "px-2.5 py-1 rounded-lg text-xs font-bold",
-                                                                    isCash
-                                                                        ? 'bg-emerald-50 text-emerald-700'
-                                                                        : 'bg-blue-50 text-blue-700'
-                                                                )}>
-                                                                    {typeName}
-                                                                </span>
-                                                                <span className="text-xs text-slate-500">{tx.interest_rate_snapshot}%</span>
-                                                                {calc && <span className="text-xs text-slate-500">{(calc?.months || 0).toFixed(1)} tháng</span>}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="text-sm text-slate-700 mb-3 line-clamp-2">{tx.content}</div>
-                                                    <div className="grid grid-cols-2 gap-3 bg-slate-50/50 rounded-xl p-3">
-                                                        <div>
-                                                            <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">Tiền gốc</div>
-                                                            <div className="font-mono text-sm font-bold text-slate-700">{(tx.amount || 0).toLocaleString('vi-VN')}</div>
-                                                        </div>
-                                                        <div>
-                                                            <div className="text-[10px] font-bold text-blue-400 uppercase mb-1">Tiền lãi</div>
-                                                            <div className="font-mono text-sm font-bold text-blue-600">+{(calc?.rounded_interest || 0).toLocaleString('vi-VN')}</div>
-                                                        </div>
-                                                        <div className="col-span-2">
-                                                            <div className="text-[10px] font-bold text-slate-400 uppercase mb-1">Tổng cộng</div>
-                                                            <div className="font-mono text-base font-black text-slate-900">{(total || 0).toLocaleString('vi-VN')} đ</div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-
-                                    {/* Tablet Portrait Card View (md - xl) */}
-                                    <div className="hidden md:block xl:hidden">
-                                        <div className="space-y-4 p-4">
-                                            {sortedTxs.map(tx => {
-                                                const typeConfig = configs?.find(c => c.code === tx.type);
-                                                const typeName = typeConfig ? typeConfig.name : tx.type;
-                                                const calc = tx.interest_calculation;
-                                                const total = (tx.amount || 0) + (calc?.rounded_interest || 0);
-
-                                                return (
-                                                    <div
-                                                        key={tx._id}
-                                                        className={clsx(
-                                                            "relative rounded-xl border p-5 md:p-6 hover:shadow-md transition-all overflow-hidden",
-                                                            tx.status === 'PAID'
-                                                                ? "bg-emerald-50 border-emerald-200"
-                                                                : "bg-white border-slate-200"
-                                                        )}
-                                                    >
-                                                        {/* Badge "ĐÃ THANH TOÁN" - Góc trên phải */}
-                                                        {tx.status === 'PAID' && (
-                                                            <div className="absolute top-0 right-0 bg-emerald-500 text-white px-4 md:px-5 py-1.5 md:py-2 text-xs md:text-sm font-bold uppercase tracking-wider shadow-lg z-10">
-                                                                <div className="flex items-center gap-1.5">
-                                                                    <Check size={14} className="md:w-4 md:h-4" />
-                                                                    <span>ĐÃ THANH TOÁN</span>
-                                                                </div>
-                                                                {/* Ribbon corner effect */}
-                                                                <div className="absolute -bottom-2 right-0 w-0 h-0 border-l-[12px] md:border-l-[16px] border-l-transparent border-t-[12px] md:border-t-[16px] border-t-emerald-600"></div>
-                                                            </div>
-                                                        )}
-
-                                                        {/* Top Section: Date, Type */}
-                                                        <div className="flex items-center gap-3 flex-wrap mb-4 pb-4 border-b border-slate-100">
-                                                            <div className="text-base md:text-lg font-semibold text-slate-600">
-                                                                {formatDate(tx.transaction_date)}
-                                                            </div>
-                                                            <span className={clsx(
-                                                                "px-3 py-1.5 rounded-lg text-sm md:text-base font-bold",
-                                                                tx.type?.includes('TIEN_MAT')
-                                                                    ? 'bg-emerald-50 text-emerald-700'
-                                                                    : 'bg-blue-50 text-blue-700'
-                                                            )}>
-                                                                {typeName}
-                                                            </span>
-                                                            {calc && (
-                                                                <div className="flex items-center gap-2 text-sm text-slate-500">
-                                                                    <span>{tx.interest_rate_snapshot}%</span>
-                                                                    <span>•</span>
-                                                                    <span>{(calc?.months || 0).toFixed(1)} tháng</span>
-                                                                </div>
-                                                            )}
-                                                        </div>
-
-                                                        {/* Content */}
-                                                        <div className="mb-4">
-                                                            <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Nội dung</div>
-                                                            <div className="text-base text-slate-600 leading-relaxed line-clamp-2">
-                                                                {tx.content ? (
-                                                                    tx.content.includes('-') ? (
-                                                                        <div className="whitespace-pre-wrap">
-                                                                            {tx.content
-                                                                                .split(/\n/)
-                                                                                .flatMap(line => {
-                                                                                    // Nếu dòng có dấu -, split theo dấu - và giữ lại dấu -
-                                                                                    if (line.includes('-')) {
-                                                                                        return line.split(/(?=-)/).filter(part => part.trim());
-                                                                                    }
-                                                                                    return [line];
-                                                                                })
-                                                                                .filter(part => part.trim())
-                                                                                .map((part, idx) => {
-                                                                                    const trimmed = part.trim();
-                                                                                    return (
-                                                                                        <React.Fragment key={idx}>
-                                                                                            {idx > 0 && <br />}
-                                                                                            {trimmed}
-                                                                                        </React.Fragment>
-                                                                                    );
-                                                                                })}
-                                                                        </div>
-                                                                    ) : (
-                                                                        <div>{tx.content}</div>
-                                                                    )
-                                                                ) : (
-                                                                    <span className="text-slate-400">-</span>
-                                                                )}
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Financial Info Grid */}
-                                                        <div className="grid grid-cols-3 gap-4 bg-gradient-to-br from-slate-50 to-slate-100/50 rounded-lg p-4 border border-slate-200">
-                                                            <div>
-                                                                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Tiền gốc</div>
-                                                                <div className="font-mono text-lg md:text-xl font-bold text-slate-700">
-                                                                    {(tx.amount || 0).toLocaleString('vi-VN')}
-                                                                </div>
-                                                            </div>
-                                                            <div>
-                                                                <div className="text-xs font-bold text-blue-400 uppercase tracking-widest mb-2">Tiền lãi</div>
-                                                                <div className="font-mono text-lg md:text-xl font-bold text-blue-600">
-                                                                    +{(calc?.rounded_interest || 0).toLocaleString('vi-VN')}
-                                                                </div>
-                                                            </div>
-                                                            <div>
-                                                                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Tổng cộng</div>
-                                                                <div className="font-mono text-xl md:text-2xl font-black text-slate-900">
-                                                                    {(total || 0).toLocaleString('vi-VN')}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-
-                                    {/* Desktop/Tablet Landscape Table View (≥ xl) */}
-                                    <div className="hidden xl:block overflow-x-auto">
+                                    <div className="overflow-x-auto">
                                         <table className="w-full">
                                             <thead className={clsx(
                                                 "border-b border-slate-100 text-xs font-bold text-slate-400 uppercase tracking-wider text-left",

@@ -180,12 +180,13 @@ def read_money(so_tien: float) -> str:
         tmp = doc_so_3_chu_so(vi_tri[i])
         ketqua += tmp
         if vi_tri[i] > 0: ketqua += " " + Tien[i]
-        # Add comma if needed (custom logic)
-        # Simplified: just space for now to match exact logic or flow
-        # JS logic: if ((i > 0) && (tmp.length > 0)) ketqua += ",";
-        if i > 0 and len(tmp) > 0: ketqua += ","
+        # Add comma with space if needed
+        if i > 0 and len(tmp) > 0: ketqua += ", "
         
-    if ketqua.endswith(","):
+    # Remove trailing comma and space if exists
+    if ketqua.endswith(", "):
+        ketqua = ketqua[:-2]
+    elif ketqua.endswith(","):
         ketqua = ketqua[:-1]
         
     ketqua = " ".join(ketqua.split()) # Trim extra spaces

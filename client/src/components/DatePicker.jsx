@@ -46,9 +46,16 @@ const DatePicker = ({ value, onChange, placeholder = 'Chọn ngày', className, 
         return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
     };
 
+    const toLocalYYYYMMDD = (d) => {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const dNum = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${dNum}`;
+    };
+
     const handleDateSelect = (day) => {
         const newDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
-        const dateString = newDate.toISOString().split('T')[0];
+        const dateString = toLocalYYYYMMDD(newDate);
         setSelectedDate(dateString);
         onChange({ target: { value: dateString } });
         setIsOpen(false);
@@ -87,10 +94,11 @@ const DatePicker = ({ value, onChange, placeholder = 'Chọn ngày', className, 
 
     const isSelected = (day) => {
         if (!selectedDate) return false;
-        const selected = new Date(selectedDate);
-        return day === selected.getDate() &&
-            currentMonth.getMonth() === selected.getMonth() &&
-            currentMonth.getFullYear() === selected.getFullYear();
+        const s = selectedDate.split('T')[0];
+        const parts = s.split('-');
+        if (parts.length !== 3) return false;
+        const [y, m, d] = parts.map(Number);
+        return day === d && currentMonth.getMonth() === m - 1 && currentMonth.getFullYear() === y;
     };
 
     return (
@@ -176,7 +184,7 @@ const DatePicker = ({ value, onChange, placeholder = 'Chọn ngày', className, 
                         <button
                             type="button"
                             onClick={() => {
-                                const today = new Date().toISOString().split('T')[0];
+                                const today = toLocalYYYYMMDD(new Date());
                                 setSelectedDate(today);
                                 onChange({ target: { value: today } });
                                 setIsOpen(false);

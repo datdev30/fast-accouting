@@ -17,7 +17,7 @@ function GuideItem({ title, icon: Icon, children, isOpen, onToggle, color = 'blu
         <div className={clsx("card overflow-hidden transition-all duration-300 border-2", isOpen ? "border-blue-200 shadow-lg" : "border-transparent")}>
             <button
                 onClick={onToggle}
-                className="w-full p-4 sm:p-6 flex items-center gap-4 text-left hover:bg-slate-50 transition-colors"
+                className="w-full p-6 flex items-center gap-4 text-left hover:bg-slate-50 transition-colors"
             >
                 <div className={clsx("w-12 h-12 rounded-2xl flex items-center justify-center flex-none transition-transform duration-300", colors[color], isOpen && "scale-110")}>
                     <Icon size={24} />
@@ -36,7 +36,7 @@ function GuideItem({ title, icon: Icon, children, isOpen, onToggle, color = 'blu
                 )}
             >
                 <div className="overflow-hidden">
-                    <div className="p-6 pt-0 text-slate-600 leading-relaxed text-sm sm:text-base space-y-4">
+                    <div className="p-6 pt-0 text-slate-600 leading-relaxed text-base space-y-4">
                         <div className="h-px bg-slate-100 mb-6"></div>
                         {children}
                     </div>
@@ -84,23 +84,13 @@ export default function Guide() {
 
     return (
         <div className="max-w-5xl mx-auto space-y-8 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Header Section - Portrait: Stack layout, Landscape: All in 1 Row */}
-            <div className="space-y-4 md:space-y-5 xl:space-y-0">
-                {/* Portrait: Stack layout */}
-                <div className="xl:hidden space-y-4 md:space-y-5">
+            {/* Header Section */}
+            <div className="space-y-0">
+                <div className="space-y-5">
                     {/* Row 1: Title & Subtitle */}
                     <div>
-                        <h2 className="section-title text-2xl md:text-3xl">Hướng Dẫn Sử Dụng</h2>
-                        <p className="section-subtitle text-sm md:text-base mt-1">Làm chủ hệ thống quản lý tài chính FastAccounting</p>
-                    </div>
-                </div>
-
-                {/* Landscape: All in 1 Row */}
-                <div className="hidden xl:flex xl:items-center xl:justify-between xl:gap-6">
-                    {/* Left: Title & Subtitle */}
-                    <div>
-                        <h2 className="section-title text-2xl 2xl:text-3xl">Hướng Dẫn Sử Dụng</h2>
-                        <p className="section-subtitle text-sm 2xl:text-base mt-1">Làm chủ hệ thống quản lý tài chính FastAccounting</p>
+                        <h2 className="section-title text-3xl">Hướng Dẫn Sử Dụng</h2>
+                        <p className="section-subtitle text-base mt-1">Làm chủ hệ thống quản lý tài chính FastAccounting</p>
                     </div>
                 </div>
             </div>
@@ -276,7 +266,7 @@ export default function Guide() {
                     color="rose"
                 >
                     <p>Hệ thống phân chia quyền hạn rõ ràng để bảo vệ dữ liệu nhạy cảm.</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                    <div className="grid grid-cols-2 gap-4 mt-4">
                         <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
                             <div className="font-bold text-slate-900 mb-2 flex items-center gap-2">
                                 <span className="w-2 h-2 rounded-full bg-slate-400"></span>

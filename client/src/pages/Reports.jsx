@@ -88,24 +88,14 @@ export default function Reports() {
     const totalCollected = report?.reduce((sum, item) => sum + (item.total_collected || 0), 0) || 0;
 
     return (
-        <div className="space-y-4 md:space-y-6 xl:space-y-8">
-            {/* Header Section - Portrait: Stack layout, Landscape: All in 1 Row */}
-            <div className="space-y-4 md:space-y-5 xl:space-y-0">
-                {/* Portrait: Stack layout */}
-                <div className="xl:hidden space-y-4 md:space-y-5">
-                    {/* Row 1: Title & Subtitle */}
-                    <div>
-                        <h1 className="section-title text-2xl md:text-3xl">Tổng Quan Tài Chính</h1>
-                        <p className="section-subtitle text-sm md:text-base mt-1">Báo cáo tổng hợp tình hình công nợ khách hàng</p>
-                    </div>
-                </div>
-
-                {/* Landscape: All in 1 Row */}
-                <div className="hidden xl:flex xl:items-center xl:justify-between xl:gap-6">
+        <div className="space-y-6 lg:space-y-8">
+            {/* Header Section */}
+            <div className="space-y-0">
+                <div className="flex items-center justify-between gap-4 lg:gap-6">
                     {/* Left: Title & Subtitle */}
                     <div>
-                        <h1 className="section-title text-2xl 2xl:text-3xl">Tổng Quan Tài Chính</h1>
-                        <p className="section-subtitle text-sm 2xl:text-base mt-1">Báo cáo tổng hợp tình hình công nợ khách hàng</p>
+                        <h1 className="section-title">Tổng Quan Tài Chính</h1>
+                        <p className="section-subtitle mt-1">Báo cáo tổng hợp tình hình công nợ khách hàng</p>
                     </div>
 
                     {/* Right: Export Button */}
@@ -123,7 +113,7 @@ export default function Reports() {
                             await triggerBatchExport(selectedPath);
                         }}
                         disabled={isBackingUp}
-                        className="btn-primary btn-md xl:btn-lg justify-center text-base min-h-[44px] px-5 xl:px-6 py-2.5 xl:py-3 whitespace-nowrap shrink-0 disabled:cursor-wait"
+                        className="btn-primary btn-lg justify-center text-base min-h-[44px] px-6 py-3 whitespace-nowrap shrink-0 disabled:cursor-wait"
                     >
                         <Download size={18} className={isBackingUp ? "animate-bounce" : ""} />
                         <span>{isBackingUp ? 'Đang Xử Lý...' : 'Xuất Phiếu PDF'}</span>
@@ -132,9 +122,9 @@ export default function Reports() {
             </div>
 
 
-            {/* Summary Cards - 1 col mobile, 2 col tablet portrait, 4 col landscape */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-5 xl:gap-6">
-                <div className="group relative overflow-hidden bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-all">
+            {/* Summary Cards */}
+            <div className="grid grid-cols-4 gap-6">
+                <div className="group relative overflow-hidden bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-lg hover:border-blue-200 transition-all duration-300 card-hover">
                     <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110">
                         <Wallet size={120} className="text-blue-600" />
                     </div>
@@ -143,16 +133,16 @@ export default function Reports() {
                             <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
                                 <Wallet size={20} />
                             </div>
-                            <span className="font-medium text-slate-500">Tổng tiền gốc</span>
+                            <span className="font-medium text-slate-500 text-sm">Tổng tiền gốc</span>
                         </div>
                         <div className="flex items-baseline gap-2">
-                            <h3 className="text-3xl font-bold text-slate-900">{totalPrincipal.toLocaleString('vi-VN')}</h3>
+                            <h3 className="text-3xl font-bold text-slate-900 font-heading">{totalPrincipal.toLocaleString('vi-VN')}</h3>
                             <span className="text-slate-400 font-medium">đ</span>
                         </div>
                     </div>
                 </div>
 
-                <div className="group relative overflow-hidden bg-gradient-to-br from-indigo-500 to-blue-600 p-6 rounded-2xl shadow-lg shadow-blue-200 text-white hover:-translate-y-1 transition-transform">
+                <div className="group relative overflow-hidden bg-gradient-to-br from-blue-600 to-indigo-600 p-6 rounded-2xl shadow-lg shadow-blue-200/50 text-white hover:-translate-y-1 transition-transform duration-300">
                     <div className="absolute top-0 right-0 p-4 opacity-10 transform scale-150">
                         <TrendingUp size={120} />
                     </div>
@@ -161,20 +151,20 @@ export default function Reports() {
                             <div className="p-2 bg-white/20 backdrop-blur-sm rounded-lg">
                                 <TrendingUp size={20} />
                             </div>
-                            <span className="font-medium text-blue-100">Lãi suất dự kiến</span>
+                            <span className="font-medium text-blue-100 text-sm">Lãi suất dự kiến</span>
                         </div>
                         <div className="flex items-baseline gap-2">
-                            <h3 className="text-3xl font-bold text-white">+{totalInterest.toLocaleString('vi-VN')}</h3>
+                            <h3 className="text-3xl font-bold text-white font-heading">+{totalInterest.toLocaleString('vi-VN')}</h3>
                             <span className="text-blue-200 font-medium">đ</span>
                         </div>
-                        <div className="mt-4 flex items-center gap-1 text-sm text-blue-100 bg-white/10 w-fit px-2 py-1 rounded-full backdrop-blur-sm">
+                        <div className="mt-4 flex items-center gap-1 text-xs text-blue-100 bg-white/10 w-fit px-2 py-1 rounded-full backdrop-blur-sm">
                             <ArrowUpRight size={14} />
                             <span>Đang tăng trưởng</span>
                         </div>
                     </div>
                 </div>
 
-                <div className="group relative overflow-hidden bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-all">
+                <div className="group relative overflow-hidden bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-lg hover:border-red-200 transition-all duration-300 card-hover">
                     <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110">
                         <PieChart size={120} className="text-red-500" />
                     </div>
@@ -183,20 +173,20 @@ export default function Reports() {
                             <div className="p-2 bg-red-50 text-red-600 rounded-lg">
                                 <PieChart size={20} />
                             </div>
-                            <span className="font-medium text-slate-500">Tổng nợ phải thu</span>
+                            <span className="font-medium text-slate-500 text-sm">Tổng nợ phải thu</span>
                         </div>
                         <div className="flex items-baseline gap-2">
-                            <h3 className="text-3xl font-bold text-slate-900">{totalDebt.toLocaleString('vi-VN')}</h3>
+                            <h3 className="text-3xl font-bold text-slate-900 font-heading">{totalDebt.toLocaleString('vi-VN')}</h3>
                             <span className="text-slate-400 font-medium">đ</span>
                         </div>
-                        <div className="mt-4 flex items-center gap-1 text-sm text-slate-400">
+                        <div className="mt-4 flex items-center gap-1 text-xs text-slate-400">
                             Hiện tại có <span className="font-bold text-slate-700">{report?.filter(i => i.total_debt > 0).length || 0}</span> khách hàng đang nợ
                         </div>
                     </div>
                 </div>
 
                 {/* Thực tế đã thu */}
-                <div className="group relative overflow-hidden bg-white p-6 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-all">
+                <div className="group relative overflow-hidden bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-lg hover:border-emerald-200 transition-all duration-300 card-hover">
                     <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110">
                         <Download size={120} className="text-emerald-500" />
                     </div>
@@ -205,43 +195,21 @@ export default function Reports() {
                             <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
                                 <Download size={20} />
                             </div>
-                            <span className="font-medium text-slate-500">Thực tế đã thu</span>
+                            <span className="font-medium text-slate-500 text-sm">Thực tế đã thu</span>
                         </div>
                         <div className="flex items-baseline gap-2">
-                            <h3 className="text-3xl font-bold text-slate-900">{totalCollected.toLocaleString('vi-VN')}</h3>
+                            <h3 className="text-3xl font-bold text-slate-900 font-heading">{totalCollected.toLocaleString('vi-VN')}</h3>
                             <span className="text-slate-400 font-medium">đ</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Detailed List - Hybrid Layout */}
+            {/* Detailed List */}
             <div className="card overflow-hidden">
-                {/* Header Section - Portrait: Stack, Landscape: Single Row */}
+                {/* Header Section */}
                 <div className="card-header">
-                    {/* Portrait: Stack layout */}
-                    <div className="xl:hidden space-y-4">
-                        <h3 className="section-kicker">
-                            <div className="w-1 h-4 bg-blue-600 rounded-full"></div>
-                            Chi Tiết Theo Khách Hàng
-                        </h3>
-                        {/* Search Bar */}
-                        <div className="relative w-full">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                                <Search size={18} />
-                            </div>
-                            <input
-                                type="text"
-                                placeholder="Tìm kiếm khách hàng..."
-                                className="input pl-10 text-base min-h-[44px]"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Landscape: Single Row */}
-                    <div className="hidden xl:flex xl:items-center xl:justify-between xl:gap-6">
+                    <div className="flex items-center justify-between gap-6">
                         <h3 className="section-kicker">
                             <div className="w-1 h-4 bg-blue-600 rounded-full"></div>
                             Chi Tiết Theo Khách Hàng
@@ -262,13 +230,13 @@ export default function Reports() {
                     </div>
                 </div>
 
-                {/* Desktop/Tablet Landscape: Table View */}
-                <div className="overflow-x-auto hidden xl:block">
+                {/* Desktop: Table View */}
+                <div className="overflow-x-auto block">
                     <table className="table min-w-[1000px]">
                         <thead className="table-head">
                             <tr>
                                 <th
-                                    className="table-th cursor-pointer hover:bg-slate-50 transition-colors group md:min-h-[44px] md:py-4"
+                                    className="table-th cursor-pointer hover:bg-slate-50 transition-colors group min-h-[44px] py-4"
                                     onClick={() => handleSort('customer_name')}
                                 >
                                     <div className="flex items-center gap-2">
@@ -277,7 +245,7 @@ export default function Reports() {
                                     </div>
                                 </th>
                                 <th
-                                    className="table-th text-center cursor-pointer hover:bg-slate-50 transition-colors md:min-h-[44px] md:py-4"
+                                    className="table-th text-center cursor-pointer hover:bg-slate-50 transition-colors min-h-[44px] py-4"
                                     onClick={() => handleSort('transaction_count')}
                                 >
                                     <div className="flex items-center justify-center gap-2">
@@ -286,7 +254,7 @@ export default function Reports() {
                                     </div>
                                 </th>
                                 <th
-                                    className="table-th text-right cursor-pointer hover:bg-slate-50 transition-colors md:min-h-[44px] md:py-4"
+                                    className="table-th text-right cursor-pointer hover:bg-slate-50 transition-colors min-h-[44px] py-4"
                                     onClick={() => handleSort('total_principal')}
                                 >
                                     <div className="flex items-center justify-end gap-2">
@@ -295,7 +263,7 @@ export default function Reports() {
                                     </div>
                                 </th>
                                 <th
-                                    className="table-th text-right cursor-pointer hover:bg-slate-50 transition-colors md:min-h-[44px] md:py-4"
+                                    className="table-th text-right cursor-pointer hover:bg-slate-50 transition-colors min-h-[44px] py-4"
                                     onClick={() => handleSort('total_interest')}
                                 >
                                     <div className="flex items-center justify-end gap-2">
@@ -304,7 +272,7 @@ export default function Reports() {
                                     </div>
                                 </th>
                                 <th
-                                    className="table-th text-right cursor-pointer hover:bg-slate-50 transition-colors md:min-h-[44px] md:py-4"
+                                    className="table-th text-right cursor-pointer hover:bg-slate-50 transition-colors min-h-[44px] py-4"
                                     onClick={() => handleSort('total_collected')}
                                 >
                                     <div className="flex items-center justify-end gap-2">
@@ -313,7 +281,7 @@ export default function Reports() {
                                     </div>
                                 </th>
                                 <th
-                                    className="table-th text-right cursor-pointer hover:bg-slate-50 transition-colors md:min-h-[44px] md:py-4"
+                                    className="table-th text-right cursor-pointer hover:bg-slate-50 transition-colors min-h-[44px] py-4"
                                     onClick={() => handleSort('total_debt')}
                                 >
                                     <div className="flex items-center justify-end gap-2">
@@ -321,7 +289,7 @@ export default function Reports() {
                                         {getSortIcon('total_debt')}
                                     </div>
                                 </th>
-                                <th className="table-th text-right md:min-h-[44px] md:py-4">Trạng thái</th>
+                                <th className="table-th text-right min-h-[44px] py-4">Trạng thái</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50 text-sm">
@@ -382,83 +350,6 @@ export default function Reports() {
                     </table>
                 </div>
 
-                {/* Mobile & Tablet Portrait: Card View */}
-                <div className="xl:hidden divide-y divide-slate-100">
-                    {processedData.map((item) => (
-                        <div
-                            key={item.customer_id}
-                            onClick={() => navigate(`/customers/${item.customer_id}/debt`)}
-                            className={`
-                                relative p-5 md:p-7 active:bg-slate-50 transition-colors cursor-pointer overflow-hidden
-                                ${item.total_debt > 0 ? 'bg-white' : 'bg-emerald-50/30'}
-                            `}
-                        >
-                            {/* Badge "ĐÃ TẤT TOÁN" - Góc trên phải */}
-                            {item.total_debt === 0 && (
-                                <div className="absolute top-0 right-0 bg-emerald-500 text-white px-4 md:px-5 py-1.5 md:py-2 text-xs md:text-sm font-bold uppercase tracking-wider shadow-lg z-10">
-                                    <div className="flex items-center gap-1.5">
-                                        <ArrowDownRight size={14} className="md:w-4 md:h-4" />
-                                        <span>ĐÃ TẤT TOÁN</span>
-                                    </div>
-                                    {/* Ribbon corner effect */}
-                                    <div className="absolute -bottom-2 right-0 w-0 h-0 border-l-[12px] md:border-l-[16px] border-l-transparent border-t-[12px] md:border-t-[16px] border-t-emerald-600"></div>
-                                </div>
-                            )}
-
-                            {/* Header: Customer Name & Status */}
-                            <div className="flex justify-between items-start mb-4 md:mb-5">
-                                <div className="flex-1 min-w-0 pr-2">
-                                    <h4 className="font-bold text-slate-900 text-lg md:text-xl mb-2">{item.customer_name}</h4>
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                        <span className="badge-neutral text-xs md:text-sm px-2.5 md:px-3 py-1 md:py-1.5">
-                                            {item.transaction_count} GD
-                                        </span>
-                                        {item.total_debt > 0 && (
-                                            <span className="badge-warning text-xs md:text-sm px-2.5 md:px-3 py-1 md:py-1.5">
-                                                <ArrowUpRight size={14} className="md:w-4 md:h-4" />
-                                                Đang nợ
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
-                                <ChevronRight size={20} className="md:w-6 md:h-6 text-slate-300 shrink-0 ml-2" />
-                            </div>
-
-                            {/* Financial Grid */}
-                            <div className="grid grid-cols-2 gap-3 md:gap-4 bg-gradient-to-br from-slate-50 to-slate-100/50 rounded-xl md:rounded-2xl p-4 md:p-5 border border-slate-200">
-                                <div>
-                                    <p className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest mb-1 md:mb-2">Tổng gốc</p>
-                                    <p className="font-mono text-sm md:text-base font-bold text-slate-700">{item.total_principal.toLocaleString('vi-VN')} đ</p>
-                                </div>
-                                <div className="text-right">
-                                    <p className="text-[10px] md:text-xs font-bold text-blue-400 uppercase tracking-widest mb-1 md:mb-2">Tổng lãi</p>
-                                    <p className="font-mono text-sm md:text-base font-bold text-blue-600">+{item.total_interest.toLocaleString('vi-VN')} đ</p>
-                                </div>
-                                <div>
-                                    <p className="text-[10px] md:text-xs font-bold text-emerald-400 uppercase tracking-widest mb-1 md:mb-2">Đã thu</p>
-                                    <p className="font-mono text-sm md:text-base font-bold text-emerald-600">{item.total_collected?.toLocaleString('vi-VN') || 0} đ</p>
-                                </div>
-                                <div className="text-right">
-                                    <p className="text-[10px] md:text-xs font-bold text-red-400 uppercase tracking-widest mb-1 md:mb-2">Còn nợ</p>
-                                    <p className="font-mono text-base md:text-lg font-black text-red-600">{item.total_debt.toLocaleString('vi-VN')} đ</p>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-
-                    {processedData.length === 0 && (
-                        <div className="py-8 md:py-12">
-                            {searchTerm ? (
-                                <EmptyStates.NoResults
-                                    action={() => setSearchTerm('')}
-                                    actionLabel="Xóa tìm kiếm"
-                                />
-                            ) : (
-                                <EmptyStates.NoReports />
-                            )}
-                        </div>
-                    )}
-                </div>
             </div>
         </div>
     );

@@ -113,6 +113,84 @@ export const uploadTransactionImage = (id, file) => {
 export const getDebtReport = () => api.get('/transactions/reports/debt').then(res => res.data);
 export const batchExportReports = () => api.post('/reports/batch-export').then(res => res.data);
 
+/** Tải PDF tất cả giao dịch (bao gồm cả đã trả và đang nợ). Truyền startDate, endDate nếu có lọc. */
+export const downloadAllTransactionsPdf = async (customerId, startDate, endDate) => {
+    const params = { include_all: true };
+    if (startDate) params.start_date = startDate;
+    if (endDate) params.end_date = endDate;
+    
+    try {
+        const res = await api.get(`/reports/${customerId}/pdf`, {
+            responseType: 'blob',
+            params
+        });
+        
+        // Check if response is actually an error (when responseType is 'blob', axios doesn't auto-throw for 4xx/5xx)
+        if (res.status < 200 || res.status >= 300) {
+            // Try to parse error message from blob
+            try {
+                const errorText = await res.data.text();
+                const errorJson = JSON.parse(errorText);
+                throw new Error(errorJson.error || errorJson.message || `HTTP ${res.status}: Failed to download PDF`);
+            } catch (parseError) {
+                throw new Error(`HTTP ${res.status}: Failed to download PDF`);
+            }
+        }
+        
+        // Validate blob
+        if (!res.data || !(res.data instanceof Blob)) {
+            throw new Error('Invalid response: expected PDF blob');
+        }
+        
+        // Check if blob is empty
+        if (res.data.size === 0) {
+            throw new Error('PDF file is empty');
+        }
+        
+        // Basic validation: check content type if available
+        const contentType = res.headers?.['content-type'];
+        if (contentType && !contentType.includes('pdf') && !contentType.includes('application/octet-stream')) {
+            console.warn('Warning: Response content-type is not PDF:', contentType);
+        }
+        
+        const contentDisposition = res.headers?.['content-disposition'];
+        let filename = `Tat_ca_giao_dich_${customerId}.pdf`;
+        if (contentDisposition) {
+            const match = /filename\*=UTF-8''([^;]+)|filename="([^"]+)"|filename=([^;\s]+)/i.exec(contentDisposition);
+            const raw = match?.[1] || match?.[2] || match?.[3];
+            if (raw) {
+                try {
+                    filename = decodeURIComponent(String(raw).trim());
+                } catch {
+                    filename = String(raw).trim();
+                }
+            }
+        }
+        return { blob: res.data, filename };
+    } catch (error) {
+        // Re-throw axios errors with better messages
+        if (error.response) {
+            // Server responded with error status
+            if (error.response.data instanceof Blob) {
+                try {
+                    const errorText = await error.response.data.text();
+                    const errorJson = JSON.parse(errorText);
+                    throw new Error(errorJson.error || errorJson.message || `Server error: ${error.response.status}`);
+                } catch {
+                    throw new Error(`Server error: ${error.response.status}`);
+                }
+            }
+            throw new Error(error.response.data?.error || error.response.data?.message || `Server error: ${error.response.status}`);
+        } else if (error.request) {
+            // Request was made but no response received
+            throw new Error('Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng.');
+        } else {
+            // Something else happened
+            throw error;
+        }
+    }
+};
+
 export const getAppInfo = () => api.get('/info').then(res => res.data);
 export const updateAppInfo = (data) => api.put('/info', data).then(res => res.data);
 
