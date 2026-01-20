@@ -175,8 +175,8 @@ export default function UserManagement() {
             if (!/^\d+$/.test(formData.pin)) {
                 errors.pin = 'Mã PIN chỉ được chứa số';
                 isValid = false;
-            } else if (formData.pin.length !== 6) {
-                errors.pin = 'Mã PIN phải có đúng 6 chữ số';
+            } else if (formData.pin.length !== 4) {
+                errors.pin = 'Mã PIN phải có đúng 4 chữ số';
                 isValid = false;
             }
         } else if (!isEditing) {
@@ -365,7 +365,6 @@ export default function UserManagement() {
                                         value={formData.username}
                                         onChange={(e) => {
                                             setFormData((s) => ({ ...s, username: e.target.value }));
-                                            setValidationErrors(prev => ({ ...prev, username: '' }));
                                         }}
                                         disabled={isEditing}
                                         placeholder="vd: admin2"
@@ -403,7 +402,6 @@ export default function UserManagement() {
                                     value={formData.display_name}
                                     onChange={(e) => {
                                         setFormData((s) => ({ ...s, display_name: e.target.value }));
-                                        setValidationErrors(prev => ({ ...prev, display_name: '' }));
                                     }}
                                     placeholder="vd: Thành Công"
                                     aria-invalid={!!validationErrors.display_name}
@@ -428,7 +426,6 @@ export default function UserManagement() {
                                     value={formData.password}
                                     onChange={(e) => {
                                         setFormData((s) => ({ ...s, password: e.target.value }));
-                                        setValidationErrors(prev => ({ ...prev, password: '' }));
                                     }}
                                     placeholder={isEditing ? 'Để trống nếu không đổi' : 'Nhập mật khẩu'}
                                     aria-invalid={!!validationErrors.password}
@@ -452,12 +449,11 @@ export default function UserManagement() {
                                     )}
                                     value={formData.pin}
                                     onChange={(e) => {
-                                        const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                                        const value = e.target.value.replace(/\D/g, '').slice(0, 4);
                                         setFormData((s) => ({ ...s, pin: value }));
-                                        setValidationErrors(prev => ({ ...prev, pin: '' }));
                                     }}
                                     placeholder={isEditing ? 'Để trống nếu không đổi' : 'Nhập mã PIN'}
-                                    maxLength={6}
+                                    maxLength={4}
                                     inputMode="numeric"
                                     aria-invalid={!!validationErrors.pin}
                                     aria-describedby={validationErrors.pin ? 'pin-error' : undefined}

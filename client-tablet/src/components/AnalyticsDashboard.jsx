@@ -171,28 +171,58 @@ export default function AnalyticsDashboard({ report, chartYear, onChartYearChang
                         <div className="h-[300px] min-h-[250px] flex items-center justify-center text-slate-400">
                             <span className="text-sm font-medium">Đang tải...</span>
                         </div>
-                    ) : (
-                        <ResponsiveContainer width="100%" height={300} minHeight={250}>
-                            <LineChart data={monthlyData || []}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                                <XAxis dataKey="label" style={{ fontSize: '11px' }} />
-                                <YAxis allowDecimals={false} />
-                                <Tooltip
-                                    formatter={(value) => [value, 'Số giao dịch']}
-                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                                />
-                                <Line
-                                    type="monotone"
-                                    dataKey="count"
-                                    name="Số giao dịch"
-                                    stroke="#0d9488"
-                                    strokeWidth={2}
-                                    dot={{ r: 4, fill: '#0d9488' }}
-                                    activeDot={{ r: 6, fill: '#0f766e' }}
-                                />
-                            </LineChart>
-                        </ResponsiveContainer>
-                    )}
+                    ) : (() => {
+                        // Tính trung bình số giao dịch của cả năm
+                        const monthlyDataArray = monthlyData || [];
+                        const averageCount = monthlyDataArray.length > 0
+                            ? monthlyDataArray.reduce((sum, item) => sum + (item.count || 0), 0) / monthlyDataArray.length
+                            : 0;
+                        
+                        // Tạo dữ liệu cho đường trung bình
+                        const dataWithAverage = monthlyDataArray.map(item => ({
+                            ...item,
+                            average: Math.round(averageCount)
+                        }));
+
+                        return (
+                            <ResponsiveContainer width="100%" height={300} minHeight={250}>
+                                <LineChart data={dataWithAverage}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                                    <XAxis dataKey="label" style={{ fontSize: '11px' }} />
+                                    <YAxis allowDecimals={false} />
+                                    <Tooltip
+                                        formatter={(value, name) => {
+                                            if (name === 'Trung bình') {
+                                                return [value, 'Trung bình GD/tháng'];
+                                            }
+                                            return [value, 'Số giao dịch'];
+                                        }}
+                                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                    />
+                                    <Legend />
+                                    <Line
+                                        type="monotone"
+                                        dataKey="count"
+                                        name="Số giao dịch"
+                                        stroke="#0d9488"
+                                        strokeWidth={2}
+                                        dot={{ r: 4, fill: '#0d9488' }}
+                                        activeDot={{ r: 6, fill: '#0f766e' }}
+                                    />
+                                    <Line
+                                        type="monotone"
+                                        dataKey="average"
+                                        name="Trung bình"
+                                        stroke="#ef4444"
+                                        strokeWidth={2}
+                                        strokeDasharray="5 5"
+                                        dot={false}
+                                        activeDot={{ r: 4, fill: '#dc2626' }}
+                                    />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        );
+                    })()}
                 </div>
 
                 {/* Pie Chart - Debt Distribution (Donut + gradient + center + legend) */}

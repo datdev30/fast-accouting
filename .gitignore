@@ -68,3 +68,5 @@ google-services.json
 client/android/
 client/ios/
 client/.capacitor/
+
+.cursor/

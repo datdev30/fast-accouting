@@ -216,36 +216,40 @@ export default function Reports() {
                                 key={item.customer_id}
                                 type="button"
                                 onClick={() => navigate(`/customers/${item.customer_id}/debt`)}
-                                className="relative w-full text-left rounded-xl border border-slate-100 p-4 bg-white hover:border-teal-200 hover:shadow-sm active:scale-[0.99] transition-all"
+                                className={`relative w-full text-left rounded-xl border p-4 hover:shadow-sm active:scale-[0.99] transition-all ${
+                                    item.total_debt <= 0
+                                        ? 'bg-emerald-50 border-emerald-100 hover:border-emerald-200'
+                                        : 'bg-white border-slate-100 hover:border-teal-200'
+                                }`}
                             >
                                 {/* Tên KH + X GD */}
-                                <div className="flex items-center justify-between gap-2 mb-3">
-                                    <span className="font-semibold text-slate-800 truncate min-w-0">{item.customer_name}</span>
+                                <div className="flex items-center justify-between gap-2 mb-4">
+                                    <span className="text-base tablet-lg:text-sm font-semibold text-slate-800 truncate min-w-0 leading-tight">{item.customer_name}</span>
                                     <div className="flex items-center gap-2 shrink-0">
-                                        <span className="text-xs text-slate-500">{item.transaction_count} GD</span>
+                                        <span className="text-sm font-medium text-slate-500 bg-slate-50 px-2 py-1 rounded-md">{item.transaction_count} GD</span>
                                         <ChevronRight size={18} className="text-slate-300" />
                                     </div>
                                 </div>
                                 {/* 2 cột: (Gốc+Lãi) | (Đã thu+Còn nợ) */}
-                                <div className="grid grid-cols-2 gap-x-4 text-sm">
-                                    <div className="space-y-2">
+                                <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                                    <div className="space-y-2.5">
                                         <div>
-                                            <p className="text-[10px] text-slate-400 uppercase tracking-wide">Tổng gốc vay</p>
-                                            <p className="font-mono text-base text-slate-600">{item.total_principal.toLocaleString('vi-VN')} đ</p>
+                                            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Tổng gốc vay</p>
+                                            <p className="font-mono text-lg text-slate-700 leading-tight">{item.total_principal.toLocaleString('vi-VN')} đ</p>
                                         </div>
                                         <div>
-                                            <p className="text-[10px] text-slate-400 uppercase tracking-wide">Tổng lãi</p>
-                                            <p className="font-mono text-base text-blue-600">+{item.total_interest.toLocaleString('vi-VN')} đ</p>
+                                            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Tổng lãi</p>
+                                            <p className="font-mono text-lg text-blue-600 leading-tight">+{item.total_interest.toLocaleString('vi-VN')} đ</p>
                                         </div>
                                     </div>
-                                    <div className="space-y-2">
+                                    <div className="space-y-2.5">
                                         <div>
-                                            <p className="text-[10px] text-slate-400 uppercase tracking-wide">Đã thanh toán</p>
-                                            <p className="font-mono text-base text-green-700">{(item.total_collected || 0).toLocaleString('vi-VN')} đ</p>
+                                            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Đã thanh toán</p>
+                                            <p className="font-mono text-lg text-green-700 leading-tight">{(item.total_collected || 0).toLocaleString('vi-VN')} đ</p>
                                         </div>
                                         <div>
-                                            <p className="text-[10px] text-slate-400 uppercase tracking-wide">Còn nợ</p>
-                                            <p className="font-mono text-base font-semibold text-red-600">{item.total_debt.toLocaleString('vi-VN')} đ</p>
+                                            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Còn nợ</p>
+                                            <p className="font-mono text-xl text-red-600 leading-tight">{item.total_debt.toLocaleString('vi-VN')} đ</p>
                                         </div>
                                     </div>
                                 </div>
@@ -354,27 +358,27 @@ export default function Reports() {
                                     className={`table-row group cursor-pointer ${item.total_debt <= 0 ? 'bg-emerald-50/70' : ''}`}
                                     onClick={() => navigate(`/customers/${item.customer_id}/debt`)}
                                 >
-                                    <td className="table-td font-medium text-slate-700 group-hover:text-teal-600 transition-colors">
+                                    <td className="table-td font-medium text-base tablet-lg:text-sm text-slate-800 group-hover:text-teal-600 transition-colors">
                                         <div className="flex flex-col">
-                                            <span>{item.customer_name}</span>
-                                            <span className="text-xs text-slate-500 hidden tablet-lg:block">{item.transaction_count} GD</span>
+                                            <span className="leading-tight">{item.customer_name}</span>
+                                            <span className="text-xs font-medium text-slate-500 hidden tablet-lg:block mt-0.5">{item.transaction_count} GD</span>
                                         </div>
                                     </td>
                                     <td className="table-td text-center tablet-lg:hidden">
-                                        <span className="badge-neutral">
+                                        <span className="badge-neutral text-sm font-semibold">
                                             {item.transaction_count} GD
                                         </span>
                                     </td>
-                                    <td className="table-td text-center font-mono text-slate-600">
+                                    <td className="table-td text-center font-mono text-base text-slate-700">
                                         {item.total_principal.toLocaleString('vi-VN')}
                                     </td>
-                                    <td className="table-td text-center font-mono text-blue-600 font-medium">
+                                    <td className="table-td text-center font-mono text-base text-blue-600">
                                         +{item.total_interest.toLocaleString('vi-VN')}
                                     </td>
-                                    <td className="table-td text-center font-mono text-green-700 font-medium">
+                                    <td className="table-td text-center font-mono text-base text-green-700">
                                         {item.total_collected?.toLocaleString('vi-VN') || 0}
                                     </td>
-                                    <td className="table-td text-center font-mono font-semibold text-red-600">
+                                    <td className="table-td text-center font-mono text-lg text-red-600">
                                         {item.total_debt.toLocaleString('vi-VN')}
                                     </td>
                                 </tr>

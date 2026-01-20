@@ -38,13 +38,21 @@ export default function Login() {
         setUsernameError('');
         setPasswordError('');
 
+        // Validate username
         if (!u) {
-            setUsernameError('Vui lòng nhập tài khoản');
+            setUsernameError('Vui lòng nhập tên đăng nhập');
+            ok = false;
+        } else if (u.length < 1) {
+            setUsernameError('Tên đăng nhập không được để trống');
             ok = false;
         }
 
+        // Validate password
         if (!p) {
             setPasswordError('Vui lòng nhập mật khẩu');
+            ok = false;
+        } else if (p.length < 1) {
+            setPasswordError('Mật khẩu không được để trống');
             ok = false;
         }
 
@@ -64,7 +72,43 @@ export default function Login() {
             await login(formData.username.trim(), formData.password);
             navigate('/');
         } catch (err) {
-            setError(err.response?.data?.error || err.response?.data?.detail || "Đã có lỗi xảy ra");
+            // Parse validation errors from API
+            const errorData = err.response?.data;
+            let hasFieldError = false;
+            
+            if (errorData?.details && Array.isArray(errorData.details)) {
+                // Validation errors with field details
+                errorData.details.forEach(detail => {
+                    const field = detail.field?.toLowerCase();
+                    const message = typeof detail === 'string' ? detail : (detail.message || 'Lỗi không xác định');
+                    
+                    if (field === 'body.username' || field === 'username' || field?.includes('username')) {
+                        setUsernameError(message);
+                        hasFieldError = true;
+                    } else if (field === 'body.password' || field === 'password' || field?.includes('password')) {
+                        setPasswordError(message);
+                        hasFieldError = true;
+                    }
+                });
+                
+                // Show general error if no specific field errors were set
+                if (!hasFieldError) {
+                    setError(errorData.error || 'Vui lòng kiểm tra lại thông tin đăng nhập');
+                }
+            } else {
+                // General error message
+                const errorMessage = errorData?.error || errorData?.detail || err.message || "Đã có lỗi xảy ra";
+                
+                // Try to extract field-specific errors from message
+                const lowMessage = errorMessage.toLowerCase();
+                if (lowMessage.includes('username') || lowMessage.includes('tên đăng nhập') || lowMessage.includes('tài khoản')) {
+                    setUsernameError(errorMessage);
+                } else if (lowMessage.includes('password') || lowMessage.includes('mật khẩu')) {
+                    setPasswordError(errorMessage);
+                } else {
+                    setError(errorMessage);
+                }
+            }
         } finally {
             setIsLoading(false);
         }

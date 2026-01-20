@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Settings as SettingsIcon, Info, BookOpen, Calculator, Users, DatabaseBackup, LogOut, ChevronRight } from 'lucide-react';
+import { Settings as SettingsIcon, Info, BookOpen, Calculator, Users, DatabaseBackup, LogOut, ChevronRight, CreditCard } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const SettingLink = ({ to, icon: Icon, label, desc }) => (
@@ -40,6 +40,7 @@ export default function Settings() {
                 <SettingLink to="/info" icon={Info} label="Thông tin" desc="Phiên bản, cập nhật hệ thống" />
                 <SettingLink to="/guide" icon={BookOpen} label="Hướng dẫn" desc="Hướng dẫn sử dụng" />
                 <SettingLink to="/interest-configs" icon={Calculator} label="Cấu hình lãi suất" desc="Thiết lập lãi vay" />
+                <SettingLink to="/bank-account-config" icon={CreditCard} label="Cấu hình STK" desc="Thiết lập tài khoản ngân hàng" />
                 {isAdmin && (
                     <>
                         <SettingLink to="/users" icon={Users} label="Người dùng" desc="Quản lý tài khoản" />

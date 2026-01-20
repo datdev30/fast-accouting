@@ -271,7 +271,7 @@ body::selection {
   }
 
   .table-th {
-    @apply px-8 py-5;
+    @apply px-8 py-5 text-sm font-bold;
   }
 
   .table-th-sortable {
@@ -279,7 +279,7 @@ body::selection {
   }
 
   .table-td {
-    @apply px-8 py-5;
+    @apply px-8 py-5 text-base;
   }
 
   .table-row {
@@ -563,6 +563,38 @@ body::selection {
   .animate-slide-up {
     animation: none !important;
   }
+}
+
+/* Bank Select Dropdown Styling */
+.bank-select-dropdown {
+  /* Custom styling for bank selection dropdown */
+}
+
+.bank-select-dropdown option {
+  /* Styling for dropdown options */
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #1e293b;
+  background-color: #ffffff;
+  border: none;
+  cursor: pointer;
+}
+
+.bank-select-dropdown option:hover {
+  background-color: #f1f5f9;
+}
+
+.bank-select-dropdown option:checked {
+  background-color: #0f766e;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.bank-select-dropdown option:disabled {
+  color: #94a3b8;
+  background-color: #f8fafc;
+  cursor: not-allowed;
 }
 
 /* Screen Reader Only */

@@ -81,7 +81,9 @@ api.interceptors.request.use(
 
 // Response interceptor - Handle token expiration
 api.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        return response;
+    },
     (error) => {
         // Enhanced error logging for debugging
         console.error('❌ API Error:', {
@@ -93,7 +95,8 @@ api.interceptors.response.use(
             statusText: error.response?.statusText,
             data: error.response?.data,
             message: error.message,
-            code: error.code
+            code: error.code,
+            isNetworkError: !error.response && error.request
         });
 
         if (error.response?.status === 401) {
@@ -330,7 +333,6 @@ export const importBackupBundle = (ejsonText) =>
         transformRequest: [(data) => data]
     }).then(res => res.data);
 
-
 // Secure Delete Functions
 export const deleteTransactionSecure = (id, pin) => api.post('/transactions/delete-secure', { id, pin }).then(res => res.data);
 export const deleteCustomerSecure = (id, pin) => api.post('/customers/delete-secure', { id, pin }).then(res => res.data);
@@ -342,11 +344,85 @@ export const createUser = (data) => api.post('/users', data).then(res => res.dat
 export const updateUser = (id, data) => api.patch(`/users/${id}`, data).then(res => res.data);
 export const deleteUserSecure = (id, pin) => api.post('/users/delete-secure', { id, pin }).then(res => res.data);
 
-
 export const deleteTransactionImage = (id) => api.delete(`/transactions/${id}/image`).then(res => res.data);
 
 /** Trạng thái cấu hình Drive cho ảnh giao dịch (chỉ boolean, cần đăng nhập) */
 export const getTransactionImageDriveStatus = () =>
     api.get('/transactions/drive-status').then(res => res.data);
+
+// Bank Account Config (Toàn hệ thống - tất cả user đều thấy)
+/** Lấy cấu hình ngân hàng toàn hệ thống (tất cả user đều có thể xem) */
+export const getBankAccountConfig = () => api.get('/bank-account-config').then(res => res.data);
+
+/** Lưu/cập nhật cấu hình ngân hàng toàn hệ thống (chỉ ADMIN) */
+export const saveBankAccountConfig = (data) => api.put('/bank-account-config', data).then(res => res.data);
+
+/** Cập nhật một phần cấu hình ngân hàng (chỉ ADMIN) */
+export const updateBankAccountConfig = (data) => api.patch('/bank-account-config', data).then(res => res.data);
+
+// VietQR API Functions
+/**
+ * Lấy danh sách ngân hàng từ VietQR API
+ * Không cần xác thực, gọi trực tiếp đến VietQR API
+ */
+export const getVietQRBankList = async () => {
+    try {
+        const baseUrl = 'https://api.vietqr.io/v2';
+        const response = await fetch(`${baseUrl}/banks`);
+        const data = await response.json();
+        
+        if (data.code === '00') {
+            return data.data || [];
+        }
+        return [];
+    } catch (error) {
+        console.error('Lỗi khi lấy danh sách ngân hàng:', error);
+        return [];
+    }
+};
+
+/**
+ * Tạo URL QR code sử dụng VietQR Image Service (miễn phí, không cần API key)
+ * @param {string} bankCode - Mã ngân hàng (3 ký tự, ví dụ: VCB, ACB)
+ * @param {string} accountNo - Số tài khoản
+ * @param {string} accountName - Tên chủ tài khoản (IN HOA, không dấu)
+ * @param {string} template - Template QR (tùy chọn) - mặc định '9DVkSUh'
+ * @param {number} amount - Số tiền (tùy chọn)
+ * @param {string} addInfo - Nội dung chuyển khoản (tùy chọn)
+ * @returns {string} URL của QR code image
+ */
+export const generateVietQRUrl = (bankCode, accountNo, accountName, template = null, amount = null, addInfo = null) => {
+    // Template mặc định: 9DVkSUh
+    const qrTemplate = template || '9DVkSUh';
+    
+    // Chuẩn hóa tên tài khoản: IN HOA, không dấu
+    const normalizedAccountName = accountName
+        .toUpperCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '') // Loại bỏ dấu
+        .trim();
+    
+    // Xây dựng URL base
+    let qrUrl = `https://img.vietqr.io/image/${bankCode}-${accountNo}-${qrTemplate}.png`;
+    
+    // Thêm query parameters nếu có
+    const params = new URLSearchParams();
+    if (amount && amount > 0) {
+        params.append('amount', amount);
+    }
+    if (addInfo) {
+        params.append('addInfo', addInfo);
+    }
+    if (normalizedAccountName) {
+        params.append('accountName', normalizedAccountName);
+    }
+    
+    const queryString = params.toString();
+    if (queryString) {
+        qrUrl += `?${queryString}`;
+    }
+    
+    return qrUrl;
+};
 
 export default api;

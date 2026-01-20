@@ -1058,7 +1058,6 @@ export default function Transactions() {
                                                         if (formData.customer_id && e.target.value !== customers?.find(c => c.id === formData.customer_id)?.name) {
                                                             setFormData({ ...formData, customer_id: '' });
                                                         }
-                                                        setValidationErrors(prev => ({ ...prev, customer_id: '' }));
                                                     }}
                                                     onFocus={() => setIsComboboxOpen(true)}
                                                     onKeyDown={handleComboboxKeyDown}
@@ -1079,7 +1078,6 @@ export default function Transactions() {
                                                                     setCustomerSearch(customer.name);
                                                                     setIsComboboxOpen(false);
                                                                     setHighlightedIndex(-1);
-                                                                    setValidationErrors(prev => ({ ...prev, customer_id: '' }));
                                                                 }}
                                                                 className={clsx(
                                                                     "px-4 py-2.5 tablet-lg:py-2 cursor-pointer flex items-center gap-2 transition-colors",
@@ -1131,7 +1129,6 @@ export default function Transactions() {
                                             value={formData.content}
                                             onChange={e => {
                                                 setFormData({ ...formData, content: e.target.value });
-                                                setValidationErrors(prev => ({ ...prev, content: '' }));
                                             }}
                                             placeholder="Nhập nội dung vay/trả chi tiết..."
                                             aria-invalid={!!validationErrors.content}
@@ -1188,7 +1185,6 @@ export default function Transactions() {
                                                 type="button"
                                                 onClick={() => {
                                                     setFormData({ ...formData, type: config.code });
-                                                    setValidationErrors(prev => ({ ...prev, type: '' }));
                                                 }}
                                                 className={clsx(
                                                     "px-2 py-2 tablet-lg:py-1.5 rounded-lg tablet-lg:rounded text-[11px] tablet-lg:text-[10px] font-bold border transition-all text-center flex items-center justify-center min-h-[42px] tablet-lg:min-h-[36px] leading-tight active:scale-95 whitespace-nowrap",
@@ -1230,7 +1226,6 @@ export default function Transactions() {
                                                 const rawValue = e.target.value.replace(/,/g, '');
                                                 if (/^\d*$/.test(rawValue)) {
                                                     setFormData({ ...formData, amount: rawValue });
-                                                    setValidationErrors(prev => ({ ...prev, amount: '' }));
                                                 }
                                             }}
                                             placeholder="0"

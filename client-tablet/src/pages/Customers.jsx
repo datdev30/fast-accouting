@@ -469,7 +469,7 @@ export default function Customers() {
                             {!isHistoryView && (
                             <div className="p-6 tablet-lg:p-5 space-y-5 tablet-lg:space-y-4 overflow-y-auto w-full">
                                 <form onSubmit={handleSubmit} className="space-y-4 tablet-lg:space-y-3">
-                                    <div className="space-y-1.5">
+                                    <div className="space-y-2.5.5">
                                         <label className="block text-[11px] tablet-lg:text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] ml-1">Họ và tên</label>
                                         <div className="relative group">
                                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 group-focus-within:text-teal-500 transition-colors">
@@ -487,7 +487,6 @@ export default function Customers() {
                                                 value={formData.name}
                                                 onChange={e => {
                                                     setFormData({ ...formData, name: e.target.value });
-                                                    setNameError('');
                                                 }}
                                                 placeholder="Nhập tên khách hàng..."
                                                 aria-invalid={!!nameError}
@@ -502,7 +501,7 @@ export default function Customers() {
                                         )}
                                     </div>
 
-                                    <div className="space-y-1.5">
+                                    <div className="space-y-2.5.5">
                                         <label className="block text-[11px] tablet-lg:text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] ml-1">Thông tin liên hệ</label>
                                         <div className="relative group">
                                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 group-focus-within:text-teal-500 transition-colors">
@@ -518,7 +517,6 @@ export default function Customers() {
                                                 value={formData.contact_info ?? ''}
                                                 onChange={e => {
                                                     setFormData({ ...formData, contact_info: e.target.value });
-                                                    setContactInfoError('');
                                                 }}
                                                 placeholder="SĐT, Địa chỉ, Ghi chú..."
                                                 aria-invalid={!!contactInfoError}
@@ -563,9 +561,8 @@ export default function Customers() {
                                 <div className="flex flex-col tablet-lg:w-full tablet:w-full bg-slate-50/30 overflow-hidden border-slate-100">
                                     <div className="px-10 py-6 tablet-lg:px-5 tablet-lg:py-4 border-b border-slate-100 bg-white/50 flex items-center justify-between">
                                         <div className="flex items-center gap-3 tablet-lg:gap-2 text-slate-800">
-                                            <History size={24} className="text-teal-600 tablet-lg:w-5 tablet-lg:h-5" />
                                             <div className="flex flex-col">
-                                                <span className="font-bold text-base tablet-lg:text-sm text-slate-900">
+                                                <span className="font-bold text-lg tablet-lg:text-base text-slate-900">
                                                     {customers?.find(x => (x.id || x._id) === currentId)?.name || '—'}
                                                 </span>
                                             </div>
@@ -591,28 +588,31 @@ export default function Customers() {
                                                                 key={tx._id}
                                                                 onClick={() => handleTxEdit(tx)}
                                                                 className={clsx(
-                                                                    "rounded-2xl tablet-lg:rounded-xl p-4 tablet-lg:p-3 border shadow-sm hover:shadow-md cursor-pointer transition-all group",
+                                                                    "rounded-2xl tablet-lg:rounded-xl p-4 tablet-lg:p-3 border shadow-sm hover:shadow-md cursor-pointer transition-all group relative overflow-hidden",
                                                                     tx.status === 'PAID'
                                                                         ? "bg-emerald-50/50 border-emerald-100 hover:border-emerald-200"
                                                                         : "bg-white border-slate-100 hover:border-teal-200"
                                                                 )}
                                                             >
+                                                                {/* Badge "ĐÃ THANH TOÁN" - Góc trên phải */}
+                                                                {tx.status === 'PAID' && (
+                                                                    <div className="absolute top-0 right-0 bg-emerald-500 text-white px-2 py-1 text-[10px] font-bold uppercase tracking-wider shadow-md z-10">
+                                                                        <div className="flex items-center gap-0.5">
+                                                                            <Check size={10} />
+                                                                            <span>ĐÃ THANH TOÁN</span>
+                                                                        </div>
+                                                                        {/* Ribbon corner effect */}
+                                                                        <div className="absolute -bottom-1 right-0 w-0 h-0 border-l-[10px] border-l-transparent border-t-[10px] border-t-emerald-600"></div>
+                                                                    </div>
+                                                                )}
                                                                 <div className="flex flex-row items-center justify-between gap-6 tablet-lg:gap-4">
                                                                     <div className="min-w-0 flex-1">
-                                                                        <div className="flex items-center gap-3 tablet-lg:gap-2 mb-1">
+                                                                        <div className="flex items-center gap-3 tablet-lg:gap-2 mb-3">
                                                                                 <span className="text-sm tablet-lg:text-xs font-bold uppercase tracking-widest text-slate-400">
                                                                                     {formatDate(tx.transaction_date)}
                                                                                 </span>
-                                                                                {tx.status === 'PAID' && (
-                                                                                    <>
-                                                                                        <span className="w-1 h-1 rounded-full bg-slate-200" />
-                                                                                        <span className="text-xs tablet-lg:text-[10px] font-bold uppercase tracking-widest text-emerald-500">
-                                                                                            ĐÃ THANH TOÁN
-                                                                                        </span>
-                                                                                    </>
-                                                                                )}
                                                                             </div>
-                                                                            <div className="text-base tablet-lg:text-sm font-medium text-slate-800 leading-tight space-y-1">
+                                                                            <div className="text-lg tablet-lg:text-base font-medium text-slate-800 leading-tight space-y-2.5">
                                                                                 {String(tx.content ?? '')
                                                                                     .split(/\r?\n/)
                                                                                     .filter(line => line.trim() !== '')
@@ -625,9 +625,7 @@ export default function Customers() {
                                                                         <p className="text-xl tablet-lg:text-base font-semibold text-slate-900 tracking-tight">
                                                                             {formatMoneyComma(tx.amount || 0)} <span className="text-xs font-normal">đ</span>
                                                                         </p>
-                                                                        <span className="text-xs tablet-lg:text-[10px] font-bold uppercase tracking-widest text-teal-600 mt-1">
-                                                                            {typeConfig?.name || tx.type}
-                                                                        </span>
+
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -965,7 +963,7 @@ export default function Customers() {
                                 </button>
                             </div>
 
-                            <div className="space-y-3 tablet-lg:space-y-1.5 mb-6 tablet-lg:mb-3 relative z-10">
+                            <div className="space-y-3 tablet-lg:space-y-2.5.5 mb-6 tablet-lg:mb-3 relative z-10">
                                 <div className="flex items-start gap-2.5 tablet-lg:gap-1.5 text-slate-500 text-sm tablet-lg:text-xs">
                                     <div className="p-1.5 tablet-lg:p-1 bg-slate-50 text-slate-400 rounded-lg group-hover:bg-teal-50 group-hover:text-teal-600 transition-colors flex-shrink-0">
                                         <MapPin size={14} className="tablet-lg:w-3 tablet-lg:h-3" />

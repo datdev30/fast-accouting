@@ -270,7 +270,6 @@ export default function InterestConfigs() {
                                             value={formData.code}
                                             onChange={e => {
                                                 setFormData({ ...formData, code: e.target.value.toUpperCase() });
-                                                setValidationErrors(prev => ({ ...prev, code: '' }));
                                             }}
                                             aria-invalid={!!validationErrors.code}
                                             aria-describedby={validationErrors.code ? 'code-error' : undefined}
@@ -302,7 +301,6 @@ export default function InterestConfigs() {
                                             value={formData.rate_per_month}
                                             onChange={e => {
                                                 setFormData({ ...formData, rate_per_month: parseFloat(e.target.value) || 0 });
-                                                setValidationErrors(prev => ({ ...prev, rate_per_month: '' }));
                                             }}
                                             aria-invalid={!!validationErrors.rate_per_month}
                                             aria-describedby={validationErrors.rate_per_month ? 'rate-error' : undefined}
@@ -333,7 +331,6 @@ export default function InterestConfigs() {
                                         value={formData.name}
                                         onChange={e => {
                                             setFormData({ ...formData, name: e.target.value });
-                                            setValidationErrors(prev => ({ ...prev, name: '' }));
                                         }}
                                         aria-invalid={!!validationErrors.name}
                                         aria-describedby={validationErrors.name ? 'name-error' : undefined}
