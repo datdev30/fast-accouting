@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Calculator, FileText, ChevronLeft, ChevronRight, LogOut, BarChart3, Info, BookOpen, DatabaseBackup } from 'lucide-react';
+import { LayoutDashboard, Users, Calculator, FileText, ChevronLeft, ChevronRight, LogOut, BarChart3, Info, BookOpen, DatabaseBackup, Settings as SettingsIcon } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
@@ -113,6 +113,7 @@ export default function Layout() {
                             <NavItem to="/backup-data" icon={DatabaseBackup} label="Backup Data" collapsed={!isExpanded} onClick={() => {}} />
                         </>
                     )}
+                    <NavItem to="/settings" icon={SettingsIcon} label="Cài đặt" collapsed={!isExpanded} onClick={() => {}} />
                     <NavItem to="/info" icon={Info} label="Thông tin" collapsed={!isExpanded} onClick={() => {}} />
                     <NavItem to="/guide" icon={BookOpen} label="Hướng dẫn" collapsed={!isExpanded} onClick={() => {}} />
                 </nav>

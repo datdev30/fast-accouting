@@ -234,4 +234,152 @@ export const deleteUserSecure = (id, pin) => api.post('/users/delete-secure', { 
 
 export const deleteTransactionImage = (id) => api.delete(`/transactions/${id}/image`).then(res => res.data);
 
+// Monthly Transaction Count for Analytics
+export const getMonthlyTransactionCount = (year) => api.get(`/transactions/monthly-count?year=${year}`).then(res => res.data);
+
+// Bank Account Config (Toàn hệ thống - tất cả user đều thấy)
+/** Lấy cấu hình ngân hàng toàn hệ thống (tất cả user đều có thể xem) */
+export const getBankAccountConfig = () => api.get('/bank-account-config').then(res => res.data);
+
+/** Lưu/cập nhật cấu hình ngân hàng toàn hệ thống (chỉ ADMIN) */
+export const saveBankAccountConfig = (data) => api.put('/bank-account-config', data).then(res => res.data);
+
+/** Cập nhật một phần cấu hình ngân hàng (chỉ ADMIN) */
+export const updateBankAccountConfig = (data) => api.patch('/bank-account-config', data).then(res => res.data);
+
+// VietQR API Functions
+/**
+ * Lấy danh sách ngân hàng từ VietQR API
+ * Không cần xác thực, gọi trực tiếp đến VietQR API
+ */
+export const getVietQRBankList = async () => {
+    try {
+        const baseUrl = 'https://api.vietqr.io/v2';
+        const response = await fetch(`${baseUrl}/banks`);
+        const data = await response.json();
+        
+        if (data.code === '00') {
+            return data.data || [];
+        }
+        return [];
+    } catch (error) {
+        console.error('Lỗi khi lấy danh sách ngân hàng:', error);
+        return [];
+    }
+};
+
+/**
+ * Tạo URL QR code sử dụng VietQR Image Service (miễn phí, không cần API key)
+ * @param {string} bankCode - Mã ngân hàng (3 ký tự, ví dụ: VCB, ACB)
+ * @param {string} accountNo - Số tài khoản
+ * @param {string} accountName - Tên chủ tài khoản (IN HOA, không dấu)
+ * @param {string} template - Template QR (tùy chọn) - mặc định '9DVkSUh'
+ * @param {number} amount - Số tiền (tùy chọn)
+ * @param {string} addInfo - Nội dung chuyển khoản (tùy chọn)
+ * @returns {string} URL của QR code image
+ */
+export const generateVietQRUrl = (bankCode, accountNo, accountName, template = null, amount = null, addInfo = null) => {
+    // Template mặc định: 9DVkSUh
+    const qrTemplate = template || '9DVkSUh';
+    
+    // Chuẩn hóa tên tài khoản: IN HOA, không dấu
+    const normalizedAccountName = accountName
+        .toUpperCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '') // Loại bỏ dấu
+        .trim();
+    
+    // Xây dựng URL base
+    let qrUrl = `https://img.vietqr.io/image/${bankCode}-${accountNo}-${qrTemplate}.png`;
+    
+    // Thêm query parameters nếu có
+    const params = new URLSearchParams();
+    if (amount && amount > 0) {
+        params.append('amount', amount);
+    }
+    if (addInfo) {
+        params.append('addInfo', addInfo);
+    }
+    if (normalizedAccountName) {
+        params.append('accountName', normalizedAccountName);
+    }
+    
+    const queryString = params.toString();
+    if (queryString) {
+        qrUrl += `?${queryString}`;
+    }
+    
+    return qrUrl;
+};
+
+/** Tải PDF báo cáo công nợ */
+export const downloadDebtReportPdf = async (customerId, startDate, endDate) => {
+    const params = {};
+    if (startDate) params.start_date = startDate;
+    if (endDate) params.end_date = endDate;
+    
+    try {
+        const res = await api.get(`/reports/${customerId}/pdf`, {
+            responseType: 'blob',
+            params
+        });
+        
+        if (res.status < 200 || res.status >= 300) {
+            try {
+                const errorText = await res.data.text();
+                const errorJson = JSON.parse(errorText);
+                throw new Error(errorJson.error || errorJson.message || `HTTP ${res.status}: Failed to download PDF`);
+            } catch (parseError) {
+                throw new Error(`HTTP ${res.status}: Failed to download PDF`);
+            }
+        }
+        
+        if (!res.data || !(res.data instanceof Blob)) {
+            throw new Error('Invalid response: expected PDF blob');
+        }
+        
+        if (res.data.size === 0) {
+            throw new Error('PDF file is empty');
+        }
+        
+        const contentDisposition = res.headers?.['content-disposition'];
+        let filename = `Bao_cao_cong_no_${customerId}.pdf`;
+        if (contentDisposition) {
+            const match = /filename\*=UTF-8''([^;]+)|filename="([^"]+)"|filename=([^;\s]+)/i.exec(contentDisposition);
+            const raw = match?.[1] || match?.[2] || match?.[3];
+            if (raw) {
+                try {
+                    filename = decodeURIComponent(String(raw).trim());
+                } catch {
+                    filename = String(raw).trim();
+                }
+            }
+        }
+        return { blob: res.data, filename };
+    } catch (error) {
+        if (error.response) {
+            if (error.response.data instanceof Blob) {
+                try {
+                    const errorText = await error.response.data.text();
+                    const errorJson = JSON.parse(errorText);
+                    throw new Error(errorJson.error || errorJson.message || `Server error: ${error.response.status}`);
+                } catch {
+                    throw new Error(`Server error: ${error.response.status}`);
+                }
+            }
+            throw new Error(error.response.data?.error || error.response.data?.message || `Server error: ${error.response.status}`);
+        } else if (error.request) {
+            throw new Error('Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng.');
+        } else {
+            throw error;
+        }
+    }
+};
+
+// Drive OAuth Management (Admin only)
+export const getDriveOAuthRefreshToken = () => api.get('/drive-oauth/refresh-token').then(res => res.data);
+export const updateDriveOAuthRefreshToken = (refreshToken) => api.put('/drive-oauth/refresh-token', { refresh_token: refreshToken }).then(res => res.data);
+export const getDriveOAuthGenerateUrl = () => api.get('/drive-oauth/generate-url').then(res => res.data);
+export const handleDriveOAuthCallback = (code) => api.post('/drive-oauth/callback', { code }).then(res => res.data);
+
 export default api;

@@ -1,12 +1,12 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { getTransactions, getCustomers, getInterestConfigs, getCustomer, downloadAllTransactionsPdf } from '../services/api';
+import { getTransactions, getCustomers, getInterestConfigs, getCustomer, downloadAllTransactionsPdf, downloadDebtReportPdf, getBankAccountConfig, generateVietQRUrl } from '../services/api';
 import api from '../services/api'; // Import default api instance
 import { useReactToPrint } from 'react-to-print';
 import PrintableReport from '../components/PrintableReport';
 import PrintableAllTransactions from '../components/PrintableAllTransactions';
-import { ArrowLeft, Printer, Calendar, X, ChevronRight, FileText, Wallet, Percent, PiggyBank, CheckCircle, AlertCircle, Check, Clock, Search, Download, Loader2 } from 'lucide-react';
+import { ArrowLeft, Printer, Calendar, X, ChevronRight, FileText, Wallet, Percent, PiggyBank, CheckCircle, AlertCircle, Check, Clock, Search, Download, Loader2, QrCode, Receipt } from 'lucide-react';
 import { clsx } from 'clsx';
 import DateInput from '../components/DateInput';
 import DatePicker from '../components/DatePicker';
@@ -38,6 +38,14 @@ const CustomerDebtDetail = () => {
     const printRef = useRef();
     const printAllTransactionsRef = useRef();
     const [downloadAllTransactionsPdfLoading, setDownloadAllTransactionsPdfLoading] = useState(false);
+    const [downloadPdfLoading, setDownloadPdfLoading] = useState(false);
+
+    // Payment Options Menu
+    const [paymentMenuOpen, setPaymentMenuOpen] = useState(false);
+    const [showQRModal, setShowQRModal] = useState(false);
+    const [qrCodeUrl, setQrCodeUrl] = useState(null);
+    const [isGeneratingQR, setIsGeneratingQR] = useState(false);
+    const paymentMenuRef = useRef(null);
 
     const handlePrint = useReactToPrint({
         contentRef: printRef,
@@ -131,6 +139,110 @@ const CustomerDebtDetail = () => {
             }
         }
     });
+
+    // Load bank account config for QR code
+    const { data: bankConfig, isLoading: isLoadingBankConfig } = useQuery({
+        queryKey: ['bank-account-config'],
+        queryFn: getBankAccountConfig,
+        staleTime: 1000 * 60 * 5,
+    });
+
+    // Calculate total debt amount
+    const totalDebtAmount = React.useMemo(() => {
+        if (!transactions) return 0;
+        return transactions
+            .filter(tx => tx.status === 'OPEN')
+            .reduce((sum, tx) => {
+                const principal = tx.amount || 0;
+                const interest = tx.interest_calculation?.rounded_interest || 0;
+                return sum + principal + interest;
+            }, 0);
+    }, [transactions]);
+
+    // Generate QR code for payment
+    const handleGenerateQR = async () => {
+        if (!bankConfig || !customer) {
+            showToast('Thông báo', 'Đang tải cấu hình ngân hàng...', 'info');
+            return;
+        }
+
+        if (!bankConfig.bank_code || !bankConfig.account_number || !bankConfig.account_holder) {
+            showToast('Lỗi', 'Chưa cấu hình thông tin ngân hàng. Vui lòng cấu hình trong Settings.', 'error');
+            return;
+        }
+
+        setIsGeneratingQR(true);
+        try {
+            const addInfo = `TT ${customer.name || id}`.substring(0, 23);
+            const qrUrl = generateVietQRUrl(
+                bankConfig.bank_code,
+                bankConfig.account_number,
+                bankConfig.account_holder,
+                null,
+                totalDebtAmount > 0 ? totalDebtAmount : null,
+                addInfo
+            );
+            setQrCodeUrl(qrUrl);
+            setShowQRModal(true);
+        } catch (error) {
+            console.error('Lỗi khi tạo QR code:', error);
+            showToast('Lỗi', 'Không thể tạo mã QR. Vui lòng thử lại.', 'error');
+        } finally {
+            setIsGeneratingQR(false);
+        }
+    };
+
+    // Download PDF báo cáo công nợ
+    const handleDownloadPdf = async () => {
+        if (downloadPdfLoading) return;
+        
+        setDownloadPdfLoading(true);
+        try {
+            const { blob, filename } = await downloadDebtReportPdf(id, startDate || undefined, endDate || undefined);
+            
+            if (!blob || !(blob instanceof Blob)) {
+                throw new Error('Dữ liệu PDF không hợp lệ');
+            }
+            
+            if (blob.size === 0) {
+                throw new Error('File PDF rỗng');
+            }
+            
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            
+            showToast('Thành công', 'File PDF đã được tải xuống', 'success');
+        } catch (e) {
+            console.error('Download PDF error:', e);
+            const errorMessage = e?.message || e?.response?.data?.error || 'Không thể tải PDF';
+            showToast('Lỗi', errorMessage, 'error');
+        } finally {
+            setDownloadPdfLoading(false);
+        }
+    };
+
+    // Close payment menu when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (paymentMenuRef.current && !paymentMenuRef.current.contains(event.target)) {
+                setPaymentMenuOpen(false);
+            }
+        };
+
+        if (paymentMenuOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [paymentMenuOpen]);
 
     const handleBulkPay = (e) => {
         e.preventDefault();
@@ -254,20 +366,78 @@ const CustomerDebtDetail = () => {
                         {customer.contact_info || 'Không có thông tin liên hệ'}
                     </p>
                 </div>
-                <div className="flex flex-row gap-3">
-                    <button
-                        onClick={() => setBulkPayOpen(true)}
-                        className="btn btn-primary btn-md"
-                    >
-                        <Wallet size={18} />
-                        Thanh toán tất cả
-                    </button>
+                <div className="flex flex-row gap-3 flex-wrap">
+                    {/* Payment Menu Button */}
+                    <div className="relative" ref={paymentMenuRef}>
+                        <button
+                            onClick={() => setPaymentMenuOpen(!paymentMenuOpen)}
+                            className="btn btn-primary btn-md"
+                        >
+                            <Wallet size={18} />
+                            Thanh toán
+                        </button>
+                        
+                        {/* Payment Menu Dropdown */}
+                        {paymentMenuOpen && (
+                            <div className="absolute top-full left-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                                <button
+                                    onClick={() => {
+                                        setPaymentMenuOpen(false);
+                                        handleGenerateQR();
+                                    }}
+                                    disabled={isGeneratingQR || totalDebtAmount === 0 || isLoadingBankConfig}
+                                    className="w-full px-4 py-3 text-left text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                >
+                                    <QrCode size={16} className="text-teal-600" />
+                                    <span>QR thanh toán</span>
+                                    {isLoadingBankConfig && <Loader2 size={14} className="animate-spin ml-auto" />}
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setShowPreview(true);
+                                        setPaymentMenuOpen(false);
+                                    }}
+                                    disabled={transactions?.filter(tx => tx.status === 'OPEN').length === 0}
+                                    className="w-full px-4 py-3 text-left text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed border-t border-slate-100 cursor-pointer"
+                                >
+                                    <Receipt size={16} className="text-blue-600" />
+                                    <span>Giao dịch</span>
+                                </button>
+                                {transactions?.filter(tx => tx.status === 'OPEN').length > 0 && (
+                                    <div className="border-t border-slate-100">
+                                        <button
+                                            onClick={() => {
+                                                setBulkPayOpen(true);
+                                                setPaymentMenuOpen(false);
+                                            }}
+                                            className="w-full px-4 py-3 text-left text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-3 cursor-pointer"
+                                        >
+                                            <CheckCircle size={16} className="text-emerald-600" />
+                                            <span>Xác nhận thanh toán</span>
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
                     <button
                         onClick={() => setShowPreview(true)}
                         className="btn btn-secondary btn-md group"
                     >
                         <Printer size={18} className="text-slate-400 group-hover:text-blue-600 transition-colors" />
                         <span>In Phiếu Nợ</span>
+                    </button>
+                    <button
+                        onClick={handleDownloadPdf}
+                        disabled={downloadPdfLoading}
+                        className="btn btn-secondary btn-md group"
+                    >
+                        {downloadPdfLoading ? (
+                            <Loader2 size={18} className="animate-spin text-slate-400" />
+                        ) : (
+                            <Download size={18} className="text-slate-400 group-hover:text-blue-600 transition-colors" />
+                        )}
+                        <span>Tải PDF</span>
                     </button>
                     <button
                         onClick={() => setShowAllTransactionsPreview(true)}
@@ -605,7 +775,65 @@ const CustomerDebtDetail = () => {
                 </div>
             )
             }
-        </div >
+
+            {/* QR Code Payment Modal */}
+            {showQRModal && (
+                <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[70] p-4 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+                        <div className="shrink-0 flex items-start justify-between gap-4 p-6 border-b border-slate-100">
+                            <div className="flex items-center gap-3 min-w-0">
+                                <div className="shrink-0 w-12 h-12 rounded-xl bg-teal-100 flex items-center justify-center">
+                                    <QrCode size={24} className="text-teal-600" />
+                                </div>
+                                <div className="min-w-0">
+                                    <h3 className="text-lg font-bold text-slate-800">Mã QR thanh toán</h3>
+                                    <p className="text-xs text-slate-500 mt-0.5">Quét mã để chuyển khoản</p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setShowQRModal(false);
+                                    setQrCodeUrl(null);
+                                }}
+                                className="shrink-0 p-2 -m-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                                aria-label="Đóng"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-6">
+                            {qrCodeUrl ? (
+                                <div className="flex flex-col items-center justify-center space-y-4">
+                                    <div className="bg-white p-6 rounded-xl shadow-lg border border-slate-200">
+                                        <img
+                                            src={qrCodeUrl}
+                                            alt="Mã QR thanh toán"
+                                            className="w-64 h-64"
+                                        />
+                                    </div>
+                                    <div className="text-center space-y-2">
+                                        <p className="text-sm font-semibold text-slate-700">Số tiền: {totalDebtAmount.toLocaleString('vi-VN')} đ</p>
+                                        {bankConfig && (
+                                            <>
+                                                <p className="text-xs text-slate-500 font-mono">{bankConfig.account_number}</p>
+                                                <p className="text-xs text-slate-600">{bankConfig.account_holder}</p>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center space-y-4 p-12">
+                                    <Loader2 size={48} className="animate-spin text-slate-400" />
+                                    <p className="text-sm text-slate-500">Đang tạo mã QR...</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
     );
 };
 

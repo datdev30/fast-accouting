@@ -112,7 +112,7 @@ router.post('/:id/image', authMiddleware, handleTransactionImageUpload, async (r
                     domain: error?.errors?.[0]?.domain,
                     errors: error?.errors
                 },
-                drive_env: getDriveEnvDebugContext(),
+                drive_env: await getDriveEnvDebugContext(),
                 drive_account: driveAccount
             }
             : {};
@@ -213,7 +213,7 @@ router.get('/:id/image', authMiddleware, async (req, res, next) => {
                     domain: error?.errors?.[0]?.domain,
                     errors: error?.errors
                 },
-                drive_env: getDriveEnvDebugContext(),
+                drive_env: await getDriveEnvDebugContext(),
                 drive_account: driveAccount
             }
             : {};
@@ -285,9 +285,9 @@ router.delete('/:id/image', authMiddleware, async (req, res, next) => {
  * GET /api/transactions/drive-status
  * Kiểm tra cấu hình Drive (chỉ trả về boolean, không lộ secret). Cần đăng nhập.
  */
-router.get('/drive-status', authMiddleware, (req, res) => {
+router.get('/drive-status', authMiddleware, async (req, res) => {
     try {
-        const ctx = getDriveEnvDebugContext();
+        const ctx = await getDriveEnvDebugContext();
         const ok = !!(ctx.folderId_present && ctx.oauth_client_id_present && ctx.oauth_client_secret_present && ctx.oauth_refresh_token_present);
         return res.json({ drive_configured: ok, ...ctx });
     } catch (e) {

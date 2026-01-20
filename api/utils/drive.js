@@ -16,26 +16,50 @@ function cleanEnvValue(value) {
     return trimmed.replace(/^"(.+)"$/s, '$1').replace(/^'(.+)'$/s, '$1').trim();
 }
 
+/**
+ * Lấy refresh token: ưu tiên từ DB, fallback về env
+ */
+async function getRefreshToken() {
+    try {
+        // Dynamic import để tránh circular dependency
+        const DriveOAuthConfig = (await import('../models/DriveOAuthConfig.js')).default;
+        const connectDB = (await import('../config/db.js')).default;
+        
+        await connectDB();
+        const config = await DriveOAuthConfig.findOne();
+        
+        if (config && config.refresh_token) {
+            return config.refresh_token;
+        }
+    } catch (error) {
+        // Nếu không lấy được từ DB, fallback về env
+        console.warn('Could not load refresh token from DB, falling back to env:', error.message);
+    }
+    
+    // Fallback về env
+    return cleanEnvValue(process.env.GOOGLE_DRIVE_OAUTH_REFRESH_TOKEN);
+}
+
 function loadOAuthCredentialsFromEnv() {
     const clientId = cleanEnvValue(process.env.GOOGLE_DRIVE_OAUTH_CLIENT_ID);
     const clientSecret = cleanEnvValue(process.env.GOOGLE_DRIVE_OAUTH_CLIENT_SECRET);
-    const refreshToken = cleanEnvValue(process.env.GOOGLE_DRIVE_OAUTH_REFRESH_TOKEN);
     const redirectUri = cleanEnvValue(process.env.GOOGLE_DRIVE_OAUTH_REDIRECT_URI) || 'http://localhost:53682/oauth2callback';
 
-    if (!clientId || !clientSecret || !refreshToken) {
+    if (!clientId || !clientSecret) {
         throw new Error(
-            'Missing Google Drive OAuth credentials. Set GOOGLE_DRIVE_OAUTH_CLIENT_ID, GOOGLE_DRIVE_OAUTH_CLIENT_SECRET, and GOOGLE_DRIVE_OAUTH_REFRESH_TOKEN.'
+            'Missing Google Drive OAuth credentials. Set GOOGLE_DRIVE_OAUTH_CLIENT_ID and GOOGLE_DRIVE_OAUTH_CLIENT_SECRET.'
         );
     }
 
-    return { clientId, clientSecret, refreshToken, redirectUri };
+    return { clientId, clientSecret, redirectUri };
 }
 
-export function getDriveEnvDebugContext() {
+export async function getDriveEnvDebugContext() {
     const folderId = cleanEnvValue(process.env.DRIVE_TRANSACTION_IMAGES_FOLDER_ID);
     const clientId = cleanEnvValue(process.env.GOOGLE_DRIVE_OAUTH_CLIENT_ID);
     const clientSecret = cleanEnvValue(process.env.GOOGLE_DRIVE_OAUTH_CLIENT_SECRET);
-    const refreshToken = cleanEnvValue(process.env.GOOGLE_DRIVE_OAUTH_REFRESH_TOKEN);
+    const refreshTokenEnv = cleanEnvValue(process.env.GOOGLE_DRIVE_OAUTH_REFRESH_TOKEN);
+    const refreshTokenDB = await getRefreshToken().catch(() => null);
     const redirectUri = cleanEnvValue(process.env.GOOGLE_DRIVE_OAUTH_REDIRECT_URI);
 
     return {
@@ -44,14 +68,22 @@ export function getDriveEnvDebugContext() {
         folderId_tail: folderId ? redactTail(folderId, 8) : '',
         oauth_client_id_present: Boolean(clientId),
         oauth_client_secret_present: Boolean(clientSecret),
-        oauth_refresh_token_present: Boolean(refreshToken),
+        oauth_refresh_token_present: Boolean(refreshTokenDB || refreshTokenEnv),
+        oauth_refresh_token_source: refreshTokenDB ? 'database' : (refreshTokenEnv ? 'env' : 'none'),
         oauth_redirect_uri_present: Boolean(redirectUri),
         oauth_redirect_uri: redirectUri || ''
     };
 }
 
 async function createDriveClientWithOAuth() {
-    const { clientId, clientSecret, refreshToken, redirectUri } = loadOAuthCredentialsFromEnv();
+    const { clientId, clientSecret, redirectUri } = loadOAuthCredentialsFromEnv();
+    const refreshToken = await getRefreshToken();
+
+    if (!refreshToken) {
+        throw new Error(
+            'Missing Google Drive OAuth refresh token. Set GOOGLE_DRIVE_OAUTH_REFRESH_TOKEN in env or configure it in Settings.'
+        );
+    }
 
     const auth = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
     auth.setCredentials({ refresh_token: refreshToken });

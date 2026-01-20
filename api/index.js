@@ -18,6 +18,7 @@ import userRoutes from './routes/users.js';
 import infoRoutes from './routes/info.js';
 import backupRoutes from './routes/backup.js';
 import bankAccountConfigRoutes from './routes/bankAccountConfig.js';
+import driveOAuthRoutes from './routes/driveOAuth.js';
 
 // Load environment variables: ưu tiên api/.env (kể cả khi chạy từ thư mục gốc)
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -119,6 +120,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/info', infoRoutes);
 app.use('/api/backup', backupRoutes);
 app.use('/api/bank-account-config', bankAccountConfigRoutes);
+app.use('/api/drive-oauth', driveOAuthRoutes);
 
 // 404 handler
 app.use((req, res) => {

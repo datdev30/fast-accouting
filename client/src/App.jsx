@@ -13,6 +13,8 @@ import UserManagement from './pages/UserManagement';
 import Info from './pages/Info';
 import Guide from './pages/Guide';
 import BackupData from './pages/BackupData';
+import Settings from './pages/Settings';
+import BankAccountConfig from './pages/BankAccountConfig';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import BackupModal from './components/BackupModal';
@@ -95,6 +97,8 @@ function AppContent() {
           <Route path="overview" element={<Reports />} />
           <Route path="users" element={<UserManagement />} />
           <Route path="backup-data" element={<BackupData />} />
+          <Route path="settings" element={<Settings />} />
+          <Route path="bank-account-config" element={<BankAccountConfig />} />
           <Route path="info" element={<Info />} />
           <Route path="guide" element={<Guide />} />
         </Route>
