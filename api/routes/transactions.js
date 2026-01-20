@@ -624,6 +624,7 @@ router.post('/bulk-pay', authMiddleware, requireAdminOrSale, async (req, res, ne
         normalizedPaymentDate.setHours(0, 0, 0, 0);
         
         let count = 0;
+        const totalTransactions = transactions.length;
 
         for (const tx of transactions) {
             // Normalize transaction_date to start of day for comparison and calculation
@@ -638,32 +639,68 @@ router.post('/bulk-pay', authMiddleware, requireAdminOrSale, async (req, res, ne
                 );
             }
             
+            // Check if transaction is still OPEN (race condition protection)
+            // Reload from DB to ensure we have the latest status
+            const currentTx = await Transaction.findById(tx._id);
+            if (!currentTx) {
+                logger.warn('Transaction not found during bulk pay', { 
+                    transactionId: tx.id || tx._id
+                });
+                continue; // Skip if not found (may have been deleted)
+            }
+            
+            if (currentTx.status !== 'OPEN') {
+                logger.warn('Transaction already paid during bulk pay', { 
+                    transactionId: tx.id || tx._id,
+                    currentStatus: currentTx.status 
+                });
+                continue; // Skip if already paid (race condition)
+            }
+            
             // Calculate interest from transaction_date to payment_date
             // Both dates are normalized to start of day for consistent day-based calculation
             const calc = calculateInterestAmount(
-                tx.amount,
-                tx.interest_rate_snapshot,
+                currentTx.amount,
+                currentTx.interest_rate_snapshot,
                 txDateNormalized,
                 normalizedPaymentDate
             );
 
-            tx.status = 'PAID';
-            tx.closed_at = normalizedPaymentDate;
-            tx.final_interest = calc.rounded_interest;
-            tx.final_months = calc.months;
-            tx.final_total = tx.amount + calc.rounded_interest;
+            currentTx.status = 'PAID';
+            currentTx.closed_at = normalizedPaymentDate;
+            currentTx.final_interest = calc.rounded_interest;
+            currentTx.final_months = calc.months;
+            currentTx.final_total = currentTx.amount + calc.rounded_interest;
 
-            await tx.save();
+            // Save transaction - only count if save is successful
+            await currentTx.save();
             count++;
         }
 
+        // If no transactions were successfully paid, return appropriate message
+        if (count === 0) {
+            if (totalTransactions === 0) {
+                return res.json({ message: 'Không có giao dịch nào cần thanh toán', count: 0 });
+            } else {
+                // All transactions were already paid (race condition)
+                return res.json({ 
+                    message: 'Tất cả giao dịch đã được thanh toán trước đó', 
+                    count: 0 
+                });
+            }
+        }
+
         logger.info('Bulk payment completed', { 
-            customerId, 
-            count,
+            customer_id, 
+            totalTransactions,
+            successCount: count,
             paymentDate: payment_date 
         });
 
-        res.json({ message: 'Thanh toán thành công', count });
+        res.json({ 
+            message: `Đã thanh toán thành công ${count} giao dịch`, 
+            count 
+        });
     } catch (error) {
         next(error);
     }
