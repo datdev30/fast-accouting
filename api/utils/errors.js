@@ -89,6 +89,53 @@ export function createErrorResponse(error, req = null) {
         };
     }
 
+    // Handle MongoDB duplicate key error (E11000)
+    if (error.name === 'MongoServerError' || error.name === 'MongoError') {
+        if (error.code === 11000) {
+            // Extract field name from error message
+            const fieldMatch = error.message.match(/index: (.+?) dup key/);
+            const field = fieldMatch ? fieldMatch[1] : 'field';
+            
+            // Determine user-friendly message based on field
+            let message = 'Dữ liệu đã tồn tại';
+            if (field.includes('username')) {
+                message = 'Tên đăng nhập đã tồn tại';
+            } else if (field.includes('code')) {
+                message = 'Mã đã tồn tại';
+            } else if (field.includes('id')) {
+                message = 'ID đã tồn tại';
+            }
+            
+            return {
+                error: message,
+                code: ErrorCodes.ALREADY_EXISTS,
+                status: 400
+            };
+        }
+        
+        // Other MongoDB errors
+        return {
+            error: 'Database error',
+            code: ErrorCodes.DATABASE_ERROR,
+            status: 500
+        };
+    }
+
+    // Handle Mongoose validation errors
+    if (error.name === 'ValidationError') {
+        const errors = Object.values(error.errors || {}).map(err => ({
+            field: err.path,
+            message: err.message
+        }));
+        
+        return {
+            error: 'Validation failed',
+            code: ErrorCodes.VALIDATION_ERROR,
+            status: 400,
+            details: errors
+        };
+    }
+
     // Default error
     return {
         error: error.message || 'Internal Server Error',

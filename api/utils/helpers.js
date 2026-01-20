@@ -19,12 +19,20 @@ export function removeAccents(inputStr) {
 
 /**
  * Verify admin PIN
+ * PIN must be exactly 4 digits
  */
 export async function verifyAdminPin(pin, userOrModel, userId = null) {
-    const pinValue = pin !== null && pin !== undefined ? String(pin) : '';
+    const pinValue = pin !== null && pin !== undefined ? String(pin).trim() : '';
     if (!pinValue) {
         const error = new Error('Vui lòng nhập mã PIN');
         error.statusCode = 403; // 403: đã đăng nhập nhưng từ chối thao tác (tránh nhầm 401 → redirect /login)
+        throw error;
+    }
+
+    // Validate PIN format: must be exactly 4 digits
+    if (pinValue.length !== 4 || !/^\d{4}$/.test(pinValue)) {
+        const error = new Error('Mã PIN phải có đúng 4 chữ số');
+        error.statusCode = 400;
         throw error;
     }
 

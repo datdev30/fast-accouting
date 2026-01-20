@@ -1,4 +1,5 @@
 import Joi from 'joi';
+import logger from '../utils/logger.js';
 
 /**
  * Validation middleware factory
@@ -18,8 +19,17 @@ export const validate = (schema) => {
         if (error) {
             const errors = error.details.map(detail => ({
                 field: detail.path.join('.'),
-                message: detail.message
+                message: detail.message,
+                type: detail.type
             }));
+
+            // Log validation errors for debugging
+            logger.warn('Validation failed', {
+                url: req.url,
+                method: req.method,
+                errors: errors,
+                body: req.body
+            });
 
             return res.status(400).json({
                 error: 'Validation failed',
@@ -220,11 +230,17 @@ export const userSchemas = {
                 .messages({
                     'string.max': 'Tên hiển thị không được vượt quá 100 ký tự'
                 }),
-            role: Joi.string().valid('ADMIN', 'SALE').default('SALE'),
-            pin: Joi.string().pattern(/^\d{6}$/).allow(null, '')
+            role: Joi.string().valid('ADMIN', 'SALE').default('SALE')
                 .messages({
-                    'string.pattern.base': 'Mã PIN phải có đúng 6 chữ số'
-                })
+                    'any.only': 'Vai trò phải là ADMIN hoặc SALE'
+                }),
+            pin: Joi.alternatives().try(
+                Joi.string().pattern(/^\d{4}$/).messages({
+                    'string.pattern.base': 'Mã PIN phải có đúng 4 chữ số'
+                }),
+                Joi.string().allow('').empty(''),
+                Joi.valid(null, '')
+            ).optional().default(null)
         })
     }),
 
@@ -243,9 +259,9 @@ export const userSchemas = {
                     'string.min': 'Mật khẩu phải có ít nhất 6 ký tự',
                     'string.max': 'Mật khẩu không được vượt quá 100 ký tự'
                 }),
-            pin: Joi.string().pattern(/^\d{6}$/).allow(null, '')
+            pin: Joi.string().pattern(/^\d{4}$/).allow(null, '')
                 .messages({
-                    'string.pattern.base': 'Mã PIN phải có đúng 6 chữ số'
+                    'string.pattern.base': 'Mã PIN phải có đúng 4 chữ số'
                 })
         }).min(1).messages({
             'object.min': 'Phải cung cấp ít nhất một trường để cập nhật'

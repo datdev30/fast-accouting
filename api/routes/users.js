@@ -39,6 +39,14 @@ router.post('/', authMiddleware, requireAdmin, validate(userSchemas.create), asy
     try {
         const { username, password, display_name, role, pin } = req.body;
 
+        logger.info('Creating user', { 
+            username, 
+            hasPassword: !!password, 
+            display_name, 
+            role, 
+            hasPin: pin !== undefined && pin !== null && pin !== '' 
+        });
+
         // Normalize username to lowercase
         const normalizedUsername = String(username).trim().toLowerCase();
 
@@ -58,13 +66,33 @@ router.post('/', authMiddleware, requireAdmin, validate(userSchemas.create), asy
             role: normalizedRole
         };
 
-        if (pin && String(pin).length > 0) {
-            userData.pin_hash = await User.hashPin(pin);
+        // Handle PIN - only hash if provided and not empty
+        if (pin !== undefined && pin !== null && String(pin).trim().length > 0) {
+            const pinStr = String(pin).trim();
+            // Validate PIN format (should be 4 digits, but validation schema already checked)
+            if (pinStr.length === 4 && /^\d{4}$/.test(pinStr)) {
+                userData.pin_hash = await User.hashPin(pinStr);
+                logger.info('PIN hashed for user', { username: normalizedUsername });
+            } else {
+                logger.warn('Invalid PIN format', { pin: pinStr, username: normalizedUsername });
+                throw new APIError('Mã PIN phải có đúng 4 chữ số', 400, ErrorCodes.VALIDATION_ERROR);
+            }
         }
 
         const user = new User(userData);
 
-        await user.save();
+        try {
+            await user.save();
+        } catch (saveError) {
+            // Handle duplicate key error (race condition)
+            if (saveError.code === 11000 || saveError.name === 'MongoServerError') {
+                const existing = await User.findOne({ username: normalizedUsername });
+                if (existing) {
+                    throw new APIError('Tên đăng nhập đã tồn tại', 400, ErrorCodes.ALREADY_EXISTS);
+                }
+            }
+            throw saveError;
+        }
 
         logger.info('User created', { username: user.username, role: user.role });
 
@@ -110,8 +138,16 @@ router.patch('/:id', authMiddleware, requireAdmin, validate(userSchemas.update),
             user.legacy_password = false;
         }
 
-        if (pin !== undefined && String(pin).length > 0) {
-            user.pin_hash = await User.hashPin(pin);
+        if (pin !== undefined && pin !== null && String(pin).trim().length > 0) {
+            const pinStr = String(pin).trim();
+            // Validate PIN format (should be 4 digits, but validation schema already checked)
+            if (pinStr.length === 4 && /^\d{4}$/.test(pinStr)) {
+                user.pin_hash = await User.hashPin(pinStr);
+                logger.info('PIN updated for user', { userId: user._id, username: user.username });
+            } else {
+                logger.warn('Invalid PIN format on update', { pin: pinStr, userId: user._id });
+                throw new APIError('Mã PIN phải có đúng 4 chữ số', 400, ErrorCodes.VALIDATION_ERROR);
+            }
         }
 
         await user.save();
