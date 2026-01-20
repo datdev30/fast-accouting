@@ -39,7 +39,10 @@ router.post('/', authMiddleware, requireAdmin, validate(userSchemas.create), asy
     try {
         const { username, password, display_name, role, pin } = req.body;
 
-        const existing = await User.findOne({ username: String(username).trim() });
+        // Normalize username to lowercase
+        const normalizedUsername = String(username).trim().toLowerCase();
+
+        const existing = await User.findOne({ username: normalizedUsername });
         if (existing) {
             throw new APIError('Username already exists', 400, ErrorCodes.ALREADY_EXISTS);
         }
@@ -48,7 +51,7 @@ router.post('/', authMiddleware, requireAdmin, validate(userSchemas.create), asy
         const normalizedRole = normalizeRole(role) || 'SALE';
 
         const userData = {
-            username: String(username).trim(),
+            username: normalizedUsername,
             password_hash: hashedPassword,
             legacy_password: false,
             display_name: display_name ? String(display_name).trim() : null,

@@ -201,7 +201,7 @@ export const interestConfigSchemas = {
 export const userSchemas = {
     create: Joi.object({
         body: Joi.object({
-            username: Joi.string().trim().min(3).max(50).pattern(/^[a-zA-Z0-9_]+$/).required()
+            username: Joi.string().trim().min(3).max(50).pattern(/^[a-zA-Z0-9_]+$/).lowercase().required()
                 .messages({
                     'string.empty': 'Tên đăng nhập không được để trống',
                     'string.min': 'Tên đăng nhập phải có ít nhất 3 ký tự',
@@ -259,7 +259,7 @@ export const userSchemas = {
 export const authSchemas = {
     login: Joi.object({
         body: Joi.object({
-            username: Joi.string().trim().min(1).required()
+            username: Joi.string().trim().min(1).lowercase().required()
                 .messages({
                     'string.empty': 'Vui lòng nhập tên đăng nhập',
                     'string.min': 'Tên đăng nhập không được để trống',
@@ -276,7 +276,7 @@ export const authSchemas = {
 
     register: Joi.object({
         body: Joi.object({
-            username: Joi.string().trim().min(3).max(50).pattern(/^[a-zA-Z0-9_]+$/).required()
+            username: Joi.string().trim().min(3).max(50).pattern(/^[a-zA-Z0-9_]+$/).lowercase().required()
                 .messages({
                     'string.min': 'Tên đăng nhập phải có ít nhất 3 ký tự',
                     'string.max': 'Tên đăng nhập không được vượt quá 50 ký tự',

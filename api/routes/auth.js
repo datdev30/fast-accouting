@@ -16,8 +16,11 @@ router.post('/register', validate(authSchemas.register), async (req, res, next) 
     try {
         const { username, password, display_name } = req.body;
 
+        // Normalize username to lowercase
+        const normalizedUsername = String(username).trim().toLowerCase();
+
         // Check if user exists
-        const existingUser = await User.findOne({ username });
+        const existingUser = await User.findOne({ username: normalizedUsername });
         if (existingUser) {
             throw new APIError('Username already exists', 400, ErrorCodes.ALREADY_EXISTS);
         }
@@ -27,10 +30,10 @@ router.post('/register', validate(authSchemas.register), async (req, res, next) 
 
         // Create user
         const user = new User({
-            username,
+            username: normalizedUsername,
             password_hash: hashedPassword,
             legacy_password: false,
-            display_name: display_name || username,
+            display_name: display_name || normalizedUsername,
             role: 'SALE'
         });
 
@@ -55,8 +58,11 @@ router.post('/login', validate(authSchemas.login), async (req, res, next) => {
     try {
         const { username, password } = req.body;
 
+        // Normalize username to lowercase
+        const normalizedUsername = String(username).trim().toLowerCase();
+
         // Find user
-        const user = await User.findOne({ username });
+        const user = await User.findOne({ username: normalizedUsername });
         if (!user) {
             throw new APIError('Tên đăng nhập hoặc mật khẩu không đúng', 401, ErrorCodes.INVALID_CREDENTIALS);
         }
@@ -111,7 +117,9 @@ router.get('/me', authMiddleware, async (req, res, next) => {
         }
 
         if (!user && username) {
-            user = await User.findOne({ username }).select('-password_hash -pin_hash');
+            // Normalize username to lowercase
+            const normalizedUsername = String(username).trim().toLowerCase();
+            user = await User.findOne({ username: normalizedUsername }).select('-password_hash -pin_hash');
         }
 
         if (!user) {
@@ -150,7 +158,9 @@ router.post('/clear-rate-limit', async (req, res, next) => {
                         user = await User.findById(userId).select('role');
                     }
                     if (!user && username) {
-                        user = await User.findOne({ username }).select('role');
+                        // Normalize username to lowercase
+                        const normalizedUsername = String(username).trim().toLowerCase();
+                        user = await User.findOne({ username: normalizedUsername }).select('role');
                     }
 
                     if (!user || user.role !== 'ADMIN') {
