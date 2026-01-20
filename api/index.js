@@ -52,18 +52,24 @@ if (process.env.CORS_ORIGIN) {
     }
 }
 
-app.use(cors({
+// CORS configuration with preflight support
+const corsOptions = {
     origin: function (origin, callback) {
         // Allow requests with no origin (like mobile apps, Postman, or same-origin requests)
-        if (!origin) return callback(null, true);
+        if (!origin) {
+            logger.info('CORS: No origin header, allowing request');
+            return callback(null, true);
+        }
         
         // Allow if wildcard is set
         if (allowedOrigins.includes('*')) {
+            logger.info('CORS: Wildcard enabled, allowing origin', { origin });
             return callback(null, true);
         }
         
         // Check if origin is in allowed list
         if (allowedOrigins.includes(origin)) {
+            logger.info('CORS: Origin allowed', { origin, allowed: allowedOrigins });
             callback(null, true);
         } else {
             logger.warn('CORS blocked origin', { origin, allowed: allowedOrigins });
@@ -72,9 +78,25 @@ app.use(cors({
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-    exposedHeaders: ['Content-Disposition']
-}));
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+    exposedHeaders: ['Content-Disposition'],
+    preflightContinue: false,
+    optionsSuccessStatus: 200
+};
+
+// Apply CORS middleware (must be before routes)
+app.use(cors(corsOptions));
+
+// Explicit OPTIONS handler for all routes (preflight requests)
+// This ensures preflight requests are handled correctly
+app.options('*', cors(corsOptions), (req, res) => {
+    logger.info('CORS: Handling OPTIONS preflight request', { 
+        origin: req.headers.origin,
+        method: req.method,
+        path: req.path
+    });
+    res.status(200).end();
+});
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -98,7 +120,10 @@ app.get('/', (req, res) => {
 
 // Ensure DB connection for requests that need it (skip CORS preflight)
 app.use(async (req, res, next) => {
-    if (req.method === 'OPTIONS') return next();
+    // Skip DB connection for OPTIONS requests (preflight)
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
 
     try {
         await connectDB();
