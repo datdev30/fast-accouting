@@ -127,7 +127,7 @@ export const transactionSchemas = {
                 }),
             transaction_date: Joi.date().iso(),
             status: Joi.string().valid('OPEN', 'PAID'),
-            closed_at: Joi.date().iso()
+            closed_at: Joi.any().allow(null).optional()
         }).min(1).messages({
             'object.min': 'Phải cung cấp ít nhất một trường để cập nhật'
         })
@@ -259,14 +259,16 @@ export const userSchemas = {
 export const authSchemas = {
     login: Joi.object({
         body: Joi.object({
-            username: Joi.string().trim().required()
+            username: Joi.string().trim().min(1).required()
                 .messages({
                     'string.empty': 'Vui lòng nhập tên đăng nhập',
+                    'string.min': 'Tên đăng nhập không được để trống',
                     'any.required': 'Tên đăng nhập là bắt buộc'
                 }),
-            password: Joi.string().required()
+            password: Joi.string().min(1).required()
                 .messages({
                     'string.empty': 'Vui lòng nhập mật khẩu',
+                    'string.min': 'Mật khẩu không được để trống',
                     'any.required': 'Mật khẩu là bắt buộc'
                 })
         })

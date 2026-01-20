@@ -10,7 +10,7 @@ import User from '../models/User.js';
 import { getNextId } from '../utils/counter.js';
 import { calculateInterestAmount } from '../utils/interest.js';
 import { verifyAdminPin } from '../utils/helpers.js';
-import { authMiddleware, requireAdmin } from '../middleware/auth.js';
+import { authMiddleware, requireAdmin, requireAdminOrSale } from '../middleware/auth.js';
 import { validate, transactionSchemas } from '../middleware/validation.js';
 import { APIError, ErrorCodes } from '../utils/errors.js';
 import logger from '../utils/logger.js';
@@ -55,16 +55,16 @@ router.post('/:id/image', authMiddleware, handleTransactionImageUpload, async (r
     try {
         const tx = await Transaction.findOne(buildTransactionLookupQuery(req.params.id));
         if (!tx) {
-            return res.status(404).json({ error: 'Transaction not found' });
+            throw new APIError('Transaction not found', 404, ErrorCodes.NOT_FOUND);
         }
 
         const file = req.file;
         if (!file) {
-            return res.status(400).json({ error: 'Missing image file (field name: image)' });
+            throw new APIError('Missing image file (field name: image)', 400, ErrorCodes.VALIDATION_ERROR);
         }
 
         if (!file.mimetype || !file.mimetype.startsWith('image/')) {
-            return res.status(400).json({ error: 'File phải là hình ảnh' });
+            throw new APIError('File phải là hình ảnh', 400, ErrorCodes.VALIDATION_ERROR);
         }
 
         const driveFileId = await uploadTransactionImageToDrive({
@@ -163,7 +163,7 @@ router.post('/:id/image', authMiddleware, handleTransactionImageUpload, async (r
  * GET /api/transactions/:id/image
  * Stream transaction image from Google Drive
  */
-router.get('/:id/image', authMiddleware, async (req, res) => {
+router.get('/:id/image', authMiddleware, async (req, res, next) => {
     try {
         const tx = await Transaction.findOne(buildTransactionLookupQuery(req.params.id));
         if (!tx) {
@@ -182,7 +182,11 @@ router.get('/:id/image', authMiddleware, async (req, res) => {
         try {
             await pipelineAsync(driveResp.data, res);
         } catch (streamErr) {
-            console.error('Drive stream error:', streamErr);
+            logger.error('Drive stream error', { 
+                error: streamErr.message, 
+                transactionId: req.params.id,
+                stack: streamErr.stack 
+            });
             if (!res.headersSent) {
                 return res.status(502).json({ error: 'Failed to download image from Drive' });
             }
@@ -251,7 +255,7 @@ router.delete('/:id/image', authMiddleware, async (req, res, next) => {
     try {
         const tx = await Transaction.findOne(buildTransactionLookupQuery(req.params.id));
         if (!tx) {
-            return res.status(404).json({ error: 'Transaction not found' });
+            throw new APIError('Transaction not found', 404, ErrorCodes.NOT_FOUND);
         }
 
         const fileId = tx.image_drive_file_id;
@@ -476,7 +480,7 @@ router.patch('/:id', validate(transactionSchemas.update), async (req, res, next)
         if (customer_id !== undefined) {
             const customer = await Customer.findOne({ $or: [{ id: customer_id }, { _id: customer_id }] });
             if (!customer) {
-                return res.status(404).json({ error: 'Customer not found' });
+                throw new APIError('Customer not found', 404, ErrorCodes.NOT_FOUND);
             }
             tx.customer_id = customer_id;
         }
@@ -514,17 +518,22 @@ router.patch('/:id', validate(transactionSchemas.update), async (req, res, next)
 
         if (newStatus === 'OPEN') {
             if (statusChanged) {
+                // Clear all payment-related fields when switching to OPEN
                 tx.status = 'OPEN';
                 tx.closed_at = null;
                 tx.final_interest = null;
                 tx.final_months = null;
                 tx.final_total = null;
             }
+            // If closed_at is explicitly set to null in request, ensure it's cleared
+            if (closed_at === null) {
+                tx.closed_at = null;
+            }
         } else if (newStatus === 'PAID') {
             // Determine payment date
             let targetPaymentDate;
 
-            if (closed_at) {
+            if (closed_at !== undefined && closed_at !== null) {
                 targetPaymentDate = new Date(closed_at);
             } else if (tx.closed_at) {
                 targetPaymentDate = tx.closed_at;
@@ -536,7 +545,14 @@ router.patch('/:id', validate(transactionSchemas.update), async (req, res, next)
                 throw new APIError('Ngày thanh toán không hợp lệ', 400, ErrorCodes.VALIDATION_ERROR);
             }
 
-            if (targetPaymentDate < tx.transaction_date) {
+            // Normalize dates to start of day for consistent comparison and calculation
+            const normalizedPaymentDate = new Date(targetPaymentDate);
+            normalizedPaymentDate.setHours(0, 0, 0, 0);
+            
+            const txDateNormalized = new Date(tx.transaction_date);
+            txDateNormalized.setHours(0, 0, 0, 0);
+
+            if (normalizedPaymentDate < txDateNormalized) {
                 throw new APIError(
                     'Ngày thanh toán không được nhỏ hơn ngày giao dịch',
                     400,
@@ -544,16 +560,17 @@ router.patch('/:id', validate(transactionSchemas.update), async (req, res, next)
                 );
             }
 
-            // Calculate interest
+            // Calculate interest from transaction_date to payment_date
+            // Both dates are normalized to start of day for consistent day-based calculation
             const calc = calculateInterestAmount(
                 tx.amount,
                 tx.interest_rate_snapshot,
-                tx.transaction_date,
-                targetPaymentDate
+                txDateNormalized,
+                normalizedPaymentDate
             );
 
             tx.status = 'PAID';
-            tx.closed_at = targetPaymentDate;
+            tx.closed_at = normalizedPaymentDate;
             tx.final_interest = calc.rounded_interest;
             tx.final_months = calc.months;
             tx.final_total = tx.amount + calc.rounded_interest;
@@ -577,11 +594,11 @@ router.patch('/:id', validate(transactionSchemas.update), async (req, res, next)
  * POST /api/transactions/bulk-pay
  * Bulk payment for all OPEN transactions of a customer
  */
-router.post('/bulk-pay', authMiddleware, requireAdmin, async (req, res, next) => {
+router.post('/bulk-pay', authMiddleware, requireAdminOrSale, async (req, res, next) => {
     try {
         const { customer_id, payment_date, pin } = req.body;
 
-        // Verify admin PIN
+        // Verify user PIN (ADMIN or SALE)
         await verifyAdminPin(pin, req.currentUser);
 
         // Find OPEN transactions
@@ -594,30 +611,44 @@ router.post('/bulk-pay', authMiddleware, requireAdmin, async (req, res, next) =>
             return res.json({ message: 'Không có giao dịch nào cần thanh toán', count: 0 });
         }
 
+        // Parse payment_date and normalize to start of day in local timezone
+        // This ensures consistent date comparison and interest calculation
         const paymentDateObj = new Date(payment_date);
         if (!payment_date || isNaN(paymentDateObj.getTime())) {
             throw new APIError('Ngày thanh toán không hợp lệ', 400, ErrorCodes.VALIDATION_ERROR);
         }
+        
+        // Normalize to start of day to ensure consistent date comparison
+        // Set to 00:00:00 in local timezone
+        const normalizedPaymentDate = new Date(paymentDateObj);
+        normalizedPaymentDate.setHours(0, 0, 0, 0);
+        
         let count = 0;
 
         for (const tx of transactions) {
-            if (paymentDateObj < tx.transaction_date) {
+            // Normalize transaction_date to start of day for comparison and calculation
+            const txDateNormalized = new Date(tx.transaction_date);
+            txDateNormalized.setHours(0, 0, 0, 0);
+            
+            if (normalizedPaymentDate < txDateNormalized) {
                 throw new APIError(
                     `Ngày thanh toán không được nhỏ hơn ngày giao dịch (giao dịch ${tx.id || tx._id})`,
                     400,
                     ErrorCodes.INVALID_DATE_RANGE
                 );
             }
-            // Calculate interest
+            
+            // Calculate interest from transaction_date to payment_date
+            // Both dates are normalized to start of day for consistent day-based calculation
             const calc = calculateInterestAmount(
                 tx.amount,
                 tx.interest_rate_snapshot,
-                tx.transaction_date,
-                paymentDateObj
+                txDateNormalized,
+                normalizedPaymentDate
             );
 
             tx.status = 'PAID';
-            tx.closed_at = paymentDateObj;
+            tx.closed_at = normalizedPaymentDate;
             tx.final_interest = calc.rounded_interest;
             tx.final_months = calc.months;
             tx.final_total = tx.amount + calc.rounded_interest;
@@ -652,16 +683,19 @@ router.post('/delete-secure', authMiddleware, requireAdmin, async (req, res) => 
         const tx = await Transaction.findOne({ $or: [{ id }, { _id: id }] });
 
         if (!tx) {
-            return res.status(404).json({ error: 'Transaction not found' });
+            throw new APIError('Transaction not found', 404, ErrorCodes.NOT_FOUND);
         }
 
         await Transaction.deleteOne({ $or: [{ id }, { _id: id }] });
 
         res.json({ message: 'Đã xóa giao dịch' });
     } catch (error) {
-        console.error('Delete transaction error:', error);
-        const statusCode = error.statusCode || 500;
-        res.status(statusCode).json({ error: error.message });
+        logger.error('Delete transaction error', { 
+            error: error.message, 
+            transactionId: id,
+            stack: error.stack 
+        });
+        next(error);
     }
 });
 

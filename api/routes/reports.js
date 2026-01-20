@@ -22,7 +22,7 @@ function sanitizeFilename(input) {
  * GET /api/reports/:customer_id/pdf
  * Generate PDF report for customer
  */
-router.get('/:customer_id/pdf', async (req, res) => {
+router.get('/:customer_id/pdf', async (req, res, next) => {
     try {
         const { customer_id } = req.params;
         const { start_date, end_date, include_all } = req.query;
@@ -33,7 +33,7 @@ router.get('/:customer_id/pdf', async (req, res) => {
         const customer = await Customer.findOne({ $or: [{ id: customerKey }, { _id: customerKey }] });
 
         if (!customer) {
-            return res.status(404).json({ error: 'Customer not found' });
+            throw new APIError('Customer not found', 404, ErrorCodes.NOT_FOUND);
         }
 
         // Build query for transactions
@@ -75,17 +75,13 @@ router.get('/:customer_id/pdf', async (req, res) => {
         res.setHeader('Content-Disposition', `attachment; filename=${filename}`);
         res.send(pdfBuffer);
     } catch (error) {
-        console.error('PDF generation error:', error);
         logger.error('PDF generation failed', { 
-            customer_id, 
+            customer_id: req.params.customer_id, 
             error: error.message, 
             stack: error.stack,
-            includeAll 
+            includeAll: req.query.include_all === 'true'
         });
-        res.status(500).json({ 
-            error: error.message || 'Lỗi khi tạo PDF',
-            code: 'PDF_GENERATION_ERROR'
-        });
+        next(error);
     }
 });
 
@@ -153,7 +149,10 @@ router.post('/batch-export', async (req, res, next) => {
 
         const archive = archiver('zip', { zlib: { level: 9 } });
         archive.on('error', (err) => {
-            console.error('ZIP archive error:', err);
+            logger.error('ZIP archive error', { 
+                error: err.message, 
+                stack: err.stack 
+            });
             if (!res.headersSent) {
                 res.status(500);
             }

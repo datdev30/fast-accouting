@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import logger from '../utils/logger.js';
 
 /**
  * JWT Authentication Middleware
@@ -86,7 +87,36 @@ export const requireAdmin = async (req, res, next) => {
         req.currentUser = currentUser;
         next();
     } catch (error) {
-        console.error('Require admin error:', error);
+        logger.error('Require admin error', { error: error.message, stack: error.stack });
+        res.status(500).json({ error: 'Server error during authorization' });
+    }
+};
+
+/**
+ * Require ADMIN or SALE role
+ * Loads the full user document to validate role.
+ * Used for operations that both ADMIN and SALE can perform (e.g., bulk pay)
+ */
+export const requireAdminOrSale = async (req, res, next) => {
+    try {
+        if (!req.user?.id) {
+            return res.status(401).json({ error: 'Access denied. Not authenticated.' });
+        }
+
+        // Need `pin_hash` to verify PIN in bulk-pay endpoints.
+        const currentUser = await User.findById(req.user.id).select('role username pin_hash');
+        if (!currentUser) {
+            return res.status(401).json({ error: 'User not found' });
+        }
+
+        if (currentUser.role !== 'ADMIN' && currentUser.role !== 'SALE') {
+            return res.status(403).json({ error: 'Bạn không có quyền thực hiện thao tác này' });
+        }
+
+        req.currentUser = currentUser;
+        next();
+    } catch (error) {
+        logger.error('Require admin or sale error', { error: error.message, stack: error.stack });
         res.status(500).json({ error: 'Server error during authorization' });
     }
 };

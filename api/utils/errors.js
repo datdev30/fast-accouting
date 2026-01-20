@@ -2,6 +2,7 @@
  * Standardized error handling
  * Provides consistent error format with error codes
  */
+import logger from './logger.js';
 
 /**
  * Custom API Error class
@@ -106,11 +107,12 @@ export function errorHandler(err, req, res, next) {
 
     // Log error
     if (statusCode >= 500) {
-        console.error('Server Error:', {
+        logger.error('Server Error', {
             message: err.message,
             stack: err.stack,
             url: req?.url,
-            method: req?.method
+            method: req?.method,
+            code: errorResponse.code
         });
     }
 

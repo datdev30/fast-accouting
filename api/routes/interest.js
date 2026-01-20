@@ -26,18 +26,18 @@ router.get('/', async (req, res, next) => {
  * POST /api/interest-configs
  * Create new interest configuration
  */
-router.post('/', async (req, res) => {
+router.post('/', async (req, res, next) => {
     try {
         const { code, name, rate_per_month, description } = req.body;
 
         if (!code || !name || rate_per_month === undefined) {
-            return res.status(400).json({ error: 'Code, name, and rate_per_month are required' });
+            throw new APIError('Code, name, and rate_per_month are required', 400, ErrorCodes.VALIDATION_ERROR);
         }
 
         // Check if code already exists
         const existing = await InterestConfig.findOne({ code });
         if (existing) {
-            return res.status(400).json({ error: 'Config code already exists' });
+            throw new APIError('Config code already exists', 400, ErrorCodes.ALREADY_EXISTS);
         }
 
         const config = new InterestConfig({
@@ -51,8 +51,12 @@ router.post('/', async (req, res) => {
 
         res.status(201).json(config);
     } catch (error) {
-        console.error('Create interest config error:', error);
-        res.status(500).json({ error: error.message });
+        logger.error('Create interest config error', { 
+            error: error.message, 
+            stack: error.stack,
+            code: req.body?.code 
+        });
+        next(error);
     }
 });
 
