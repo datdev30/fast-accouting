@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import api from '../services/api';
 import { useToast } from './ToastContext';
+import { getApiErrorMessage } from '../utils/errorMessage';
 
 const AuthContext = createContext();
 
@@ -86,7 +87,7 @@ export const AuthProvider = ({ children }) => {
             return true;
         } catch (e) {
             console.error("Backup failed", e);
-            showToast("Lỗi sao lưu", "Không thể sao lưu báo cáo. Vui lòng thử lại hoặc kiểm tra server.", "error");
+            showToast('Lỗi sao lưu', getApiErrorMessage(e, 'Xuất báo cáo PDF (batch-export)'), 'error');
             return false;
         } finally {
             setIsBackingUp(false);

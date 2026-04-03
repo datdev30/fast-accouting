@@ -1,18 +1,17 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getDebtReport } from '../services/api';
-import { Download, TrendingUp, Wallet, ArrowUpRight, ArrowDownRight, PieChart, Search, ArrowUpDown, ArrowUp, ArrowDown, ChevronRight } from 'lucide-react';
+import { Download, TrendingUp, Wallet, ArrowUpRight, ArrowDownRight, PieChart, Search, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
+import ReportsAdminCharts from '../components/ReportsAdminCharts';
 import LoadingSkeleton from '../components/LoadingSkeleton';
 import { EmptyStates } from '../components/EmptyState';
 import { ErrorStates } from '../components/ErrorState';
 
 export default function Reports() {
     const navigate = useNavigate();
-    const { showToast } = useToast();
-    const { triggerBatchExport, isBackingUp } = useAuth(); // Global state
+    const { triggerBatchExport, isBackingUp } = useAuth();
     const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
@@ -30,8 +29,8 @@ export default function Reports() {
         // 1. Filter
         if (searchTerm) {
             const lowerTerm = searchTerm.toLowerCase();
-            data = data.filter(item =>
-                item.customer_name.toLowerCase().includes(lowerTerm)
+            data = data.filter((item) =>
+                (item.customer_name ?? '').toLowerCase().includes(lowerTerm)
             );
         }
 
@@ -66,17 +65,19 @@ export default function Reports() {
     };
 
     if (reportError) return (
-        <div className="p-8">
-            <ErrorStates.Network
-                error={reportError}
-                onRetry={refetch}
-                showDetails={true}
-            />
+        <div className="reports-page px-1 pb-8 sm:px-0">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+                <ErrorStates.Network
+                    error={reportError}
+                    onRetry={refetch}
+                    showDetails={true}
+                />
+            </div>
         </div>
     );
 
     if (isLoading) return (
-        <div className="space-y-8">
+        <div className="reports-page space-y-6 pb-8">
             <LoadingSkeleton.Stats count={4} />
             <LoadingSkeleton.Table rows={8} columns={7} />
         </div>
@@ -88,18 +89,19 @@ export default function Reports() {
     const totalCollected = report?.reduce((sum, item) => sum + (item.total_collected || 0), 0) || 0;
 
     return (
-        <div className="space-y-6 lg:space-y-8">
-            {/* Header Section */}
-            <div className="space-y-0">
-                <div className="flex items-center justify-between gap-4 lg:gap-6">
-                    {/* Left: Title & Subtitle */}
-                    <div>
-                        <h1 className="section-title">Tổng Quan Tài Chính</h1>
-                        <p className="section-subtitle mt-1">Báo cáo tổng hợp tình hình công nợ khách hàng</p>
-                    </div>
-
-                    {/* Right: Export Button */}
+        <div className="reports-page space-y-6 pb-10 animate-in fade-in duration-300 lg:space-y-8">
+            <header className="reports-page__masthead">
+                <div className="reports-page__masthead-accent" aria-hidden />
+                <div className="relative z-[1] min-w-0 flex-1">
+                    <p className="reports-page__kicker">Báo cáo &amp; tổng hợp</p>
+                    <h1 className="section-title text-xl lg:text-2xl">Tổng quan tài chính</h1>
+                    <p className="section-subtitle mt-1 max-w-2xl">
+                        Công nợ theo khách hàng, chỉ số tổng và biểu đồ trực quan — dữ liệu từ sổ giao dịch hiện tại.
+                    </p>
+                </div>
+                <div className="relative z-[1] flex w-full shrink-0 flex-col gap-1 sm:w-auto sm:items-end">
                     <button
+                        type="button"
                         onClick={async () => {
                             let selectedPath = null;
                             if (window.pywebview && window.pywebview.api && window.pywebview.api.select_folder) {
@@ -113,116 +115,115 @@ export default function Reports() {
                             await triggerBatchExport(selectedPath);
                         }}
                         disabled={isBackingUp}
-                        className="btn-primary btn-lg justify-center text-base min-h-[44px] px-6 py-3 whitespace-nowrap shrink-0 disabled:cursor-wait"
+                        className="btn-primary btn-md w-full whitespace-nowrap sm:w-auto disabled:cursor-wait"
                     >
-                        <Download size={18} className={isBackingUp ? "animate-bounce" : ""} />
-                        <span>{isBackingUp ? 'Đang Xử Lý...' : 'Xuất Phiếu PDF'}</span>
+                        <Download size={16} className={isBackingUp ? 'animate-bounce' : ''} />
+                        <span>{isBackingUp ? 'Đang xử lý…' : 'Xuất phiếu PDF'}</span>
                     </button>
+                    <p className="reports-page__export-hint hidden text-right sm:block">
+                        Gói PDF theo khách — chọn thư mục khi ứng dụng hỗ trợ.
+                    </p>
                 </div>
-            </div>
+            </header>
 
-
-            {/* Summary Cards */}
-            <div className="grid grid-cols-4 gap-6">
-                <div className="group relative overflow-hidden bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-lg hover:border-blue-200 transition-all duration-300 card-hover">
-                    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110">
-                        <Wallet size={120} className="text-blue-600" />
-                    </div>
-                    <div className="relative z-10">
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-                                <Wallet size={20} />
+            <section className="reports-page__kpi-grid" aria-label="Chỉ số tổng hợp">
+                <div className="reports-page__kpi-card reports-page__kpi-card--principal">
+                    <div className="relative z-[1] flex items-start gap-3">
+                        <div className="reports-page__kpi-icon reports-page__kpi-icon--principal" aria-hidden>
+                            <Wallet size={20} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <p className="reports-page__kpi-label">Tổng tiền gốc</p>
+                            <div className="mt-2 flex items-baseline gap-1.5">
+                                <span className="reports-page__kpi-value">{totalPrincipal.toLocaleString('vi-VN')}</span>
+                                <span className="reports-page__kpi-suffix">đ</span>
                             </div>
-                            <span className="font-medium text-slate-500 text-sm">Tổng tiền gốc</span>
-                        </div>
-                        <div className="flex items-baseline gap-2">
-                            <h3 className="text-3xl font-bold text-slate-900 font-heading">{totalPrincipal.toLocaleString('vi-VN')}</h3>
-                            <span className="text-slate-400 font-medium">đ</span>
                         </div>
                     </div>
                 </div>
 
-                <div className="group relative overflow-hidden bg-gradient-to-br from-blue-600 to-indigo-600 p-6 rounded-2xl shadow-lg shadow-blue-200/50 text-white hover:-translate-y-1 transition-transform duration-300">
-                    <div className="absolute top-0 right-0 p-4 opacity-10 transform scale-150">
-                        <TrendingUp size={120} />
-                    </div>
-                    <div className="relative z-10">
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="p-2 bg-white/20 backdrop-blur-sm rounded-lg">
-                                <TrendingUp size={20} />
+                <div className="reports-page__kpi-card reports-page__kpi-card--interest">
+                    <div className="relative z-[1] flex items-start gap-3">
+                        <div className="reports-page__kpi-icon reports-page__kpi-icon--interest" aria-hidden>
+                            <TrendingUp size={20} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <p className="reports-page__kpi-label">Lãi dự kiến (tổng hợp)</p>
+                            <div className="mt-2 flex items-baseline gap-1.5">
+                                <span className="reports-page__kpi-value text-violet-900">
+                                    +{totalInterest.toLocaleString('vi-VN')}
+                                </span>
+                                <span className="reports-page__kpi-suffix">đ</span>
                             </div>
-                            <span className="font-medium text-blue-100 text-sm">Lãi suất dự kiến</span>
-                        </div>
-                        <div className="flex items-baseline gap-2">
-                            <h3 className="text-3xl font-bold text-white font-heading">+{totalInterest.toLocaleString('vi-VN')}</h3>
-                            <span className="text-blue-200 font-medium">đ</span>
-                        </div>
-                        <div className="mt-4 flex items-center gap-1 text-xs text-blue-100 bg-white/10 w-fit px-2 py-1 rounded-full backdrop-blur-sm">
-                            <ArrowUpRight size={14} />
-                            <span>Đang tăng trưởng</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="group relative overflow-hidden bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-lg hover:border-red-200 transition-all duration-300 card-hover">
-                    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110">
-                        <PieChart size={120} className="text-red-500" />
-                    </div>
-                    <div className="relative z-10">
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="p-2 bg-red-50 text-red-600 rounded-lg">
-                                <PieChart size={20} />
+                            <div className="reports-page__kpi-pill">
+                                <TrendingUp size={12} className="shrink-0 opacity-80" aria-hidden />
+                                Ước tính theo cấu hình lãi
                             </div>
-                            <span className="font-medium text-slate-500 text-sm">Tổng nợ phải thu</span>
-                        </div>
-                        <div className="flex items-baseline gap-2">
-                            <h3 className="text-3xl font-bold text-slate-900 font-heading">{totalDebt.toLocaleString('vi-VN')}</h3>
-                            <span className="text-slate-400 font-medium">đ</span>
-                        </div>
-                        <div className="mt-4 flex items-center gap-1 text-xs text-slate-400">
-                            Hiện tại có <span className="font-bold text-slate-700">{report?.filter(i => i.total_debt > 0).length || 0}</span> khách hàng đang nợ
                         </div>
                     </div>
                 </div>
 
-                {/* Thực tế đã thu */}
-                <div className="group relative overflow-hidden bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:shadow-lg hover:border-emerald-200 transition-all duration-300 card-hover">
-                    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110">
-                        <Download size={120} className="text-emerald-500" />
-                    </div>
-                    <div className="relative z-10">
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
-                                <Download size={20} />
+                <div className="reports-page__kpi-card reports-page__kpi-card--debt">
+                    <div className="relative z-[1] flex items-start gap-3">
+                        <div className="reports-page__kpi-icon reports-page__kpi-icon--debt" aria-hidden>
+                            <PieChart size={20} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <p className="reports-page__kpi-label">Tổng nợ phải thu</p>
+                            <div className="mt-2 flex items-baseline gap-1.5">
+                                <span className="reports-page__kpi-value text-rose-950">{totalDebt.toLocaleString('vi-VN')}</span>
+                                <span className="reports-page__kpi-suffix">đ</span>
                             </div>
-                            <span className="font-medium text-slate-500 text-sm">Thực tế đã thu</span>
-                        </div>
-                        <div className="flex items-baseline gap-2">
-                            <h3 className="text-3xl font-bold text-slate-900 font-heading">{totalCollected.toLocaleString('vi-VN')}</h3>
-                            <span className="text-slate-400 font-medium">đ</span>
+                            <p className="reports-page__kpi-foot">
+                                <span className="font-semibold text-slate-700">{report?.filter((i) => i.total_debt > 0).length || 0}</span>{' '}
+                                khách hàng còn dư nợ
+                            </p>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            {/* Detailed List */}
-            <div className="card overflow-hidden">
-                {/* Header Section */}
+                <div className="reports-page__kpi-card reports-page__kpi-card--collected">
+                    <div className="relative z-[1] flex items-start gap-3">
+                        <div className="reports-page__kpi-icon reports-page__kpi-icon--collected" aria-hidden>
+                            <Download size={20} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <p className="reports-page__kpi-label">Đã thu (thực tế)</p>
+                            <div className="mt-2 flex items-baseline gap-1.5">
+                                <span className="reports-page__kpi-value text-emerald-950">
+                                    {totalCollected.toLocaleString('vi-VN')}
+                                </span>
+                                <span className="reports-page__kpi-suffix">đ</span>
+                            </div>
+                            <p className="reports-page__kpi-foot">Tổng số tiền đã ghi nhận thanh toán.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section className="reports-page__charts-panel" aria-label="Biểu đồ">
+                <div className="reports-page__charts-panel-accent" aria-hidden />
+                <div className="reports-page__charts-panel-inner reports-charts-root">
+                    <ReportsAdminCharts report={report ?? []} />
+                </div>
+            </section>
+
+            <section className="reports-page__table-card" aria-label="Chi tiết theo khách hàng">
                 <div className="card-header">
-                    <div className="flex items-center justify-between gap-6">
-                        <h3 className="section-kicker">
-                            <div className="w-1 h-4 bg-blue-600 rounded-full"></div>
-                            Chi Tiết Theo Khách Hàng
-                        </h3>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                        <h2 className="section-kicker">
+                            <span className="h-4 w-1 rounded-full bg-blue-600" aria-hidden />
+                            Chi tiết theo khách hàng
+                        </h2>
                         {/* Search Bar */}
-                        <div className="relative w-64">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                                <Search size={18} />
+                        <div className="relative w-full sm:w-56 md:w-64">
+                            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                                <Search size={16} className="shrink-0" />
                             </div>
                             <input
                                 type="text"
                                 placeholder="Tìm kiếm khách hàng..."
-                                className="input pl-10 text-base min-h-[44px]"
+                                className="input-filter input-icon"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
@@ -236,7 +237,8 @@ export default function Reports() {
                         <thead className="table-head">
                             <tr>
                                 <th
-                                    className="table-th cursor-pointer hover:bg-slate-50 transition-colors group min-h-[44px] py-4"
+                                    scope="col"
+                                    className="table-th table-th-sortable group"
                                     onClick={() => handleSort('customer_name')}
                                 >
                                     <div className="flex items-center gap-2">
@@ -245,7 +247,8 @@ export default function Reports() {
                                     </div>
                                 </th>
                                 <th
-                                    className="table-th text-center cursor-pointer hover:bg-slate-50 transition-colors min-h-[44px] py-4"
+                                    scope="col"
+                                    className="table-th table-th-sortable text-center"
                                     onClick={() => handleSort('transaction_count')}
                                 >
                                     <div className="flex items-center justify-center gap-2">
@@ -254,7 +257,8 @@ export default function Reports() {
                                     </div>
                                 </th>
                                 <th
-                                    className="table-th text-right cursor-pointer hover:bg-slate-50 transition-colors min-h-[44px] py-4"
+                                    scope="col"
+                                    className="table-th table-th-sortable text-right"
                                     onClick={() => handleSort('total_principal')}
                                 >
                                     <div className="flex items-center justify-end gap-2">
@@ -263,7 +267,8 @@ export default function Reports() {
                                     </div>
                                 </th>
                                 <th
-                                    className="table-th text-right cursor-pointer hover:bg-slate-50 transition-colors min-h-[44px] py-4"
+                                    scope="col"
+                                    className="table-th table-th-sortable text-right"
                                     onClick={() => handleSort('total_interest')}
                                 >
                                     <div className="flex items-center justify-end gap-2">
@@ -272,7 +277,8 @@ export default function Reports() {
                                     </div>
                                 </th>
                                 <th
-                                    className="table-th text-right cursor-pointer hover:bg-slate-50 transition-colors min-h-[44px] py-4"
+                                    scope="col"
+                                    className="table-th table-th-sortable text-right"
                                     onClick={() => handleSort('total_collected')}
                                 >
                                     <div className="flex items-center justify-end gap-2">
@@ -281,7 +287,8 @@ export default function Reports() {
                                     </div>
                                 </th>
                                 <th
-                                    className="table-th text-right cursor-pointer hover:bg-slate-50 transition-colors min-h-[44px] py-4"
+                                    scope="col"
+                                    className="table-th table-th-sortable text-right"
                                     onClick={() => handleSort('total_debt')}
                                 >
                                     <div className="flex items-center justify-end gap-2">
@@ -289,14 +296,16 @@ export default function Reports() {
                                         {getSortIcon('total_debt')}
                                     </div>
                                 </th>
-                                <th className="table-th text-right min-h-[44px] py-4">Trạng thái</th>
+                                <th scope="col" className="table-th text-right">
+                                    Trạng thái
+                                </th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-50 text-sm">
-                            {processedData.map((item, index) => (
+                        <tbody className="divide-y divide-slate-100 text-sm">
+                            {processedData.map((item) => (
                                 <tr
                                     key={item.customer_id}
-                                    className="table-row group cursor-pointer"
+                                    className="table-row group cursor-pointer transition-colors hover:bg-slate-50/80"
                                     onClick={() => navigate(`/customers/${item.customer_id}/debt`)}
                                 >
                                     <td className="table-td font-medium text-slate-700 group-hover:text-blue-600 transition-colors">
@@ -349,8 +358,7 @@ export default function Reports() {
                         </tbody>
                     </table>
                 </div>
-
-            </div>
+            </section>
         </div>
     );
 }

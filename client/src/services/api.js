@@ -131,20 +131,22 @@ export const downloadAllTransactionsPdf = async (customerId, startDate, endDate)
             try {
                 const errorText = await res.data.text();
                 const errorJson = JSON.parse(errorText);
-                throw new Error(errorJson.error || errorJson.message || `HTTP ${res.status}: Failed to download PDF`);
+                throw new Error(
+                    errorJson.error || errorJson.detail || errorJson.message || `HTTP ${res.status}: tải PDF thất bại`
+                );
             } catch (parseError) {
-                throw new Error(`HTTP ${res.status}: Failed to download PDF`);
+                throw new Error(`HTTP ${res.status}: tải PDF thất bại (không parse được JSON lỗi)`);
             }
         }
         
         // Validate blob
         if (!res.data || !(res.data instanceof Blob)) {
-            throw new Error('Invalid response: expected PDF blob');
+            throw new Error('Phản hồi không hợp lệ: mong đợi file PDF (blob) từ máy chủ');
         }
         
         // Check if blob is empty
         if (res.data.size === 0) {
-            throw new Error('PDF file is empty');
+            throw new Error('File PDF từ máy chủ rỗng (0 byte)');
         }
         
         // Basic validation: check content type if available
@@ -175,12 +177,24 @@ export const downloadAllTransactionsPdf = async (customerId, startDate, endDate)
                 try {
                     const errorText = await error.response.data.text();
                     const errorJson = JSON.parse(errorText);
-                    throw new Error(errorJson.error || errorJson.message || `Server error: ${error.response.status}`);
+                    throw new Error(
+                        errorJson.error ||
+                            errorJson.detail ||
+                            errorJson.message ||
+                            `Lỗi máy chủ HTTP ${error.response.status} khi tải PDF`
+                    );
                 } catch {
-                    throw new Error(`Server error: ${error.response.status}`);
+                    throw new Error(
+                        `Lỗi máy chủ HTTP ${error.response.status} khi tải PDF (không đọc được nội dung lỗi)`
+                    );
                 }
             }
-            throw new Error(error.response.data?.error || error.response.data?.message || `Server error: ${error.response.status}`);
+            throw new Error(
+                error.response.data?.error ||
+                    error.response.data?.detail ||
+                    error.response.data?.message ||
+                    `Lỗi máy chủ HTTP ${error.response.status} khi tải PDF`
+            );
         } else if (error.request) {
             // Request was made but no response received
             throw new Error('Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng.');
@@ -328,18 +342,20 @@ export const downloadDebtReportPdf = async (customerId, startDate, endDate) => {
             try {
                 const errorText = await res.data.text();
                 const errorJson = JSON.parse(errorText);
-                throw new Error(errorJson.error || errorJson.message || `HTTP ${res.status}: Failed to download PDF`);
+                throw new Error(
+                    errorJson.error || errorJson.detail || errorJson.message || `HTTP ${res.status}: tải PDF thất bại`
+                );
             } catch (parseError) {
-                throw new Error(`HTTP ${res.status}: Failed to download PDF`);
+                throw new Error(`HTTP ${res.status}: tải PDF thất bại (không parse được JSON lỗi)`);
             }
         }
         
         if (!res.data || !(res.data instanceof Blob)) {
-            throw new Error('Invalid response: expected PDF blob');
+            throw new Error('Phản hồi không hợp lệ: mong đợi file PDF (blob) từ máy chủ');
         }
         
         if (res.data.size === 0) {
-            throw new Error('PDF file is empty');
+            throw new Error('File PDF từ máy chủ rỗng (0 byte)');
         }
         
         const contentDisposition = res.headers?.['content-disposition'];
@@ -362,12 +378,24 @@ export const downloadDebtReportPdf = async (customerId, startDate, endDate) => {
                 try {
                     const errorText = await error.response.data.text();
                     const errorJson = JSON.parse(errorText);
-                    throw new Error(errorJson.error || errorJson.message || `Server error: ${error.response.status}`);
+                    throw new Error(
+                        errorJson.error ||
+                            errorJson.detail ||
+                            errorJson.message ||
+                            `Lỗi máy chủ HTTP ${error.response.status} khi tải PDF báo cáo công nợ`
+                    );
                 } catch {
-                    throw new Error(`Server error: ${error.response.status}`);
+                    throw new Error(
+                        `Lỗi máy chủ HTTP ${error.response.status} khi tải PDF báo cáo công nợ (không đọc được nội dung lỗi)`
+                    );
                 }
             }
-            throw new Error(error.response.data?.error || error.response.data?.message || `Server error: ${error.response.status}`);
+            throw new Error(
+                error.response.data?.error ||
+                    error.response.data?.detail ||
+                    error.response.data?.message ||
+                    `Lỗi máy chủ HTTP ${error.response.status} khi tải PDF báo cáo công nợ`
+            );
         } else if (error.request) {
             throw new Error('Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng.');
         } else {

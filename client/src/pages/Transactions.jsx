@@ -1,19 +1,84 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getTransactions, createTransaction, updateTransaction, getCustomers, getInterestConfigs, createCustomer, uploadTransactionImage, fetchTransactionImageBlob, deleteTransactionImage } from '../services/api';
-import { Plus, Edit2, Search, Calendar, Tag, Filter, X, ChevronRight, Check, Clock, User, UserPlus, ArrowUpDown, ArrowUp, ArrowDown, Trash2, Camera, Image as ImageIcon, Loader2, ZoomIn, ZoomOut, RotateCw, Download } from 'lucide-react';
+import { Plus, Edit2, Search, Calendar, Tag, Filter, X, ChevronLeft, ChevronRight, Check, Clock, User, UserPlus, ArrowUpDown, ArrowUp, ArrowDown, Trash2, Camera, Image as ImageIcon, Loader2, ZoomIn, ZoomOut, RotateCw, Download } from 'lucide-react';
 import { clsx } from 'clsx';
 import DateInput from '../components/DateInput';
 import DatePicker from '../components/DatePicker';
 import { formatDate } from '../utils/dateUtils';
 import AlertModal from '../components/AlertModal';
 import { useToast } from '../context/ToastContext';
+import { getApiErrorMessage } from '../utils/errorMessage';
 import { useAuth } from '../context/AuthContext';
 import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
 import { deleteTransactionSecure } from '../services/api';
 import { SkeletonTable } from '../components/SkeletonLoader';
 import { trapFocus } from '../utils/focusTrap';
 import { handleComboboxKeyboard } from '../utils/keyboardNav';
+import { getInterestConfigColorScheme } from '../utils/colorSchemes';
+
+/** id khi API trả `id` hoặc `_id` */
+function getCustomerKey(c) {
+    if (!c) return '';
+    return c.id ?? c._id ?? '';
+}
+
+function findCustomerById(customers, rawId) {
+    if (rawId == null || rawId === '' || !customers?.length) return undefined;
+    const s = String(rawId);
+    return customers.find((x) => String(getCustomerKey(x)) === s);
+}
+
+function resolveCustomerName(customers, tx) {
+    const cid = tx.customer_id ?? tx.customer?.id ?? tx.customer;
+    return findCustomerById(customers, cid)?.name ?? 'Không xác định';
+}
+
+/** Gốc / lãi / tổng an toàn khi API trả số dạng chuỗi */
+function parseTxAmounts(tx) {
+    const principal = Number(tx?.amount);
+    const p = Number.isFinite(principal) ? principal : 0;
+    const calc = tx?.interest_calculation;
+    const interestNum = Number(calc?.rounded_interest);
+    const interest = Number.isFinite(interestNum) && interestNum > 0 ? interestNum : 0;
+    return { principal: p, interest, total: p + interest, calc };
+}
+
+/** Nội dung hiển thị trong bảng / thẻ giao dịch (rút gọn dòng có dấu -) */
+const TX_PAGE_SIZE_STORAGE_KEY = 'fa-transactions-page-size';
+const TX_PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+
+function readStoredTxPageSize() {
+    try {
+        const raw = localStorage.getItem(TX_PAGE_SIZE_STORAGE_KEY);
+        const n = parseInt(raw, 10);
+        return TX_PAGE_SIZE_OPTIONS.includes(n) ? n : 25;
+    } catch {
+        return 25;
+    }
+}
+
+function formatTransactionContentPreview(content, { lineClampClass = 'line-clamp-3' } = {}) {
+    const str = String(content ?? '').trim();
+    if (!str) return '-';
+    if (str.includes('-')) {
+        const parts = str
+            .split(/\n/)
+            .flatMap((line) => (line.includes('-') ? line.split(/(?=-)/).filter((p) => p.trim()) : [line]))
+            .filter((p) => p.trim());
+        return (
+            <div className={clsx('whitespace-pre-wrap', lineClampClass)}>
+                {parts.map((part, idx) => (
+                    <React.Fragment key={idx}>
+                        {idx > 0 && <br />}
+                        {part.trim()}
+                    </React.Fragment>
+                ))}
+            </div>
+        );
+    }
+    return <div className={lineClampClass}>{str}</div>;
+}
 
 export default function Transactions() {
     const queryClient = useQueryClient();
@@ -34,6 +99,9 @@ export default function Transactions() {
     const [selectedCustomerId, setSelectedCustomerId] = useState('');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
+
+    const [txPage, setTxPage] = useState(1);
+    const [txPageSize, setTxPageSize] = useState(readStoredTxPageSize);
 
     // Alert State
     const [alertState, setAlertState] = useState({ isOpen: false, title: '', message: '', type: 'info' });
@@ -103,14 +171,19 @@ export default function Transactions() {
 
     const { data: rawTransactions, isLoading: isLoadingTransactions } = useQuery({
         queryKey: ['transactions', startDate, endDate],
-        queryFn: () => getTransactions(undefined, startDate || undefined, endDate || undefined)
+        queryFn: () => getTransactions(undefined, startDate || undefined, endDate || undefined),
+        staleTime: 60_000
     });
 
     // Default Sort: Newest to Oldest (Date Descending)
     const sortedTransactions = React.useMemo(() => {
         if (!rawTransactions) return [];
         return [...rawTransactions].sort((a, b) => {
-            return new Date(b.transaction_date) - new Date(a.transaction_date);
+            const ta = new Date(a.transaction_date).getTime();
+            const tb = new Date(b.transaction_date).getTime();
+            const na = Number.isFinite(ta) ? ta : 0;
+            const nb = Number.isFinite(tb) ? tb : 0;
+            return nb - na;
         });
     }, [rawTransactions]);
 
@@ -120,26 +193,71 @@ export default function Transactions() {
 
         if (customerSearchTerm) {
             const searchLower = customerSearchTerm.toLowerCase();
-            result = result.filter(t => {
+            result = result.filter((t) => {
                 const customerId = t.customer_id || t.customer?.id || t.customer;
-                const customer = customers?.find(c => c.id === customerId);
-                return customer?.name?.toLowerCase().includes(searchLower);
+                const customer = findCustomerById(customers, customerId);
+                return (customer?.name ?? '').toLowerCase().includes(searchLower);
             });
         }
 
         if (selectedCustomerId) {
-            result = result.filter(t => (t.customer_id || t.customer?.id || t.customer) === selectedCustomerId);
+            const sid = String(selectedCustomerId);
+            result = result.filter((t) => {
+                const cid = t.customer_id || t.customer?.id || t.customer;
+                return String(cid ?? '') === sid;
+            });
         }
 
         if (startDate) {
-            result = result.filter(t => new Date(t.transaction_date) >= new Date(startDate));
+            const startMs = new Date(startDate).getTime();
+            if (Number.isFinite(startMs)) {
+                result = result.filter((t) => {
+                    const tt = new Date(t.transaction_date).getTime();
+                    return Number.isFinite(tt) && tt >= startMs;
+                });
+            }
         }
         if (endDate) {
-            result = result.filter(t => new Date(t.transaction_date) <= new Date(endDate));
+            const endMs = new Date(endDate).getTime();
+            if (Number.isFinite(endMs)) {
+                result = result.filter((t) => {
+                    const tt = new Date(t.transaction_date).getTime();
+                    return Number.isFinite(tt) && tt <= endMs;
+                });
+            }
         }
 
         return result;
-    }, [sortedTransactions, customerSearchTerm, selectedCustomerId, startDate, endDate]);
+    }, [sortedTransactions, customers, customerSearchTerm, selectedCustomerId, startDate, endDate]);
+
+    const totalFilteredCount = filteredTransactions.length;
+    const totalTxPages = Math.max(1, Math.ceil(totalFilteredCount / txPageSize));
+
+    React.useEffect(() => {
+        setTxPage(1);
+    }, [customerSearchTerm, selectedCustomerId, startDate, endDate]);
+
+    React.useEffect(() => {
+        if (txPage > totalTxPages) setTxPage(totalTxPages);
+    }, [txPage, totalTxPages]);
+
+    const paginatedTransactions = React.useMemo(() => {
+        const start = (txPage - 1) * txPageSize;
+        return filteredTransactions.slice(start, start + txPageSize);
+    }, [filteredTransactions, txPage, txPageSize]);
+
+    const txRangeFrom = totalFilteredCount === 0 ? 0 : (txPage - 1) * txPageSize + 1;
+    const txRangeTo = Math.min(txPage * txPageSize, totalFilteredCount);
+
+    const setTxPageSizeAndPersist = (size) => {
+        setTxPageSize(size);
+        try {
+            localStorage.setItem(TX_PAGE_SIZE_STORAGE_KEY, String(size));
+        } catch {
+            /* ignore */
+        }
+        setTxPage(1);
+    };
 
     // Define handleClose before useEffect that uses it
     const handleClose = useCallback(() => {
@@ -176,7 +294,7 @@ export default function Transactions() {
                 setHighlightedIndex(-1);
                 // Reset search to selected customer name if invalid
                 if (formData.customer_id) {
-                    const selected = customers?.find(c => c.id === formData.customer_id);
+                    const selected = findCustomerById(customers, formData.customer_id);
                     if (selected && customerSearch !== selected.name) {
                         setCustomerSearch(selected.name);
                     }
@@ -282,9 +400,9 @@ export default function Transactions() {
             showToast('Thành công', 'Đổi ảnh thành công', 'success');
         },
         onError: (error) => {
-            const msg = error?.response?.data?.error || error?.message || 'Lỗi upload ảnh';
+            const msg = getApiErrorMessage(error, 'Upload ảnh chứng từ');
             setTxImageError(msg);
-            showToast('Lỗi', `Không thể upload ảnh: ${msg}`, 'error');
+            showToast('Lỗi', msg, 'error');
         }
     });
 
@@ -330,7 +448,7 @@ export default function Transactions() {
             queryClient.invalidateQueries(['transactions']);
             showToast('Thành công', 'Xóa ảnh thành công', 'success');
         },
-        onError: (error) => showToast('Lỗi', `Không thể xóa ảnh: ${error.message}`, 'error')
+        onError: (error) => showToast('Lỗi', getApiErrorMessage(error, 'Xóa ảnh chứng từ'), 'error')
     });
 
     const createMutation = useMutation({
@@ -369,8 +487,8 @@ export default function Transactions() {
                         }
                     },
                     onError: (err) => {
-                        const msg = err?.response?.data?.error || err?.message || 'Upload ảnh thất bại';
-                        showToast('Cảnh báo', 'Tạo giao dịch thành công nhưng lỗi upload ảnh: ' + msg, 'warning');
+                        const msg = getApiErrorMessage(err, 'Upload ảnh sau khi tạo giao dịch');
+                        showToast('Cảnh báo', `Giao dịch đã tạo nhưng ảnh chưa lên máy chủ: ${msg}`, 'warning');
                         if (!createAnother) handleClose();
                     }
                 });
@@ -396,7 +514,7 @@ export default function Transactions() {
             }
         },
         onError: (err) => {
-            showToast('Lỗi', err.response?.data?.error || 'Lỗi tạo giao dịch', 'error');
+            showToast('Lỗi', getApiErrorMessage(err, 'Tạo giao dịch'), 'error');
         }
     });
 
@@ -416,7 +534,7 @@ export default function Transactions() {
             showToast('Thành công', 'Đã cập nhật giao dịch', 'success');
         },
         onError: (err) => {
-            showToast('Lỗi', err.response?.data?.error || 'Lỗi cập nhật giao dịch', 'error');
+            showToast('Lỗi', getApiErrorMessage(err, 'Cập nhật giao dịch'), 'error');
         }
     });
 
@@ -433,13 +551,13 @@ export default function Transactions() {
             showToast('Thành công', `Đã thêm khách hàng "${newCustomerName}"`, 'success');
         },
         onError: (err) => {
-            showToast('Lỗi', err.response?.data?.error || "Lỗi tạo khách hàng", 'error');
+            showToast('Lỗi', getApiErrorMessage(err, 'Tạo khách hàng nhanh từ form giao dịch'), 'error');
         }
     });
 
 
 
-    const handleEdit = (tx) => {
+    const handleEdit = useCallback((tx) => {
         setEditingId(tx._id);
         setEditingHasImage(tx.image_drive_file_id !== undefined ? Boolean(tx.image_drive_file_id) : true);
         // Do not auto-load image when opening edit modal. Only load when user clicks view.
@@ -450,20 +568,22 @@ export default function Transactions() {
             return null;
         });
         const customerId = tx.customer_id || tx.customer?.id || tx.customer;
-        const selectedCustomer = customers?.find(c => c.id === customerId);
+        const selectedCustomer = findCustomerById(customers, customerId);
 
         setFormData({
             customer_id: customerId,
             type: tx.type,
             amount: tx.amount,
             content: tx.content,
-            transaction_date: tx.transaction_date.split('T')[0],
+            transaction_date: (tx.transaction_date || '').split('T')[0],
             status: tx.status,
-            closed_at: tx.closed_at ? tx.closed_at.split('T')[0] : new Date().toISOString().split('T')[0]
+            closed_at: tx.closed_at
+                ? String(tx.closed_at).split('T')[0]
+                : new Date().toISOString().split('T')[0]
         });
         setCustomerSearch(selectedCustomer ? selectedCustomer.name : '');
         setIsOpen(true);
-    };
+    }, [customers]);
 
     // Lazy-load image ONLY when user opens the viewer.
     useEffect(() => {
@@ -488,7 +608,7 @@ export default function Transactions() {
                     setEditingHasImage(false);
                     setTxImageError('Giao dịch chưa có ảnh');
                 } else {
-                    setTxImageError(e?.response?.data?.error || 'Không thể tải ảnh');
+                    setTxImageError(getApiErrorMessage(e, 'Tải ảnh chứng từ'));
                 }
             } finally {
                 if (!cancelled) setTxImageLoading(false);
@@ -508,7 +628,7 @@ export default function Transactions() {
         };
     }, [txImageUrl]);
 
-    const handleStatusToggle = (e, tx) => {
+    const handleStatusToggle = useCallback((e, tx) => {
         e.stopPropagation(); // Prevent row click
         const newStatus = tx.status === 'OPEN' ? 'PAID' : 'OPEN';
 
@@ -517,8 +637,6 @@ export default function Transactions() {
         const effectivePaidAt = txDate && !isNaN(txDate.getTime()) && txDate > now ? txDate : now;
         const nowIso = effectivePaidAt.toISOString();
 
-        // Optimistic update or just wait for refetch? 
-        // Let's us mutation directly
         updateMutation.mutate({
             id: tx._id,
             data: {
@@ -526,7 +644,7 @@ export default function Transactions() {
                 closed_at: newStatus === 'PAID' ? nowIso : null
             }
         });
-    };
+    }, [updateMutation]);
 
     // Delete Logic
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -540,7 +658,7 @@ export default function Transactions() {
         },
         onError: (err) => {
             // Keep modal open to retry pin
-            showToast('Lỗi', err.response?.data?.detail || "Lỗi xóa giao dịch", 'error');
+            showToast('Lỗi', getApiErrorMessage(err, 'Xóa giao dịch (xác thực PIN)'), 'error');
         }
     });
 
@@ -616,9 +734,13 @@ export default function Transactions() {
         }
     };
 
-    // Filter customers for combobox
-    const filteredCustomers = customers?.filter(c =>
-        c.name.toLowerCase().includes(customerSearch.toLowerCase())
+    // Filter customers for combobox (memo: tránh tạo mảng mới mỗi lần parent re-render)
+    const filteredCustomers = React.useMemo(
+        () =>
+            customers?.filter((c) =>
+                (c.name ?? '').toLowerCase().includes(customerSearch.toLowerCase())
+            ),
+        [customers, customerSearch]
     );
 
     // Handle keyboard navigation in combobox
@@ -629,8 +751,9 @@ export default function Transactions() {
             items: filteredCustomers,
             selectedIndex: highlightedIndex,
             onSelect: (customer) => {
-                setFormData({ ...formData, customer_id: customer._id });
-                setCustomerSearch(customer.name);
+                const id = getCustomerKey(customer);
+                setFormData((prev) => ({ ...prev, customer_id: id }));
+                setCustomerSearch(customer.name ?? '');
                 setIsComboboxOpen(false);
                 setHighlightedIndex(-1);
             },
@@ -645,9 +768,12 @@ export default function Transactions() {
     };
 
 
-    // Filter Combobox Helpers
-    const filteredCustomersForFilter = customers?.filter(c =>
-        c.name.toLowerCase().includes(customerSearchTerm.toLowerCase())
+    const filteredCustomersForFilter = React.useMemo(
+        () =>
+            customers?.filter((c) =>
+                (c.name ?? '').toLowerCase().includes(customerSearchTerm.toLowerCase())
+            ),
+        [customers, customerSearchTerm]
     );
 
     const handleFilterComboboxKeyDown = (event) => {
@@ -657,8 +783,8 @@ export default function Transactions() {
             items: filteredCustomersForFilter,
             selectedIndex: highlightedFilterIndex,
             onSelect: (customer) => {
-                setSelectedCustomerId(customer.id);
-                setCustomerSearchTerm(customer.name);
+                setSelectedCustomerId(String(getCustomerKey(customer)));
+                setCustomerSearchTerm(customer.name ?? '');
                 setIsFilterComboboxOpen(false);
                 setHighlightedFilterIndex(-1);
             },
@@ -683,69 +809,73 @@ export default function Transactions() {
             />
             {/* Header Section */}
             <div className="space-y-0">
-                <div className="space-y-5">
+                <div className="space-y-3">
                     {/* Row 1: Title & Subtitle & Create Button */}
-                    <div className="flex items-center justify-between gap-4 lg:gap-6">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                         <div>
-                            <h2 className="section-title">Danh Sách Giao Dịch</h2>
+                            <h2 className="section-title">Danh sách giao dịch</h2>
                             <p className="section-subtitle mt-1">Quản lý các giao dịch vay và nợ</p>
                         </div>
                         <button
                             onClick={() => {
                                 if (selectedCustomerId) {
-                                    const selected = customers?.find(c => c.id === selectedCustomerId);
+                                    const selected = findCustomerById(customers, selectedCustomerId);
                                     if (selected) {
-                                        setFormData(prev => ({ ...prev, customer_id: selected.id }));
-                                        setCustomerSearch(selected.name);
+                                        setFormData((prev) => ({ ...prev, customer_id: getCustomerKey(selected) }));
+                                        setCustomerSearch(selected.name ?? '');
                                     }
                                 }
                                 setIsOpen(true);
                             }}
-                            className="btn-primary btn-md justify-center text-base min-h-[44px] px-6 py-3 whitespace-nowrap shrink-0"
+                            className="btn-primary btn-md whitespace-nowrap shrink-0"
                         >
-                            <Plus size={20} className="shrink-0" />
+                            <Plus size={18} className="shrink-0" />
                             <span>Tạo giao dịch</span>
                         </button>
                     </div>
 
-                    {/* Row 2: Date Filter & Customer Search (same row) */}
-                    <div className="flex flex-row gap-3">
-                        {/* Date Range Picker - Inline Style */}
-                        <div className="flex flex-1 items-center gap-1.5 border-b-2 border-slate-200 pb-2 focus-within:border-blue-500 transition-colors">
-                            <div className="flex-1 min-w-0">
+                    {/* Row 2: Date Filter & Customer Search */}
+                    <div className="filter-row">
+                        <div className="date-range-inline min-w-0 flex-1 sm:max-w-xl lg:max-w-2xl">
+                            <div className="min-w-0 flex-1">
                                 <DatePicker
-                            value={startDate}
-                            onChange={e => setStartDate(e.target.value)}
-                            placeholder="Từ ngày"
-                        />
+                                    variant="embedded"
+                                    value={startDate}
+                                    onChange={(e) => setStartDate(e.target.value)}
+                                    placeholder="Từ ngày"
+                                />
                             </div>
-                            <span className="text-slate-300 text-base font-medium shrink-0">-</span>
-                            <div className="flex-1 min-w-0">
+                            <span className="shrink-0 text-sm font-medium text-slate-300">-</span>
+                            <div className="min-w-0 flex-1">
                                 <DatePicker
-                            value={endDate}
-                            onChange={e => setEndDate(e.target.value)}
-                            placeholder="Đến ngày"
-                        />
+                                    variant="embedded"
+                                    value={endDate}
+                                    onChange={(e) => setEndDate(e.target.value)}
+                                    placeholder="Đến ngày"
+                                />
                             </div>
-                        {(startDate || endDate) && (
-                            <button
-                                onClick={() => { setStartDate(''); setEndDate(''); }}
-                                    className="ml-1 p-1.5 min-w-[32px] min-h-[32px] flex items-center justify-center text-red-500 hover:bg-red-50 rounded-md transition-colors shrink-0"
+                            {(startDate || endDate) && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setStartDate('');
+                                        setEndDate('');
+                                    }}
+                                    className="filter-clear-btn"
                                     aria-label="Xóa bộ lọc ngày"
-                            >
+                                >
                                     <X size={16} />
-                            </button>
-                        )}
-                    </div>
-
-                        {/* Customer Search */}
-                        <div className="relative group flex-1" ref={filterComboboxRef}>
-                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors">
-                                <Search size={20} className="w-5 h-5" />
+                                </button>
+                            )}
                         </div>
-                        <input
-                            type="text"
-                                className="input input-icon pr-12 w-full text-base"
+
+                        <div className="relative min-w-0 flex-1 group" ref={filterComboboxRef}>
+                            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 transition-colors group-focus-within:text-blue-500">
+                                <Search size={18} className="h-[18px] w-[18px] shrink-0" />
+                            </div>
+                            <input
+                                type="text"
+                                className="input-filter input-icon w-full pr-10"
                             value={customerSearchTerm}
                             onChange={e => {
                                 setCustomerSearchTerm(e.target.value);
@@ -759,40 +889,41 @@ export default function Transactions() {
                             onKeyDown={handleFilterComboboxKeyDown}
                             placeholder="Tìm kiếm khách hàng..."
                         />
-                        {customerSearchTerm ? (
-                            <button
-                                onClick={() => {
-                                    setCustomerSearchTerm('');
-                                    setSelectedCustomerId('');
-                                    setHighlightedFilterIndex(-1);
-                                }}
-                                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-red-500 transition-colors min-w-[44px] min-h-[44px]"
+                            {customerSearchTerm ? (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setCustomerSearchTerm('');
+                                        setSelectedCustomerId('');
+                                        setHighlightedFilterIndex(-1);
+                                    }}
+                                    className="filter-clear-btn absolute right-1 top-1/2 h-10 w-10 -translate-y-1/2"
                                     aria-label="Xóa tìm kiếm"
-                            >
+                                >
                                     <X size={18} />
-                            </button>
-                        ) : (
-                                <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none text-slate-400">
+                                </button>
+                            ) : (
+                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400">
                                     <ArrowUpDown size={18} className="opacity-50" />
-                            </div>
-                        )}
+                                </div>
+                            )}
 
                         {/* Filter Dropdown */}
                         {isFilterComboboxOpen && (
                             <div className="absolute z-[60] mt-2 w-full bg-white border border-slate-100 rounded-xl shadow-xl py-2 max-h-80 overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
                                 {filteredCustomersForFilter?.map((customer, index) => (
                                     <div
-                                        key={customer.id}
+                                        key={getCustomerKey(customer) || `fc-${index}`}
                                         onClick={() => {
-                                            setSelectedCustomerId(customer.id);
-                                            setCustomerSearchTerm(customer.name);
+                                            setSelectedCustomerId(String(getCustomerKey(customer)));
+                                            setCustomerSearchTerm(customer.name ?? '');
                                             setIsFilterComboboxOpen(false);
                                             setHighlightedFilterIndex(-1);
                                         }}
                                         className={clsx(
                                                 "px-5 py-3.5 cursor-pointer flex items-center gap-3 transition-colors min-h-[44px]",
                                             highlightedFilterIndex === index ? "bg-blue-50" : "hover:bg-slate-50",
-                                            selectedCustomerId === customer.id && "bg-blue-50/50"
+                                            String(selectedCustomerId) === String(getCustomerKey(customer)) && "bg-blue-50/50"
                                         )}
                                     >
                                             <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
@@ -804,7 +935,7 @@ export default function Transactions() {
                                                     <p className="text-sm text-slate-400 truncate">{customer.contact_info}</p>
                                                 )}
                                             </div>
-                                            {selectedCustomerId === customer.id && <Check size={20} className="shrink-0 text-blue-600" />}
+                                            {String(selectedCustomerId) === String(getCustomerKey(customer)) && <Check size={20} className="shrink-0 text-blue-600" />}
                                         </div>
                                     ))}
                                     {filteredCustomersForFilter?.length === 0 && (
@@ -825,12 +956,12 @@ export default function Transactions() {
                 <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
                     <div
                         ref={quickCreateModalRef}
-                        className="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-6 animate-in zoom-in duration-200"
+                        className="bg-white rounded-xl w-full max-w-sm shadow-xl p-4 animate-in zoom-in duration-200"
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="quick-create-title"
                     >
-                        <h4 id="quick-create-title" className="text-lg font-bold text-slate-800 mb-4">Thêm Khách Hàng Nhanh</h4>
+                        <h4 id="quick-create-title" className="text-base font-bold text-slate-800 mb-3">Thêm khách hàng nhanh</h4>
                         <form onSubmit={handleQuickCreateSubmit} className="space-y-4">
                             <div>
                                 <label className="block text-sm font-semibold text-slate-700 mb-1">Tên khách hàng</label>
@@ -852,8 +983,12 @@ export default function Transactions() {
                                 />
                             </div>
                             <div className="flex justify-end gap-2 pt-2">
-                                <button type="button" onClick={() => setIsQuickCreateOpen(false)} className="btn btn-secondary btn-md">Hủy</button>
-                                <button type="submit" className="btn btn-primary btn-md">Lưu</button>
+                                <button type="button" onClick={() => setIsQuickCreateOpen(false)} className="btn-secondary btn-md">
+                                    Hủy
+                                </button>
+                                <button type="submit" className="btn-primary btn-md">
+                                    Lưu
+                                </button>
                             </div>
                         </form>
                     </div>
@@ -864,21 +999,21 @@ export default function Transactions() {
                 <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all">
                     <div
                         ref={txModalRef}
-                        className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-300"
+                        className="bg-white w-full max-w-2xl rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-300"
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="tx-modal-title"
                     >
-                        <div className="p-8 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                                <div className="w-11 h-11 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-200 shrink-0">
-                                    {editingId ? <Edit2 size={20} /> : <Plus size={22} />}
+                        <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-200/50 shrink-0">
+                                    {editingId ? <Edit2 size={18} /> : <Plus size={20} />}
                                 </div>
                                 <div className="min-w-0">
-                                    <h2 id="tx-modal-title" className="text-xl font-bold text-slate-900 tracking-tight">
+                                    <h2 id="tx-modal-title" className="text-lg font-bold text-slate-900 tracking-tight">
                                         {editingId ? 'Chỉnh sửa giao dịch' : 'Tạo giao dịch mới'}
                                     </h2>
-                                    <p className="text-sm text-slate-500 mt-1 font-medium">
+                                    <p className="text-xs text-slate-500 mt-0.5 font-medium line-clamp-2">
                                         {editingId ? 'Cập nhật lại thông tin bản ghi hiện có' : 'Thêm một bản ghi tài chính mới vào hệ thống'}
                                     </p>
                                 </div>
@@ -917,16 +1052,16 @@ export default function Transactions() {
                                     onClick={handleClose}
                                     className="p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-2xl transition-all"
                                 >
-                                    <X size={24} />
+                                    <X size={20} />
                                 </button>
                             </div>
                         </div>
 
                         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
-                            <div className="flex-1 overflow-y-auto p-8 custom-scrollbar min-h-0">
-                                <div className="space-y-4 lg:space-y-6">
+                            <div className="flex-1 overflow-y-auto p-5 custom-scrollbar min-h-0">
+                                <div className="space-y-4">
                                     {/* Row 1: Date & Customer - Same row for portrait */}
-                                    <div className="grid grid-cols-2 gap-6">
+                                    <div className="grid grid-cols-2 gap-4">
                                         {/* Date Input */}
                                         <div className="space-y-2">
                                             <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Ngày giao dịch</label>
@@ -937,7 +1072,7 @@ export default function Transactions() {
                                                 <div ref={dateInputRef}>
                                                     <DateInput
                                                         required
-                                                        className="w-full h-[60px] bg-slate-50 border border-slate-100 rounded-[1.25rem] pl-12 pr-6 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all text-base font-medium text-slate-800 shadow-inner"
+                                                        className="w-full h-12 bg-slate-50 border border-slate-100 rounded-xl pl-10 pr-3 outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all text-sm font-medium text-slate-800 shadow-inner"
                                                         value={formData.transaction_date}
                                                         onChange={e => setFormData({ ...formData, transaction_date: e.target.value })}
                                                     />
@@ -954,7 +1089,7 @@ export default function Transactions() {
                                                 </div>
                                                 <input
                                                     type="text"
-                                                    className="w-full h-[60px] bg-slate-50 border border-slate-100 rounded-[1.25rem] pl-12 pr-6 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all text-base font-medium text-slate-800 shadow-inner placeholder:text-slate-300"
+                                                    className="w-full h-12 bg-slate-50 border border-slate-100 rounded-xl pl-10 pr-3 outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all text-sm font-medium text-slate-800 shadow-inner placeholder:text-slate-300"
                                                     placeholder="Tìm khách hàng..."
                                                     value={customerSearch}
                                                     onChange={(e) => {
@@ -962,7 +1097,10 @@ export default function Transactions() {
                                                         setIsComboboxOpen(true);
                                                         setHighlightedIndex(-1);
                                                         // Clear ID if typing changes
-                                                        if (formData.customer_id && e.target.value !== customers?.find(c => c.id === formData.customer_id)?.name) {
+                                                        if (
+                                                            formData.customer_id &&
+                                                            e.target.value !== findCustomerById(customers, formData.customer_id)?.name
+                                                        ) {
                                                             setFormData({ ...formData, customer_id: '' });
                                                         }
                                                     }}
@@ -973,10 +1111,10 @@ export default function Transactions() {
                                                     <div className="absolute z-[60] mt-2 w-full bg-white border border-slate-100 rounded-2xl shadow-2xl py-2 max-h-60 overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
                                                         {filteredCustomers?.map((customer, index) => (
                                                             <div
-                                                                key={customer.id}
+                                                                key={getCustomerKey(customer) || `c-${index}`}
                                                                 onClick={() => {
-                                                                    setFormData({ ...formData, customer_id: customer.id });
-                                                                    setCustomerSearch(customer.name);
+                                                                    setFormData({ ...formData, customer_id: getCustomerKey(customer) });
+                                                                    setCustomerSearch(customer.name ?? '');
                                                                     setIsComboboxOpen(false);
                                                                     setHighlightedIndex(-1);
                                                                 }}
@@ -991,7 +1129,11 @@ export default function Transactions() {
                                                                 <span className="text-sm font-medium text-slate-700">{customer.name}</span>
                                                             </div>
                                                         ))}
-                                                        {customerSearch && !customers?.some(c => c.name.toLowerCase() === customerSearch.toLowerCase()) && (
+                                                        {customerSearch &&
+                                                            !customers?.some(
+                                                                (c) =>
+                                                                    (c.name ?? '').toLowerCase() === customerSearch.toLowerCase()
+                                                            ) && (
                                                             <div
                                                                 onClick={() => {
                                                                     setNewCustomerName(customerSearch);
@@ -1020,7 +1162,7 @@ export default function Transactions() {
                                         <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Nội dung chi tiết</label>
                                         <textarea
                                             required
-                                            className="w-full min-h-[140px] bg-slate-50 border border-slate-100 rounded-[1.25rem] px-6 py-4 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all text-base font-medium text-slate-800 shadow-inner resize-none placeholder:text-slate-300 leading-relaxed"
+                                            className="w-full min-h-[120px] bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all text-sm font-medium text-slate-800 shadow-inner resize-none placeholder:text-slate-300 leading-relaxed"
                                             value={formData.content}
                                             onChange={e => setFormData({ ...formData, content: e.target.value })}
                                             placeholder="Nhập nội dung vay/trả chi tiết..."
@@ -1061,7 +1203,7 @@ export default function Transactions() {
 
 
                                 {/* Section: Loại giao dịch (Full Width Row) */}
-                                <div className="space-y-2 mt-8">
+                                <div className="space-y-2 mt-5">
                                     <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Loại giao dịch</label>
                                     {/* 4 cols on all screens */}
                                     <div className="grid grid-cols-4 gap-3">
@@ -1071,7 +1213,7 @@ export default function Transactions() {
                                                 type="button"
                                                 onClick={() => setFormData({ ...formData, type: config.code })}
                                                 className={clsx(
-                                                    "px-2 py-2.5 rounded-xl text-xs font-bold border transition-all text-center flex items-center justify-center min-h-[48px] leading-tight active:scale-95 whitespace-nowrap",
+                                                    "px-2 py-2 rounded-lg text-[11px] font-bold border transition-all text-center flex items-center justify-center min-h-10 leading-tight active:scale-95 whitespace-nowrap",
                                                     formData.type === config.code
                                                         ? "bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-200"
                                                         : "bg-slate-50 text-slate-500 border-slate-100 hover:border-slate-200 hover:bg-white"
@@ -1084,16 +1226,16 @@ export default function Transactions() {
                                 </div>
 
                                 {/* Section: Số tiền (Full Width Row) */}
-                                <div className="space-y-2 mt-8">
+                                <div className="space-y-2 mt-5">
                                     <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Số tiền giao dịch</label>
                                     <div className="relative group">
-                                        <div className="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none text-slate-400 font-bold group-focus-within:text-blue-500 transition-colors">
+                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 font-bold group-focus-within:text-blue-500 transition-colors text-sm">
                                             đ
                                         </div>
                                         <input
                                             type="text"
                                             required
-                                            className="w-full h-[72px] bg-slate-50 border border-slate-100 rounded-[1.5rem] pl-12 pr-8 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all font-semibold text-3xl text-slate-800 shadow-inner tracking-tight placeholder:text-slate-300"
+                                            className="w-full h-14 bg-slate-50 border border-slate-100 rounded-xl pl-10 pr-4 outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all font-semibold text-xl text-slate-800 shadow-inner tracking-tight placeholder:text-slate-300"
                                             value={formData.amount ? Number(formData.amount).toLocaleString('en-US') : ''}
                                             onChange={e => {
                                                 const rawValue = e.target.value.replace(/,/g, '');
@@ -1107,7 +1249,7 @@ export default function Transactions() {
                                 </div>
 
                                 {editingId && (
-                                    <div className="grid grid-cols-2 gap-8 mt-8 pt-8 border-t border-slate-50">
+                                    <div className="grid grid-cols-2 gap-4 mt-5 pt-5 border-t border-slate-50">
                                         <div className="space-y-2">
                                             <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Trạng thái</label>
                                             <button
@@ -1133,7 +1275,7 @@ export default function Transactions() {
                                                     }));
                                                 }}
                                                 className={clsx(
-                                                    'w-full h-[60px] rounded-[1.25rem] border shadow-inner',
+                                                    'w-full h-12 rounded-xl border shadow-inner',
                                                     'flex items-center justify-center gap-2 font-bold uppercase tracking-[0.2em] text-xs',
                                                     'transition-all active:scale-[0.99]',
                                                     formData.status === 'PAID'
@@ -1164,7 +1306,7 @@ export default function Transactions() {
                                                     </div>
                                                     <DateInput
                                                         required
-                                                        className="w-full h-[60px] bg-slate-50 border border-slate-100 rounded-[1.25rem] pl-12 pr-6 outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:bg-white transition-all font-medium text-slate-700 shadow-inner"
+                                                        className="w-full h-12 bg-slate-50 border border-slate-100 rounded-xl pl-10 pr-3 outline-none focus:ring-2 focus:ring-emerald-500/10 focus:border-emerald-500 focus:bg-white transition-all text-sm font-medium text-slate-700 shadow-inner"
                                                         value={formData.closed_at}
                                                         onChange={e => setFormData({ ...formData, closed_at: e.target.value })}
                                                     />
@@ -1176,7 +1318,7 @@ export default function Transactions() {
                             </div>
 
                             {!editingId && (
-                                <div className="px-8 pb-2">
+                                <div className="px-5 pb-2">
                                     <label className="flex items-center gap-2 cursor-pointer select-none w-fit">
                                         <div className="relative flex items-center">
                                             <input
@@ -1207,7 +1349,7 @@ export default function Transactions() {
                                 </div>
                             )}
 
-                            <div className="p-8 bg-slate-50/50 border-t border-slate-100 flex flex-row items-center justify-between gap-0">
+                            <div className="p-5 bg-slate-50/50 border-t border-slate-100 flex flex-row items-center justify-between gap-0">
                                 {/* Left Side: Delete (or empty if not eligible) */}
                                 <div className="w-auto mt-0">
                                     {editingId && isAdmin && (
@@ -1261,235 +1403,262 @@ export default function Transactions() {
             <div className="card overflow-hidden">
                 {isLoadingTransactions ? (
                     <SkeletonTable rows={8} columns={10} />
+                ) : isOpen ? (
+                    /* Khi mở form tạo/sửa: không mount danh sách (mobile + desktop) để mỗi keystroke không reconcile 2×N dòng */
+                    <div
+                        className="min-h-[min(45vh,360px)] bg-slate-50/20"
+                        aria-hidden="true"
+                    />
                 ) : (
                     <>
-                        {/* Mobile Card View (<= md) */}
-                        <div className="hidden divide-y divide-slate-100">
-                            {filteredTransactions?.map((tx) => {
-                                const customerName = customers?.find(c => c.id === (tx.customer_id || tx.customer?.id || tx.customer))?.name || 'Không xác định';
+                        {totalFilteredCount > 0 && (
+                            <div className="flex flex-col gap-2 border-b border-slate-100 bg-slate-50/60 px-3 py-2.5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-3 sm:px-4">
+                                <p className="text-xs text-slate-600 tabular-nums sm:text-sm">
+                                    <span className="font-medium text-slate-800">
+                                        {txRangeFrom}–{txRangeTo}
+                                    </span>
+                                    <span className="text-slate-400"> / </span>
+                                    {totalFilteredCount.toLocaleString('vi-VN')} giao dịch
+                                </p>
+                                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                                    <label className="flex items-center gap-2 text-xs font-medium text-slate-600">
+                                        <span className="whitespace-nowrap">Số dòng/trang</span>
+                                        <select
+                                            className="select max-w-[5.5rem] py-2 text-xs sm:text-sm"
+                                            value={txPageSize}
+                                            onChange={(e) => setTxPageSizeAndPersist(Number(e.target.value))}
+                                            aria-label="Số giao dịch mỗi trang"
+                                        >
+                                            {TX_PAGE_SIZE_OPTIONS.map((n) => (
+                                                <option key={n} value={n}>
+                                                    {n}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </label>
+                                    <div className="flex items-center gap-1">
+                                        <button
+                                            type="button"
+                                            className="btn-secondary btn-md min-h-9 px-2.5 py-1.5"
+                                            disabled={txPage <= 1}
+                                            onClick={() => setTxPage((p) => Math.max(1, p - 1))}
+                                            aria-label="Trang trước"
+                                        >
+                                            <ChevronLeft size={18} className="shrink-0" />
+                                        </button>
+                                        <span className="min-w-[4.5rem] text-center text-xs font-semibold tabular-nums text-slate-700 sm:text-sm">
+                                            {txPage}/{totalTxPages}
+                                        </span>
+                                        <button
+                                            type="button"
+                                            className="btn-secondary btn-md min-h-9 px-2.5 py-1.5"
+                                            disabled={txPage >= totalTxPages}
+                                            onClick={() => setTxPage((p) => Math.min(totalTxPages, p + 1))}
+                                            aria-label="Trang sau"
+                                        >
+                                            <ChevronRight size={18} className="shrink-0" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Mobile: thẻ — dễ đọc, thao tác bằng cảm ứng */}
+                        <div className="md:hidden divide-y divide-slate-100">
+                            {paginatedTransactions.map((tx) => {
+                                const customerName = resolveCustomerName(customers, tx);
                                 const typeConfig = configs?.find(c => c.code === tx.type);
                                 const typeName = typeConfig ? typeConfig.name : tx.type;
-                                const calc = tx.interest_calculation;
-                                const total = tx.amount + (calc?.rounded_interest || 0);
+                                const typeColors = getInterestConfigColorScheme(tx.type);
+                                const { principal, interest, total, calc } = parseTxAmounts(tx);
 
                                 return (
                                     <div
                                         key={tx._id}
                                         onClick={() => handleEdit(tx)}
                                         className={clsx(
-                                            "p-4 active:bg-slate-50 transition-colors",
-                                            tx.status === 'PAID' && "bg-emerald-50/60"
+                                            'p-4 active:bg-slate-50/80 transition-colors border-l-[3px]',
+                                            tx.status === 'PAID' ? 'border-l-emerald-500 bg-emerald-50/40' : 'border-l-amber-400 bg-white'
                                         )}
                                     >
                                         <div className="flex items-start justify-between gap-3">
-                                            <div className="min-w-0">
-                                                <div className="text-xs font-semibold text-slate-500">
+                                            <div className="min-w-0 flex-1">
+                                                <div className="text-xs font-semibold text-slate-600 tabular-nums">
                                                     {formatDate(tx.transaction_date)}
                                                 </div>
-                                                <div className="mt-0.5 font-bold text-slate-900 truncate">
-                                                    {customerName}
-                                                </div>
-                                                <div className="mt-2 flex items-center gap-2 flex-wrap">
-                                                    <span className={clsx(
-                                                        "px-2.5 py-1 rounded-lg text-xs font-bold",
-                                                        tx.type?.includes('TIEN_MAT')
-                                                            ? 'bg-emerald-50 text-emerald-700'
-                                                            : tx.type?.includes('MUA_HANG')
-                                                                ? 'bg-blue-50 text-blue-700'
-                                                                : 'bg-slate-100 text-slate-900'
-                                                    )}>
+                                                <p className="mt-1 font-semibold text-slate-900 leading-snug">{customerName}</p>
+                                                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                                                    <span className={clsx('px-2 py-0.5 rounded-md text-[11px] font-bold border border-transparent', typeColors.badge)}>
                                                         {typeName}
                                                     </span>
-                                                    <span className="badge-neutral">{tx.interest_rate_snapshot}%</span>
-                                                    <span className="badge-neutral">
-                                                        {calc ? `${calc?.months.toFixed(1) || 0} tháng` : '- tháng'}
-                                                    </span>
+                                                    {calc != null && (
+                                                        <span className="text-[11px] text-slate-500 tabular-nums">
+                                                            {tx.interest_rate_snapshot}% · {calc?.months?.toFixed(1) ?? 0} tháng
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
-
                                             <button
+                                                type="button"
                                                 onClick={(e) => handleStatusToggle(e, tx)}
                                                 className={clsx(
-                                                    "badge shrink-0",
-                                                    tx.status === 'PAID' ? "badge-success" : "badge-warning"
+                                                    'shrink-0 rounded-lg px-2 py-1 text-[10px] font-bold uppercase tracking-wide border',
+                                                    tx.status === 'PAID'
+                                                        ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                                                        : 'border-amber-200 bg-amber-50 text-amber-900'
                                                 )}
                                             >
-                                                {tx.status === 'PAID' ? 'Đã thanh toán' : 'Chưa thu'}
+                                                {tx.status === 'PAID' ? 'Đã thu' : 'Chưa thu'}
                                             </button>
                                         </div>
 
-                                        <div className="mt-3 grid grid-cols-2 gap-3 bg-slate-50/50 rounded-2xl p-3 border border-slate-100">
-                                            <div>
-                                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tiền gốc</div>
-                                                <div className="mt-1 font-mono text-sm font-bold text-slate-700">
-                                                    {tx.amount.toLocaleString('vi-VN')}
-                                                </div>
+                                        <div className="mt-3 rounded-lg border border-slate-100 bg-slate-50/80 p-3 space-y-2">
+                                            <div className="flex items-baseline justify-between gap-2">
+                                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tổng</span>
+                                                <span className="font-mono text-base font-bold text-slate-900 tabular-nums">
+                                                    {(calc ? total : principal).toLocaleString('vi-VN')}
+                                                    <span className="text-xs font-sans font-normal text-slate-400 ml-0.5">đ</span>
+                                                </span>
                                             </div>
-                                            <div className="text-right">
-                                                <div className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Tiền lãi</div>
-                                                <div className="mt-1 font-mono text-sm font-bold text-blue-600">
-                                                    {calc ? `+ ${calc?.rounded_interest.toLocaleString('vi-VN')}` : '-'}
-                                                </div>
+                                            <div className="flex justify-between gap-3 text-xs tabular-nums text-slate-600">
+                                                <span className="font-mono">Gốc {principal.toLocaleString('vi-VN')}</span>
+                                                <span className="font-mono text-blue-600">
+                                                    {calc && interest > 0
+                                                        ? `+${interest.toLocaleString('vi-VN')} lãi`
+                                                        : '—'}
+                                                </span>
                                             </div>
-                                            <div>
-                                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tổng cộng</div>
-                                                <div className="mt-1 font-mono text-base font-black text-slate-900">
-                                                    {calc ? total.toLocaleString('vi-VN') : tx.amount.toLocaleString('vi-VN')}
-                                                </div>
-                                            </div>
-                                            <div className="text-right">
-                                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nội dung</div>
-                                                <div className="mt-1 text-sm font-medium text-slate-600 line-clamp-2 whitespace-pre-wrap">
-                                                    {tx.content || '-'}
+                                            <div className="pt-2 border-t border-slate-200/80">
+                                                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Nội dung</p>
+                                                <div className="text-sm text-slate-700 leading-snug">
+                                                    {formatTransactionContentPreview(tx.content, { lineClampClass: 'line-clamp-3' })}
                                                 </div>
                                             </div>
                                         </div>
+                                        <p className="mt-2 text-center text-[10px] text-slate-400">Chạm để chỉnh sửa · Nút trạng thái đổi đã thu / chưa thu</p>
                                     </div>
                                 );
                             })}
 
-                            {filteredTransactions?.length === 0 && (
-                                <div className="py-16 text-center">
+                            {totalFilteredCount === 0 && (
+                                <div className="py-12 px-4 text-center">
                                     <div className="flex flex-col items-center justify-center text-slate-400">
-                                        <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 border border-dashed border-slate-200">
-                                            <Search size={32} className="opacity-40" />
+                                        <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-3 border border-dashed border-slate-200">
+                                            <Search size={22} className="opacity-40" />
                                         </div>
-                                        <p className="font-medium text-slate-500">Chưa có giao dịch nào</p>
-                                        <p className="text-sm mt-1">Thử thay đổi bộ lọc hoặc tạo giao dịch mới</p>
+                                        <p className="text-sm font-medium text-slate-500">Chưa có giao dịch nào</p>
+                                        <p className="text-xs mt-1 text-slate-400">Thử đổi bộ lọc hoặc tạo giao dịch mới</p>
                                     </div>
                                 </div>
                             )}
                         </div>
 
-                        {/* Desktop Table View */}
-                        <div className="overflow-x-auto overflow-visible">
-                            <table className="table w-full">
-                                <thead className="table-head">
+                        {/* Desktop: bảng — gốc / lãi / tổng tách cột */}
+                        <div className="hidden md:block overflow-x-auto">
+                            <table className="table w-full text-sm">
+                                <caption className="sr-only">Danh sách giao dịch, nhấp để sửa, nhấp đúp để đổi trạng thái thanh toán</caption>
+                                <thead className="table-head sticky top-0 z-10 shadow-sm">
                                     <tr>
-                                        <th className="table-th text-xs py-4">
-                                            <div className="flex items-center gap-2">Ngày GD</div>
+                                        <th scope="col" className="table-th w-[1%] whitespace-nowrap pl-3">
+                                            TT
                                         </th>
-                                        <th className="table-th text-xs py-4 max-w-[200px]">
-                                            <div className="flex items-center gap-2">Khách hàng</div>
-                                        </th>
-                                        <th className="table-th text-center text-xs py-4 min-w-[240px] w-[240px]">
-                                            <div className="flex items-center justify-center gap-2">Loại</div>
-                                        </th>
-                                        <th className="table-th max-w-xs text-xs py-4">Nội dung</th>
-                                        <th className="table-th text-right text-xs py-4">
-                                            <div className="flex items-center justify-end gap-2">Tiền gốc</div>
-                                        </th>
-                                        <th className="table-th text-right text-xs py-4">Tổng cộng</th>
+                                        <th scope="col" className="table-th whitespace-nowrap">Ngày</th>
+                                        <th scope="col" className="table-th min-w-[7rem] max-w-[11rem]">Khách hàng</th>
+                                        <th scope="col" className="table-th min-w-[8.5rem]">Loại & lãi</th>
+                                        <th scope="col" className="table-th min-w-[12rem] max-w-[20rem]">Nội dung</th>
+                                        <th scope="col" className="table-th text-right whitespace-nowrap">Tiền gốc</th>
+                                        <th scope="col" className="table-th text-right whitespace-nowrap">Tiền lãi</th>
+                                        <th scope="col" className="table-th text-right whitespace-nowrap">Tổng cộng</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
-                                    {filteredTransactions?.map((tx) => {
-                                        const customerName = customers?.find(c => c.id === (tx.customer_id || tx.customer?.id || tx.customer))?.name || 'Không xác định';
+                                    {paginatedTransactions.map((tx) => {
+                                        const customerName = resolveCustomerName(customers, tx);
                                         const typeConfig = configs?.find(c => c.code === tx.type);
                                         const typeName = typeConfig ? typeConfig.name : tx.type;
-                                        const calc = tx.interest_calculation;
-                                        const total = tx.amount + (calc?.rounded_interest || 0);
+                                        const typeColors = getInterestConfigColorScheme(tx.type);
+                                        const { principal, interest, total, calc } = parseTxAmounts(tx);
 
                                         return (
                                             <tr
                                                 key={tx._id}
                                                 className={clsx(
-                                                    "table-row group relative cursor-pointer",
-                                                    tx.status === 'PAID' && "!bg-emerald-50 hover:!bg-emerald-100/60"
+                                                    'table-row group relative cursor-pointer transition-colors',
+                                                    tx.status === 'PAID'
+                                                        ? 'bg-emerald-50/70 hover:bg-emerald-50'
+                                                        : 'hover:bg-slate-50/90'
                                                 )}
                                                 onClick={() => handleEdit(tx)}
                                                 onDoubleClick={(e) => {
                                                     e.stopPropagation();
                                                     handleStatusToggle(e, tx);
                                                 }}
-                                                title="Click để chỉnh sửa, Double-click để đổi trạng thái"
+                                                title="Click để chỉnh sửa · Double-click để đổi trạng thái thanh toán"
                                             >
-                                                <td className="table-td whitespace-nowrap text-base py-4">
-                                                    <div className="flex items-center gap-2">
-                                                        {tx.status === 'PAID' && (
-                                                            <Check size={18} className="text-emerald-600 shrink-0" />
+                                                <td className="table-td align-middle pl-3 pr-0 w-[1%]">
+                                                    <span
+                                                        className={clsx(
+                                                            'inline-block h-9 w-1 rounded-full',
+                                                            tx.status === 'PAID' ? 'bg-emerald-500' : 'bg-amber-400'
                                                         )}
-                                                        {tx.status === 'OPEN' && (
-                                                            <Clock size={18} className="text-amber-600 shrink-0" />
+                                                        aria-hidden
+                                                    />
+                                                </td>
+                                                <td className="table-td whitespace-nowrap align-top">
+                                                    <span className="font-medium text-slate-800 tabular-nums">{formatDate(tx.transaction_date)}</span>
+                                                </td>
+                                                <td className="table-td align-top max-w-[11rem]">
+                                                    <span className="font-medium text-slate-800 line-clamp-2 leading-snug" title={customerName}>
+                                                        {customerName}
+                                                    </span>
+                                                </td>
+                                                <td className="table-td align-top">
+                                                    <span
+                                                        className={clsx(
+                                                            'inline-flex px-2 py-0.5 rounded-md text-[11px] font-bold border border-transparent',
+                                                            typeColors.badge
                                                         )}
-                                                        <span className="font-medium">{formatDate(tx.transaction_date)}</span>
-                                                    </div>
-                                                </td>
-                                                <td className="table-td font-medium text-slate-800 text-base py-4 max-w-[200px]">
-                                                    <div className="truncate" title={customerName}>{customerName}</div>
-                                                </td>
-                                                <td className="table-td text-center py-4 min-w-[240px] w-[240px]">
-                                                    <div className="flex flex-col gap-2 items-center">
-                                                    <span className={clsx(
-                                                            "px-3 py-1.5 rounded-lg text-base font-bold",
-                                                        tx.type?.includes('TIEN_MAT')
-                                                            ? 'bg-emerald-50 text-emerald-700'
-                                                            : tx.type?.includes('MUA_HANG')
-                                                                ? 'bg-blue-50 text-blue-700'
-                                                                : 'bg-slate-100 text-slate-900'
-                                                    )}>
+                                                    >
                                                         {typeName}
                                                     </span>
-                                                        {calc && (
-                                                            <div className="flex items-center gap-1.5 text-sm text-slate-500">
-                                                                <span>{tx.interest_rate_snapshot}%</span>
-                                                                <span>•</span>
-                                                                <span>{calc?.months.toFixed(1) || 0} tháng</span>
-                                                            </div>
-                                                        )}
+                                                    {calc != null && (
+                                                        <p className="mt-1 text-[11px] text-slate-500 tabular-nums leading-tight">
+                                                            {tx.interest_rate_snapshot}% · {calc?.months?.toFixed(1) ?? 0} tháng
+                                                        </p>
+                                                    )}
+                                                </td>
+                                                <td className="table-td align-top text-slate-600 max-w-[20rem]">
+                                                    <div className="rounded-md bg-slate-50/90 px-2 py-1.5 border border-slate-100/80">
+                                                        {formatTransactionContentPreview(tx.content, { lineClampClass: 'line-clamp-4' })}
                                                     </div>
                                                 </td>
-                                                <td className="table-td text-slate-600 max-w-xs leading-relaxed font-normal text-base py-4">
-                                                    {tx.content ? (
-                                                        tx.content.includes('-') ? (
-                                                            <div className="whitespace-pre-wrap line-clamp-5">
-                                                                {tx.content
-                                                                    .split(/\n/)
-                                                                    .flatMap(line => {
-                                                                        if (line.includes('-')) {
-                                                                            return line.split(/(?=-)/).filter(part => part.trim());
-                                                                        }
-                                                                        return [line];
-                                                                    })
-                                                                    .filter(part => part.trim())
-                                                                    .map((part, idx) => {
-                                                                        const trimmed = part.trim();
-                                                                        return (
-                                                                            <React.Fragment key={idx}>
-                                                                                {idx > 0 && <br />}
-                                                                                {trimmed}
-                                                                            </React.Fragment>
-                                                                        );
-                                                                    })}
-                                                            </div>
-                                                        ) : (
-                                                            <div className="line-clamp-3">{tx.content}</div>
-                                                        )
-                                                    ) : '-'}
+                                                <td className="table-td text-right align-top whitespace-nowrap font-mono text-slate-700 tabular-nums">
+                                                    {principal.toLocaleString('vi-VN')}
                                                 </td>
-                                                <td className="table-td whitespace-nowrap text-right py-4">
-                                                    <div className="flex flex-col items-end gap-1">
-                                                        <span className="font-mono font-medium text-slate-700 text-base">{tx.amount.toLocaleString('vi-VN')}</span>
-                                                        {calc && calc.rounded_interest > 0 && (
-                                                            <span className="font-mono text-base text-blue-600">+ {calc.rounded_interest.toLocaleString('vi-VN')}</span>
-                                                        )}
-                                                    </div>
+                                                <td className="table-td text-right align-top whitespace-nowrap font-mono tabular-nums">
+                                                    {calc && interest > 0 ? (
+                                                        <span className="font-mono font-medium text-blue-600 tabular-nums">
+                                                            +{interest.toLocaleString('vi-VN')}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="font-mono text-slate-400 tabular-nums">—</span>
+                                                    )}
                                                 </td>
-                                                <td className="table-td whitespace-nowrap text-right font-mono font-semibold text-slate-900 text-lg py-4">
-                                                    {calc ? total.toLocaleString('vi-VN') : tx.amount.toLocaleString('vi-VN')}
+                                                <td className="table-td text-right align-top whitespace-nowrap font-mono font-semibold text-slate-900 tabular-nums">
+                                                    {(calc ? total : principal).toLocaleString('vi-VN')}
                                                 </td>
                                             </tr>
-                                        )
+                                        );
                                     })}
-                                    {filteredTransactions?.length === 0 && (
+                                    {totalFilteredCount === 0 && (
                                         <tr>
-                                            <td colSpan="6" className="table-td py-16 text-center">
+                                            <td colSpan={8} className="table-td py-12 text-center">
                                                 <div className="flex flex-col items-center justify-center text-slate-400">
-                                                    <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 border border-dashed border-slate-200">
-                                                        <Search size={32} className="opacity-40" />
+                                                    <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-3 border border-dashed border-slate-200">
+                                                        <Search size={22} className="opacity-40" />
                                                     </div>
-                                                    <p className="font-medium text-slate-500">Chưa có giao dịch nào</p>
-                                                    <p className="text-sm mt-1">Thử thay đổi bộ lọc hoặc tạo giao dịch mới</p>
+                                                    <p className="text-sm font-medium text-slate-500">Chưa có giao dịch nào</p>
+                                                    <p className="text-xs mt-1">Thử thay đổi bộ lọc hoặc tạo giao dịch mới</p>
                                                 </div>
                                             </td>
                                         </tr>
@@ -1502,7 +1671,7 @@ export default function Transactions() {
             </div>
             {isImagePickerOpen && (
                 <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[70] flex items-center justify-center p-4 animate-in fade-in duration-300">
-                    <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in duration-300">
+                    <div className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden animate-in zoom-in duration-300">
                         <div className="p-8 text-center border-b border-slate-50 bg-slate-50/50">
                             <h3 className="text-xl font-bold text-slate-800 tracking-tight">Thêm ảnh giao dịch</h3>
                             <p className="text-sm text-slate-500 mt-1 font-medium">Chọn phương thức để đính kèm hình ảnh</p>
@@ -1540,7 +1709,7 @@ export default function Transactions() {
                             </button>
                         </div>
 
-                        <div className="px-8 pb-8">
+                        <div className="px-5 pb-5">
                             <button
                                 type="button"
                                 onClick={() => setIsImagePickerOpen(false)}

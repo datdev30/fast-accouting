@@ -12,6 +12,7 @@ import DateInput from '../components/DateInput';
 import DatePicker from '../components/DatePicker';
 import { formatDate } from '../utils/dateUtils';
 import { useToast } from '../context/ToastContext';
+import { getApiErrorMessage } from '../utils/errorMessage';
 import LoadingSkeleton from '../components/LoadingSkeleton';
 import { EmptyStates } from '../components/EmptyState';
 import { ErrorStates } from '../components/ErrorState';
@@ -88,8 +89,7 @@ const CustomerDebtDetail = () => {
             showToast('Thành công', 'File PDF đã được tải xuống', 'success');
         } catch (e) {
             console.error('Download All Transactions PDF error:', e);
-            const errorMessage = e?.message || e?.response?.data?.error || 'Không thể tải PDF';
-            showToast('Lỗi', errorMessage, 'error');
+            showToast('Lỗi', getApiErrorMessage(e, 'Tải PDF tất cả giao dịch'), 'error');
         } finally {
             setDownloadAllTransactionsPdfLoading(false);
         }
@@ -131,7 +131,7 @@ const CustomerDebtDetail = () => {
             showToast('Thành công', `Đã thanh toán ${data.count} giao dịch`, 'success');
         },
         onError: (err) => {
-            const errorMsg = err.response?.data?.detail || err.response?.data?.error || "Lỗi thanh toán";
+            const errorMsg = getApiErrorMessage(err, 'Thanh toán hàng loạt');
             if (errorMsg.toLowerCase().includes('pin') || errorMsg.toLowerCase().includes('mã')) {
                 setBulkPinError(errorMsg);
             } else {
@@ -186,7 +186,7 @@ const CustomerDebtDetail = () => {
             setShowQRModal(true);
         } catch (error) {
             console.error('Lỗi khi tạo QR code:', error);
-            showToast('Lỗi', 'Không thể tạo mã QR. Vui lòng thử lại.', 'error');
+            showToast('Lỗi', getApiErrorMessage(error, 'Tạo liên kết mã QR thanh toán'), 'error');
         } finally {
             setIsGeneratingQR(false);
         }
@@ -220,8 +220,7 @@ const CustomerDebtDetail = () => {
             showToast('Thành công', 'File PDF đã được tải xuống', 'success');
         } catch (e) {
             console.error('Download PDF error:', e);
-            const errorMessage = e?.message || e?.response?.data?.error || 'Không thể tải PDF';
-            showToast('Lỗi', errorMessage, 'error');
+            showToast('Lỗi', getApiErrorMessage(e, 'Tải PDF báo cáo công nợ'), 'error');
         } finally {
             setDownloadPdfLoading(false);
         }
@@ -346,7 +345,7 @@ const CustomerDebtDetail = () => {
         });
     }
 
-    if (!customer) return <div className="p-8 text-center text-slate-500">Đang tải dữ liệu khách hàng...</div>;
+    if (!customer) return <div className="p-4 text-center text-sm text-slate-500">Đang tải dữ liệu khách hàng...</div>;
 
     return (
         <div className="space-y-4 lg:space-y-6">
@@ -358,7 +357,7 @@ const CustomerDebtDetail = () => {
                         <ChevronRight size={14} className="opacity-50" />
                         <span className="text-slate-900 font-bold uppercase tracking-wider">Chi tiết công nợ</span>
                     </div>
-                    <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
+                    <h1 className="section-title">
                         {customer.name}
                     </h1>
                     <p className="text-slate-500 mt-1.5 flex items-center gap-2 text-sm">
@@ -370,8 +369,9 @@ const CustomerDebtDetail = () => {
                     {/* Payment Menu Button */}
                     <div className="relative" ref={paymentMenuRef}>
                         <button
+                            type="button"
                             onClick={() => setPaymentMenuOpen(!paymentMenuOpen)}
-                            className="btn btn-primary btn-md"
+                            className="btn-primary btn-md"
                         >
                             <Wallet size={18} />
                             Thanh toán
@@ -421,16 +421,18 @@ const CustomerDebtDetail = () => {
                         )}
                     </div>
                     <button
+                        type="button"
                         onClick={() => setShowPreview(true)}
-                        className="btn btn-secondary btn-md group"
+                        className="btn-secondary btn-md group"
                     >
                         <Printer size={18} className="text-slate-400 group-hover:text-blue-600 transition-colors" />
                         <span>In Phiếu Nợ</span>
                     </button>
                     <button
+                        type="button"
                         onClick={handleDownloadPdf}
                         disabled={downloadPdfLoading}
-                        className="btn btn-secondary btn-md group"
+                        className="btn-secondary btn-md group"
                     >
                         {downloadPdfLoading ? (
                             <Loader2 size={18} className="animate-spin text-slate-400" />
@@ -440,8 +442,9 @@ const CustomerDebtDetail = () => {
                         <span>Tải PDF</span>
                     </button>
                     <button
+                        type="button"
                         onClick={() => setShowAllTransactionsPreview(true)}
-                        className="btn btn-secondary btn-md group"
+                        className="btn-secondary btn-md group"
                     >
                         <FileText size={18} className="text-slate-400 group-hover:text-blue-600 transition-colors" />
                         <span>In tất cả GD</span>
@@ -453,9 +456,9 @@ const CustomerDebtDetail = () => {
             {bulkPayOpen && (
                 <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4 animate-in fade-in duration-200">
                     <div className="bg-white rounded-2xl w-full h-auto max-w-sm shadow-2xl overflow-hidden flex flex-col animate-in zoom-in duration-200">
-                        <div className="p-6 flex-1 overflow-y-auto">
-                            <h3 className="text-xl font-bold text-slate-800 mb-2">Xác nhận thanh toán</h3>
-                            <p className="text-slate-500 text-sm mb-8 leading-relaxed">
+                        <div className="p-5 flex-1 overflow-y-auto">
+                            <h3 className="text-lg font-bold text-slate-800 mb-2">Xác nhận thanh toán</h3>
+                            <p className="text-slate-500 text-sm mb-4 leading-relaxed">
                                 Bạn đang thực hiện thanh toán cho <b className="text-slate-800">tất cả các khoản nợ</b> của khách hàng này.
                                 Vui lòng nhập ngày thanh toán và mã PIN xác thực.
                             </p>
@@ -485,7 +488,7 @@ const CustomerDebtDetail = () => {
                                         inputMode="numeric"
                                         maxLength={4}
                                         placeholder="••••"
-                                        className={`input border-2 px-4 py-5 font-mono font-bold text-center text-4xl tracking-[0.5em] text-slate-800 placeholder:text-slate-200 ${
+                                        className={`input border-2 px-3 py-3 font-mono font-bold text-center text-2xl tracking-[0.35em] text-slate-800 placeholder:text-slate-200 ${
                                             bulkPinError ? 'border-red-300 focus:border-red-500 focus:ring-red-500/20' : 'border-slate-100'
                                         }`}
                                         value={bulkPin}
@@ -509,18 +512,18 @@ const CustomerDebtDetail = () => {
                                     </div>
                                 )}
 
-                                <div className="flex flex-row gap-3 pt-6 border-t border-slate-50 mt-4">
+                                <div className="flex flex-row gap-2 pt-4 border-t border-slate-50 mt-3">
                                     <button
                                         type="button"
                                         onClick={() => setBulkPayOpen(false)}
-                                        className="flex-1 btn btn-secondary btn-md"
+                                        className="btn-secondary btn-md flex-1"
                                     >
                                         Hủy bỏ
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={bulkPayMutation.isPending}
-                                        className="flex-1 btn btn-primary btn-md"
+                                        className="btn-primary btn-md flex-1"
                                     >
                                         {bulkPayMutation.isPending ? 'Đang xử lý...' : 'Xác nhận ngay'}
                                     </button>
@@ -538,14 +541,14 @@ const CustomerDebtDetail = () => {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200 print:hidden">
                     <div className="bg-slate-100 w-full max-w-5xl h-[90vh] rounded-2xl flex flex-col shadow-2xl relative overflow-hidden">
                         {/* Header */}
-                        <div className="bg-white px-6 py-4 border-b border-slate-200 flex justify-between items-center shadow-sm z-10">
-                            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <div className="bg-white px-4 py-3 border-b border-slate-200 flex justify-between items-center shadow-sm z-10">
+                            <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
                                 <Printer className="text-blue-600" /> Xem trước bản in
                             </h3>
                             <div className="flex items-center gap-3">
                                 <button
                                     onClick={() => handlePrint()}
-                                    className="btn btn-primary btn-md"
+                                    className="btn-primary btn-md"
                                 >
                                     <Printer size={18} /> In ngay
                                 </button>
@@ -580,22 +583,22 @@ const CustomerDebtDetail = () => {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200 print:hidden">
                     <div className="bg-slate-100 w-full max-w-5xl h-[90vh] rounded-2xl flex flex-col shadow-2xl relative overflow-hidden">
                         {/* Header */}
-                        <div className="bg-white px-6 py-4 border-b border-slate-200 flex justify-between items-center shadow-sm z-10">
-                            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <div className="bg-white px-4 py-3 border-b border-slate-200 flex justify-between items-center shadow-sm z-10">
+                            <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
                                 <FileText className="text-blue-600" /> Xem trước tất cả giao dịch
                             </h3>
                             <div className="flex items-center gap-3">
                                 <button
                                     onClick={handleDownloadAllTransactionsPdf}
                                     disabled={downloadAllTransactionsPdfLoading}
-                                    className="btn btn-secondary btn-md"
+                                    className="btn-secondary btn-md"
                                 >
                                     {downloadAllTransactionsPdfLoading ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
                                     Tải xuống
                                 </button>
                                 <button
                                     onClick={() => handlePrintAllTransactions()}
-                                    className="btn btn-primary btn-md"
+                                    className="btn-primary btn-md"
                                 >
                                     <Printer size={18} /> In ngay
                                 </button>
@@ -623,28 +626,33 @@ const CustomerDebtDetail = () => {
                 </div>
             )}
 
-            {/* Filters - Inline Style */}
-            <div className="flex items-center gap-1.5 border-b-2 border-slate-200 pb-2 focus-within:border-blue-500 transition-colors">
-                <div className="flex flex-1 items-center gap-1.5">
-                    <div className="flex-1 min-w-0">
+            <div className="filter-row max-w-3xl">
+                <div className="date-range-inline min-w-0 flex-1">
+                    <div className="min-w-0 flex-1">
                         <DatePicker
+                            variant="embedded"
                             value={startDate}
-                            onChange={e => setStartDate(e.target.value)}
+                            onChange={(e) => setStartDate(e.target.value)}
                             placeholder="Từ ngày"
                         />
                     </div>
-                    <span className="text-slate-300 text-base font-medium shrink-0">-</span>
-                    <div className="flex-1 min-w-0">
+                    <span className="shrink-0 text-sm font-medium text-slate-300">-</span>
+                    <div className="min-w-0 flex-1">
                         <DatePicker
+                            variant="embedded"
                             value={endDate}
-                            onChange={e => setEndDate(e.target.value)}
+                            onChange={(e) => setEndDate(e.target.value)}
                             placeholder="Đến ngày"
                         />
                     </div>
                     {(startDate || endDate) && (
                         <button
-                            onClick={() => { setStartDate(''); setEndDate(''); }}
-                            className="ml-1 p-1.5 min-w-[32px] min-h-[32px] flex items-center justify-center text-red-500 hover:bg-red-50 rounded-md transition-colors shrink-0"
+                            type="button"
+                            onClick={() => {
+                                setStartDate('');
+                                setEndDate('');
+                            }}
+                            className="filter-clear-btn"
                             title="Xóa lọc"
                         >
                             <X size={16} />
@@ -661,7 +669,7 @@ const CustomerDebtDetail = () => {
                     showDetails={true}
                 />
             ) : isLoading ? (
-                <div className="space-y-6">
+                <div className="space-y-4">
                     <LoadingSkeleton.Table rows={5} columns={8} />
                     <LoadingSkeleton.Table rows={4} columns={8} />
                 </div>
@@ -675,7 +683,7 @@ const CustomerDebtDetail = () => {
                     <EmptyStates.NoTransactions />
                 )
             ) : (
-                <div className="space-y-6">
+                <div className="space-y-4">
                     {Object.entries(groupedTransactionsDisplay)
                         .sort(([keyA], [keyB]) => {
                             if (keyA === 'Khác') return 1;
@@ -689,13 +697,13 @@ const CustomerDebtDetail = () => {
                             const isMonthFullyPaid = sortedTxs.every(tx => tx.status === 'PAID');
                             return (
                                 <div key={month} className={clsx(
-                                    "rounded-2xl shadow-sm border overflow-hidden",
+                                    "rounded-xl shadow-sm border overflow-hidden",
                                     isMonthFullyPaid ? "bg-emerald-100 border-emerald-200" : "bg-white border-slate-200"
                                 )}>
-                                    <div className="bg-slate-50/50 px-6 py-4 border-b border-slate-100 flex justify-between items-center">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-2 h-8 bg-blue-500 rounded-full"></div>
-                                            <h3 className={clsx("font-bold text-lg", isMonthFullyPaid ? "text-emerald-800" : "text-slate-800")}>Tháng {month}</h3>
+                                    <div className="bg-slate-50/50 px-4 py-3 border-b border-slate-100 flex justify-between items-center">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-1.5 h-6 bg-blue-500 rounded-full"></div>
+                                            <h3 className={clsx("font-bold text-base", isMonthFullyPaid ? "text-emerald-800" : "text-slate-800")}>Tháng {month}</h3>
                                         </div>
                                         <div className="flex gap-2">
                                             <span className={clsx("text-xs font-semibold px-2 py-1 rounded-md", isMonthFullyPaid ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600")}>{sortedTxs.length} giao dịch</span>
@@ -710,14 +718,14 @@ const CustomerDebtDetail = () => {
                                                 isMonthFullyPaid ? "bg-emerald-50/50" : "bg-white"
                                             )}>
                                                 <tr>
-                                                    <th className="px-6 py-3 whitespace-nowrap">Ngày</th>
-                                                    <th className="px-6 py-3 whitespace-nowrap">Loại dịch vụ</th>
-                                                    <th className="px-6 py-3 min-w-[300px]">Nội dung</th>
-                                                    <th className="px-6 py-3 text-right whitespace-nowrap">Tiền gốc</th>
-                                                    <th className="px-6 py-3 text-center whitespace-nowrap">Lãi suất</th>
-                                                    <th className="px-6 py-3 text-center whitespace-nowrap">Thời gian</th>
-                                                    <th className="px-6 py-3 text-right whitespace-nowrap">Tiền lãi</th>
-                                                    <th className="px-6 py-3 text-right whitespace-nowrap">Tổng cộng</th>
+                                                    <th className="px-4 py-2.5 whitespace-nowrap">Ngày</th>
+                                                    <th className="px-4 py-2.5 whitespace-nowrap">Loại dịch vụ</th>
+                                                    <th className="px-4 py-2.5 min-w-[240px]">Nội dung</th>
+                                                    <th className="px-4 py-2.5 text-right whitespace-nowrap">Tiền gốc</th>
+                                                    <th className="px-4 py-2.5 text-center whitespace-nowrap">Lãi suất</th>
+                                                    <th className="px-4 py-2.5 text-center whitespace-nowrap">Thời gian</th>
+                                                    <th className="px-4 py-2.5 text-right whitespace-nowrap">Tiền lãi</th>
+                                                    <th className="px-4 py-2.5 text-right whitespace-nowrap">Tổng cộng</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-slate-50 text-sm">
@@ -736,10 +744,10 @@ const CustomerDebtDetail = () => {
                                                                 tx.status === 'PAID' ? "bg-emerald-50 hover:bg-emerald-100" : "hover:bg-blue-50/30"
                                                             )}
                                                         >
-                                                            <td className="px-6 py-4 whitespace-nowrap text-slate-500 font-medium group-hover:text-blue-600 transition-colors">
+                                                            <td className="px-4 py-2.5 whitespace-nowrap text-slate-500 font-medium group-hover:text-blue-600 transition-colors">
                                                                 {formatDate(tx.transaction_date)}
                                                             </td>
-                                                            <td className="px-6 py-4">
+                                                            <td className="px-4 py-2.5">
                                                                 <span className={clsx(
                                                                     "px-2.5 py-1 rounded-lg text-xs font-bold border",
                                                                     isCash
@@ -749,18 +757,18 @@ const CustomerDebtDetail = () => {
                                                                     {typeName}
                                                                 </span>
                                                             </td>
-                                                            <td className="px-6 py-4 text-slate-700 font-medium whitespace-pre-wrap leading-relaxed">{tx.content}</td>
-                                                            <td className="px-6 py-4 text-right font-mono text-slate-600">{(tx.amount || 0).toLocaleString('vi-VN')}</td>
-                                                            <td className="px-6 py-4 text-center text-slate-400 whitespace-nowrap">{tx.interest_rate_snapshot}%</td>
-                                                            <td className="px-6 py-4 text-center whitespace-nowrap">
+                                                            <td className="px-4 py-2.5 text-slate-700 font-medium whitespace-pre-wrap leading-relaxed">{tx.content}</td>
+                                                            <td className="px-4 py-2.5 text-right font-mono text-slate-600">{(tx.amount || 0).toLocaleString('vi-VN')}</td>
+                                                            <td className="px-4 py-2.5 text-center text-slate-400 whitespace-nowrap">{tx.interest_rate_snapshot}%</td>
+                                                            <td className="px-4 py-2.5 text-center whitespace-nowrap">
                                                                 <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded-md text-xs font-medium border border-slate-200">
                                                                     {(calc?.months || 0).toFixed(1)} tháng
                                                                 </span>
                                                             </td>
-                                                            <td className="px-6 py-4 text-right font-mono text-blue-600 font-medium">
+                                                            <td className="px-4 py-2.5 text-right font-mono text-blue-600 font-medium">
                                                                 +{(calc?.rounded_interest || 0).toLocaleString('vi-VN')}
                                                             </td>
-                                                            <td className="px-6 py-4 text-right font-mono font-semibold text-slate-900 text-base">
+                                                            <td className="px-4 py-2.5 text-right font-mono font-semibold text-slate-900 text-sm">
                                                                 {(total || 0).toLocaleString('vi-VN')} <span className="text-xs font-sans font-normal text-slate-400">đ</span>
                                                             </td>
                                                         </tr>
@@ -780,13 +788,13 @@ const CustomerDebtDetail = () => {
             {showQRModal && (
                 <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[70] p-4 animate-in fade-in duration-200">
                     <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
-                        <div className="shrink-0 flex items-start justify-between gap-4 p-6 border-b border-slate-100">
-                            <div className="flex items-center gap-3 min-w-0">
-                                <div className="shrink-0 w-12 h-12 rounded-xl bg-teal-100 flex items-center justify-center">
-                                    <QrCode size={24} className="text-teal-600" />
+                        <div className="shrink-0 flex items-start justify-between gap-3 p-4 border-b border-slate-100">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="shrink-0 w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center">
+                                    <QrCode size={20} className="text-teal-600" />
                                 </div>
                                 <div className="min-w-0">
-                                    <h3 className="text-lg font-bold text-slate-800">Mã QR thanh toán</h3>
+                                    <h3 className="text-base font-bold text-slate-800">Mã QR thanh toán</h3>
                                     <p className="text-xs text-slate-500 mt-0.5">Quét mã để chuyển khoản</p>
                                 </div>
                             </div>
@@ -803,10 +811,10 @@ const CustomerDebtDetail = () => {
                             </button>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto p-6">
+                        <div className="flex-1 overflow-y-auto p-4">
                             {qrCodeUrl ? (
-                                <div className="flex flex-col items-center justify-center space-y-4">
-                                    <div className="bg-white p-6 rounded-xl shadow-lg border border-slate-200">
+                                <div className="flex flex-col items-center justify-center space-y-3">
+                                    <div className="bg-white p-3 rounded-lg shadow-md border border-slate-200">
                                         <img
                                             src={qrCodeUrl}
                                             alt="Mã QR thanh toán"
@@ -824,8 +832,8 @@ const CustomerDebtDetail = () => {
                                     </div>
                                 </div>
                             ) : (
-                                <div className="flex flex-col items-center justify-center space-y-4 p-12">
-                                    <Loader2 size={48} className="animate-spin text-slate-400" />
+                                <div className="flex flex-col items-center justify-center space-y-3 py-8 px-4">
+                                    <Loader2 size={36} className="animate-spin text-slate-400" />
                                     <p className="text-sm text-slate-500">Đang tạo mã QR...</p>
                                 </div>
                             )}

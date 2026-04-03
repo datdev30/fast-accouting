@@ -1,17 +1,17 @@
 {
   "name": "Fast Accounting",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Hệ thống quản lý tài chính thông minh - Quản lý khách hàng, giao dịch vay, tính lãi suất tự động và xuất báo cáo chuyên nghiệp. Tối ưu cho mọi thiết bị từ desktop đến tablet.",
-  "updated_at": "2026-01-18",
+  "updated_at": "2026-04-03",
   "author": "Nguyễn Thành Đạt (DatDev)",
   "summary": [
-    "🎨 Giao diện hiện đại: Responsive design tối ưu cho iPad Pro 11\" - Hybrid UI thông minh (Card view cho portrait, Table view cho landscape)",
-    "⚡ Hiệu năng cao: Frontend React + Vite, Backend Node.js + Express + MongoDB với JWT authentication",
-    "💰 Tính lãi thông minh: Tự động tính lãi theo quy tắc làm tròn ngày/tháng, hỗ trợ trạng thái OPEN/PAID linh hoạt",
-    "📊 Báo cáo chuyên nghiệp: Xuất PDF theo format chuẩn, hỗ trợ batch-export ZIP, xem trước trước khi in",
-    "📱 Tối ưu đa nền tảng: Web app responsive, hỗ trợ touch gestures, FAB buttons cho tablet, custom date picker",
-    "🔒 Bảo mật cao: Phân quyền ADMIN/SALE, mã PIN cho thao tác nhạy cảm, backup/restore dữ liệu an toàn",
-    "🖼️ Quản lý hình ảnh: Lưu trữ chứng từ trên Google Drive, xem ảnh với zoom/pan/rotate chuyên nghiệp",
-    "🔍 Tìm kiếm thông minh: Tìm kiếm khách hàng theo tên hoặc số điện thoại ở mọi nơi, tạo mới nhanh chóng"
+    "Giao diện hiện đại: Responsive design tối ưu cho iPad Pro 11\" - Hybrid UI thông minh (Card view cho portrait, Table view cho landscape)",
+    "Hiệu năng cao: Frontend React + Vite, Backend Node.js + Express + MongoDB với JWT authentication",
+    "Tính lãi thông minh: Tự động tính lãi theo quy tắc làm tròn ngày/tháng, hỗ trợ trạng thái OPEN/PAID linh hoạt",
+    "Báo cáo chuyên nghiệp: Xuất PDF theo format chuẩn, hỗ trợ batch-export ZIP, xem trước trước khi in",
+    "Tối ưu đa nền tảng: Web app responsive, hỗ trợ touch gestures, FAB buttons cho tablet, custom date picker",
+    "Bảo mật cao: Phân quyền ADMIN/SALE, mã PIN cho thao tác nhạy cảm, backup/restore dữ liệu an toàn",
+    "Quản lý hình ảnh: Lưu trữ chứng từ trên Google Drive, xem ảnh với zoom/pan/rotate chuyên nghiệp",
+    "Tìm kiếm thông minh: Tìm kiếm khách hàng theo tên hoặc số điện thoại ở mọi nơi, tạo mới nhanh chóng"
   ]
 }

@@ -4,22 +4,23 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Settings as SettingsIcon, Info, BookOpen, Calculator, Users, DatabaseBackup, LogOut, ChevronRight, CreditCard, Cloud, Eye, EyeOff, Copy, Check, ExternalLink, Loader2, AlertCircle, Save } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { getApiErrorMessage } from '../utils/errorMessage';
 import { getDriveOAuthRefreshToken, updateDriveOAuthRefreshToken, getDriveOAuthGenerateUrl, handleDriveOAuthCallback } from '../services/api';
 import { clsx } from 'clsx';
 
 const SettingLink = ({ to, icon: Icon, label, desc }) => (
     <Link
         to={to}
-        className="flex items-center gap-4 p-4 rounded-xl bg-white border border-slate-200 hover:border-blue-300 hover:bg-slate-50/50 transition-all group cursor-pointer"
+        className="flex items-center gap-3 p-3 rounded-lg bg-white border border-slate-200 hover:border-blue-300 hover:bg-slate-50/50 transition-all group cursor-pointer"
     >
-        <div className="w-12 h-12 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
-            <Icon size={24} />
+        <div className="w-10 h-10 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors shrink-0">
+            <Icon size={20} />
         </div>
         <div className="flex-1 min-w-0">
-            <p className="font-semibold text-slate-800">{label}</p>
-            {desc && <p className="text-sm text-slate-500 mt-0.5">{desc}</p>}
+            <p className="font-semibold text-sm text-slate-800">{label}</p>
+            {desc && <p className="text-xs text-slate-500 mt-0.5">{desc}</p>}
         </div>
-        <ChevronRight size={20} className="text-slate-300 group-hover:text-blue-600 shrink-0" />
+        <ChevronRight size={18} className="text-slate-300 group-hover:text-blue-600 shrink-0" />
     </Link>
 );
 
@@ -51,7 +52,7 @@ export default function Settings() {
             showToast('Thành công', 'Đã lưu refresh token thành công', 'success');
         },
         onError: (err) => {
-            showToast('Lỗi', err.response?.data?.error || 'Không thể lưu refresh token', 'error');
+            showToast('Lỗi', getApiErrorMessage(err, 'Lưu Google Drive refresh token'), 'error');
         }
     });
 
@@ -62,7 +63,7 @@ export default function Settings() {
             showToast('Thành công', 'Đã tạo OAuth URL. Mở link và copy code sau khi authorize.', 'success');
         },
         onError: (err) => {
-            showToast('Lỗi', err.response?.data?.error || 'Không thể tạo OAuth URL', 'error');
+            showToast('Lỗi', getApiErrorMessage(err, 'Tạo URL OAuth Google Drive'), 'error');
         }
     });
 
@@ -75,7 +76,7 @@ export default function Settings() {
             showToast('Thành công', 'Đã tạo và lưu refresh token thành công', 'success');
         },
         onError: (err) => {
-            showToast('Lỗi', err.response?.data?.error || 'Không thể xử lý OAuth callback', 'error');
+            showToast('Lỗi', getApiErrorMessage(err, 'Đổi authorization code lấy refresh token'), 'error');
         }
     });
 
@@ -111,13 +112,13 @@ export default function Settings() {
     };
 
     return (
-        <div className="max-w-3xl mx-auto space-y-8 animate-fade-in p-6">
+        <div className="max-w-3xl mx-auto space-y-5 animate-fade-in">
             <div>
-                <h2 className="text-3xl font-bold text-slate-900">Cài đặt</h2>
-                <p className="text-slate-500 mt-1">Thông tin, hướng dẫn và tùy chọn hệ thống</p>
+                <h2 className="section-title">Cài đặt</h2>
+                <p className="section-subtitle mt-1">Thông tin, hướng dẫn và tùy chọn hệ thống</p>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2">
                 <SettingLink to="/info" icon={Info} label="Thông tin" desc="Phiên bản, cập nhật hệ thống" />
                 <SettingLink to="/guide" icon={BookOpen} label="Hướng dẫn" desc="Hướng dẫn sử dụng" />
                 <SettingLink to="/interest-configs" icon={Calculator} label="Cấu hình lãi suất" desc="Thiết lập lãi vay" />
@@ -132,13 +133,13 @@ export default function Settings() {
 
             {/* Drive OAuth Refresh Token Configuration - Admin Only */}
             {isAdmin && (
-                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-6">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600">
-                            <Cloud size={24} />
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-4">
+                    <div className="flex items-center gap-2.5">
+                        <div className="p-2 rounded-lg bg-blue-50 text-blue-600">
+                            <Cloud size={20} />
                         </div>
                         <div>
-                            <h3 className="text-lg font-bold text-slate-900">Google Drive OAuth</h3>
+                            <h3 className="text-base font-bold text-slate-900">Google Drive OAuth</h3>
                             <p className="text-xs text-slate-500 mt-0.5">Quản lý refresh token cho Google Drive</p>
                         </div>
                     </div>

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { CreditCard, Building2, User, QrCode, Save, X, AlertCircle, CheckCircle, Lock, Eye, ChevronDown, Loader2, Search, FileText } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useToast } from '../context/ToastContext';
+import { getApiErrorMessage } from '../utils/errorMessage';
 import { useAuth } from '../context/AuthContext';
 import { getVietQRBankList, generateVietQRUrl, getBankAccountConfig, saveBankAccountConfig, updateBankAccountConfig } from '../services/api';
 
@@ -51,6 +52,11 @@ export default function BankAccountConfig() {
 
     // Load dữ liệu từ server khi có cấu hình
     useEffect(() => {
+        // Chỉ xử lý khi đã load xong (không còn loading)
+        if (isLoadingConfig) {
+            return;
+        }
+
         if (bankConfig) {
             setFormData({
                 bank_code: bankConfig.bank_code || '',
@@ -60,17 +66,10 @@ export default function BankAccountConfig() {
                 default_add_info: bankConfig.default_add_info || ''
             });
 
-            if (bankConfig.qr_code_url) {
-                setQrCodeUrl(bankConfig.qr_code_url);
-            }
-
-            if (bankConfig.bank_code && bankList.length > 0) {
-                const bank = bankList.find(b => b.code === bankConfig.bank_code);
-                if (bank) {
-                    setSelectedBank(bank);
-                }
-            }
-        } else if (bankConfig === null && !isLoadingConfig) {
+            // Luôn set qrCodeUrl, kể cả khi null/undefined
+            setQrCodeUrl(bankConfig.qr_code_url || null);
+        } else {
+            // bankConfig là null hoặc undefined - reset form
             setFormData({
                 bank_code: '',
                 bank_name: '',
@@ -81,7 +80,23 @@ export default function BankAccountConfig() {
             setQrCodeUrl(null);
             setSelectedBank(null);
         }
-    }, [bankConfig, bankList, isLoadingConfig]);
+    }, [bankConfig, isLoadingConfig]);
+
+    // Cập nhật selectedBank khi bankList hoặc bankConfig thay đổi
+    useEffect(() => {
+        if (bankConfig?.bank_code && bankList.length > 0) {
+            const bank = bankList.find(b => b.code === bankConfig.bank_code);
+            if (bank) {
+                setSelectedBank(bank);
+            } else {
+                // Nếu không tìm thấy bank trong list, reset selectedBank
+                setSelectedBank(null);
+            }
+        } else if (!bankConfig?.bank_code) {
+            // Nếu không có bank_code trong config, reset selectedBank
+            setSelectedBank(null);
+        }
+    }, [bankConfig?.bank_code, bankList]);
 
     const validateForm = () => {
         const errors = {
@@ -195,7 +210,7 @@ export default function BankAccountConfig() {
             showToast('Thành công', 'Đã lưu cấu hình tài khoản ngân hàng', 'success');
         },
         onError: (err) => {
-            showToast('Lỗi', err.response?.data?.error || err.message || 'Không thể lưu cấu hình', 'error');
+            showToast('Lỗi', getApiErrorMessage(err, 'Lưu cấu hình tài khoản ngân hàng'), 'error');
         }
     });
 
@@ -229,11 +244,15 @@ export default function BankAccountConfig() {
                 showToast('Thành công', 'Đã tạo và lưu mã QR thành công', 'success');
             } catch (saveError) {
                 console.error('Lỗi khi lưu QR code:', saveError);
-                showToast('Cảnh báo', 'Đã tạo mã QR nhưng chưa lưu được lên server. Vui lòng thử lại.', 'warning');
+                showToast(
+                    'Cảnh báo',
+                    `Đã tạo mã QR nhưng chưa lưu được lên máy chủ: ${getApiErrorMessage(saveError, 'Lưu URL mã QR')}`,
+                    'warning'
+                );
             }
         } catch (error) {
             console.error('Lỗi khi tạo QR code:', error);
-            showToast('Lỗi', 'Không thể tạo mã QR. Vui lòng thử lại.', 'error');
+            showToast('Lỗi', getApiErrorMessage(error, 'Tạo URL mã QR (VietQR)'), 'error');
         } finally {
             setIsGeneratingQR(false);
         }
@@ -255,12 +274,12 @@ export default function BankAccountConfig() {
     };
 
     return (
-        <div className="max-w-6xl mx-auto space-y-6 p-6">
+        <div className="max-w-6xl mx-auto space-y-4 lg:space-y-5">
             <div className="space-y-0">
                 <div className="flex items-center justify-between gap-4">
                     <div>
-                        <div className="flex items-center gap-3">
-                            <h2 className="text-3xl font-bold text-slate-900">Cấu hình STK</h2>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <h2 className="section-title">Cấu hình STK</h2>
                             {!isAdmin && (
                                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold">
                                     <Eye size={14} />
@@ -268,7 +287,7 @@ export default function BankAccountConfig() {
                                 </span>
                             )}
                         </div>
-                        <p className="text-slate-500 mt-1">
+                        <p className="section-subtitle mt-1">
                             {isAdmin 
                                 ? 'Thiết lập thông tin tài khoản ngân hàng và mã QR' 
                                 : 'Xem mã QR ngân hàng do ADMIN cấu hình (chỉ xem, không thể chỉnh sửa)'}
@@ -277,15 +296,15 @@ export default function BankAccountConfig() {
                 </div>
             </div>
 
-            <div className={clsx("grid gap-6", isAdmin ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1")}>
+            <div className={clsx("grid gap-4", isAdmin ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1")}>
                 {isAdmin && (
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-6">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600">
-                                <CreditCard size={24} />
+                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-4">
+                        <div className="flex items-center gap-2.5">
+                            <div className="p-2 rounded-lg bg-blue-50 text-blue-600">
+                                <CreditCard size={20} />
                             </div>
                             <div>
-                                <h3 className="text-lg font-bold text-slate-900">Thông tin tài khoản</h3>
+                                <h3 className="text-base font-bold text-slate-900">Thông tin tài khoản</h3>
                                 <p className="text-xs text-slate-500 mt-0.5">Nhập thông tin ngân hàng của bạn</p>
                             </div>
                         </div>
@@ -538,13 +557,13 @@ export default function BankAccountConfig() {
                     </div>
                 )}
 
-                <div className={clsx("bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-6", !isAdmin && "max-w-2xl mx-auto")}>
-                    <div className="flex items-center gap-3">
-                        <div className="p-2.5 rounded-xl bg-teal-50 text-teal-600">
-                            <QrCode size={24} />
+                <div className={clsx("bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-4", !isAdmin && "max-w-2xl mx-auto")}>
+                    <div className="flex items-center gap-2.5">
+                        <div className="p-2 rounded-lg bg-teal-50 text-teal-600">
+                            <QrCode size={20} />
                         </div>
                         <div>
-                            <h3 className="text-lg font-bold text-slate-900">Mã QR ngân hàng</h3>
+                            <h3 className="text-base font-bold text-slate-900">Mã QR ngân hàng</h3>
                             <p className="text-xs text-slate-500 mt-0.5">
                                 {isAdmin ? 'Quét để chuyển khoản nhanh' : 'Quét mã QR để chuyển khoản'}
                             </p>
@@ -552,13 +571,13 @@ export default function BankAccountConfig() {
                     </div>
 
                     {isLoadingConfig ? (
-                        <div className="flex flex-col items-center justify-center space-y-4 p-12 bg-slate-50 rounded-2xl border border-slate-200">
+                        <div className="flex flex-col items-center justify-center space-y-3 p-6 bg-slate-50 rounded-xl border border-slate-200">
                             <Loader2 size={48} className="animate-spin text-slate-400" />
                             <p className="text-sm font-semibold text-slate-600">Đang tải cấu hình...</p>
                         </div>
                     ) : qrCodeUrl ? (
-                        <div className="flex flex-col items-center justify-center space-y-4 p-6 bg-slate-50 rounded-2xl border border-slate-200">
-                            <div className="bg-white p-6 rounded-xl shadow-lg border border-slate-200">
+                        <div className="flex flex-col items-center justify-center space-y-3 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                            <div className="bg-white p-3 rounded-lg shadow-md border border-slate-200">
                                 <img
                                     src={qrCodeUrl}
                                     alt="Mã QR ngân hàng"
@@ -581,7 +600,7 @@ export default function BankAccountConfig() {
                                             showToast('Thành công', 'Đã xóa mã QR', 'success');
                                         } catch (error) {
                                             console.error('Lỗi khi xóa QR code:', error);
-                                            showToast('Lỗi', 'Không thể xóa mã QR. Vui lòng thử lại.', 'error');
+                                            showToast('Lỗi', getApiErrorMessage(error, 'Xóa mã QR trên máy chủ'), 'error');
                                         }
                                     }}
                                     className="px-4 py-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors flex items-center gap-2 cursor-pointer"
@@ -592,7 +611,7 @@ export default function BankAccountConfig() {
                             )}
                         </div>
                     ) : (
-                        <div className="flex flex-col items-center justify-center space-y-4 p-12 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                        <div className="flex flex-col items-center justify-center space-y-3 p-6 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200">
                             <div className="w-24 h-24 bg-slate-100 rounded-2xl flex items-center justify-center">
                                 <QrCode size={48} className="text-slate-300" />
                             </div>

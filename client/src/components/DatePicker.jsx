@@ -3,7 +3,8 @@ import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatDate } from '../utils/dateUtils';
 import { clsx } from 'clsx';
 
-const DatePicker = ({ value, onChange, placeholder = 'Chọn ngày', className, disabled }) => {
+const DatePicker = ({ value, onChange, placeholder = 'Chọn ngày', className, disabled, variant = 'field' }) => {
+    const isEmbedded = variant === 'embedded';
     const [isOpen, setIsOpen] = useState(false);
     const [selectedDate, setSelectedDate] = useState(value || '');
     const [currentMonth, setCurrentMonth] = useState(() => {
@@ -108,12 +109,14 @@ const DatePicker = ({ value, onChange, placeholder = 'Chọn ngày', className, 
                 onClick={() => !disabled && setIsOpen(!isOpen)}
                 disabled={disabled}
                 className={clsx(
-                    "w-full flex items-center gap-2 px-3 pl-10 py-2.5 text-sm md:text-base font-medium text-slate-600 bg-transparent rounded-lg transition-colors",
-                    "hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20",
-                    disabled && "opacity-50 cursor-not-allowed"
+                    "w-full flex items-center gap-2 min-h-10 text-sm font-medium transition-colors rounded-lg",
+                    isEmbedded
+                        ? "border-0 bg-transparent px-2 pl-9 py-2 text-slate-700 shadow-none hover:bg-slate-50/90 focus:outline-none focus:ring-0"
+                        : "border border-slate-200 bg-white px-3 pl-10 py-2 text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50/80 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500",
+                    disabled && "opacity-50 cursor-not-allowed bg-slate-50"
                 )}
             >
-                <Calendar size={18} className="absolute left-3 text-slate-400" />
+                <Calendar size={18} className={clsx("absolute text-slate-400", isEmbedded ? "left-2" : "left-3")} />
                 <span className="flex-1 text-left">
                     {selectedDate ? formatDate(selectedDate) : placeholder}
                 </span>

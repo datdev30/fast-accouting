@@ -34,7 +34,7 @@ const EmptyState = ({
                     {action && (
                         <button
                             onClick={action}
-                            className="btn btn-primary btn-md"
+                            className="btn-primary btn-md"
                         >
                             {actionLabel || 'Bắt đầu'}
                         </button>
@@ -43,7 +43,7 @@ const EmptyState = ({
                     {secondaryAction && (
                         <button
                             onClick={secondaryAction}
-                            className="btn btn-secondary btn-md"
+                            className="btn-secondary btn-md"
                         >
                             {secondaryActionLabel || 'Tìm hiểu thêm'}
                         </button>

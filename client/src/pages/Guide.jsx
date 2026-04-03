@@ -1,304 +1,338 @@
-import React, { useState } from 'react';
-import { BookOpen, Users, FileText, Calculator, ShieldAlert, ChevronDown, Zap, CheckCircle2, AlertTriangle, Lightbulb, BarChart3, Settings, Image as ImageIcon } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import {
+    BookOpen,
+    Monitor,
+    LayoutDashboard,
+    Settings,
+    Zap,
+    Users,
+    BarChart3,
+    ShieldAlert,
+    Image as ImageIcon,
+    Keyboard,
+    MousePointerClick,
+    CheckCircle2,
+    AlertTriangle,
+    Lightbulb,
+} from 'lucide-react';
 import { clsx } from 'clsx';
 
-function GuideItem({ title, icon: Icon, children, isOpen, onToggle, color = 'blue' }) {
-    const colors = {
-        blue: 'bg-blue-100 text-blue-600',
-        emerald: 'bg-emerald-100 text-emerald-600',
-        amber: 'bg-amber-100 text-amber-600',
-        purple: 'bg-purple-100 text-purple-600',
-        rose: 'bg-red-100 text-red-600',
-        indigo: 'bg-indigo-100 text-indigo-600',
-        sky: 'bg-sky-100 text-sky-600',
-    };
+const toc = [
+    { id: 'bat-dau', label: 'Bắt đầu trên desktop' },
+    { id: 'dieu-huong', label: 'Thanh bên & điều hướng' },
+    { id: 'lai-suat', label: 'Cấu hình lãi suất' },
+    { id: 'giao-dich', label: 'Giao dịch & bảng' },
+    { id: 'chung-tu', label: 'Ảnh chứng từ' },
+    { id: 'khach-hang', label: 'Khách hàng & nợ' },
+    { id: 'bao-cao', label: 'Báo cáo' },
+    { id: 'phan-quyen', label: 'Phân quyền & PIN' },
+];
 
+function Section({ id, title, children, className }) {
     return (
-        <div className={clsx("card overflow-hidden transition-all duration-300 border-2", isOpen ? "border-blue-200 shadow-lg" : "border-transparent")}>
-            <button
-                onClick={onToggle}
-                className="w-full p-6 flex items-center gap-4 text-left hover:bg-slate-50 transition-colors"
-            >
-                <div className={clsx("w-12 h-12 rounded-2xl flex items-center justify-center flex-none transition-transform duration-300", colors[color], isOpen && "scale-110")}>
-                    <Icon size={24} />
-                </div>
-                <div className="flex-1 min-w-0">
-                    <h3 className="text-lg font-bold text-slate-800">{title}</h3>
-                </div>
-                <div className={clsx("p-2 rounded-full text-slate-400 transition-transform duration-300", isOpen && "rotate-180 bg-blue-50 text-blue-500")}>
-                    <ChevronDown size={20} />
-                </div>
-            </button>
-            <div
-                className={clsx(
-                    "grid transition-all duration-300 ease-in-out",
-                    isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-                )}
-            >
-                <div className="overflow-hidden">
-                    <div className="p-6 pt-0 text-slate-600 leading-relaxed text-base space-y-4">
-                        <div className="h-px bg-slate-100 mb-6"></div>
-                        {children}
-                    </div>
-                </div>
+        <section id={id} className={clsx('guide-page__section', className)}>
+            <div className="guide-page__section-panel">
+                <h3 className="guide-page__section-title">{title}</h3>
+                <div className="guide-page__section-body">{children}</div>
             </div>
-        </div>
+        </section>
     );
 }
 
-function SectionTitle({ children }) {
-    return <h4 className="font-bold text-slate-900 flex items-center gap-2 mt-6 first:mt-0 text-base">{children}</h4>;
-}
-
-function Bullet({ children, type = 'dot' }) {
+function Bullet({ children, variant = 'dot' }) {
+    const icon =
+        variant === 'check' ? (
+            <CheckCircle2 size={17} className="mt-0.5 shrink-0 text-emerald-600" aria-hidden />
+        ) : variant === 'warn' ? (
+            <AlertTriangle size={17} className="mt-0.5 shrink-0 text-amber-600" aria-hidden />
+        ) : variant === 'tip' ? (
+            <Lightbulb size={17} className="mt-0.5 shrink-0 text-blue-600" aria-hidden />
+        ) : (
+            <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-slate-300" aria-hidden />
+        );
     return (
-        <li className="flex items-start gap-3">
-            <span className={clsx("mt-1.5 flex-none",
-                type === 'check' && "text-emerald-500",
-                type === 'warn' && "text-amber-500",
-                type === 'info' && "text-blue-500",
-                type === 'dot' && "w-1.5 h-1.5 rounded-full bg-slate-300 mt-2.5"
-            )}>
-                {type === 'check' && <CheckCircle2 size={16} />}
-                {type === 'warn' && <AlertTriangle size={16} />}
-                {type === 'info' && <Lightbulb size={16} />}
-            </span>
-            <span>{children}</span>
+        <li className="flex gap-3">
+            {icon}
+            <span className="min-w-0">{children}</span>
         </li>
     );
 }
 
 function ProTip({ children }) {
     return (
-        <div className="bg-amber-50 rounded-xl p-4 border border-amber-100 flex gap-3 mt-4">
-            <Lightbulb className="text-amber-500 flex-none" size={20} />
-            <div className="text-sm text-amber-800 leading-relaxed">
-                {children}
-            </div>
+        <div className="guide-page__protip">
+            <Lightbulb className="mt-0.5 shrink-0 text-amber-600" size={18} aria-hidden />
+            <div className="min-w-0">{children}</div>
         </div>
     );
 }
 
 export default function Guide() {
-    const [openIndex, setOpenIndex] = useState(0);
+    const [activeId, setActiveId] = useState(toc[0].id);
+
+    useEffect(() => {
+        const mq = window.matchMedia('(min-width: 1024px)');
+        const sectionEls = () => toc.map((t) => document.getElementById(t.id)).filter(Boolean);
+
+        let observer;
+
+        const bind = () => {
+            observer?.disconnect();
+            if (!mq.matches) {
+                setActiveId(toc[0].id);
+                return;
+            }
+            const nodes = sectionEls();
+            if (nodes.length === 0) return;
+
+            observer = new IntersectionObserver(
+                (entries) => {
+                    const visible = entries.filter((e) => e.isIntersecting);
+                    if (visible.length === 0) return;
+                    visible.sort((a, b) => a.target.getBoundingClientRect().top - b.target.getBoundingClientRect().top);
+                    setActiveId(visible[0].target.id);
+                },
+                { root: null, rootMargin: '-72px 0px -52% 0px', threshold: [0, 0.08, 0.2] }
+            );
+            nodes.forEach((el) => observer.observe(el));
+        };
+
+        bind();
+        mq.addEventListener('change', bind);
+        return () => {
+            mq.removeEventListener('change', bind);
+            observer?.disconnect();
+        };
+    }, []);
 
     return (
-        <div className="max-w-5xl mx-auto space-y-8 pb-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Header Section */}
-            <div className="space-y-0">
-                <div className="space-y-5">
-                    {/* Row 1: Title & Subtitle */}
-                    <div>
-                        <h2 className="section-title text-3xl">Hướng Dẫn Sử Dụng</h2>
-                        <p className="section-subtitle text-base mt-1">Làm chủ hệ thống quản lý tài chính FastAccounting</p>
+        <div className="guide-page animate-in fade-in duration-300">
+            <header className="guide-page__hero">
+                <div className="guide-page__hero-accent" aria-hidden />
+                <div className="guide-page__hero-blob" aria-hidden />
+                <div className="guide-page__hero-inner">
+                    <div className="guide-page__hero-icon" aria-hidden>
+                        <BookOpen size={28} strokeWidth={1.75} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                        <p className="guide-page__kicker">Tài liệu người dùng</p>
+                        <h2 className="section-title text-xl sm:text-2xl">Hướng dẫn sử dụng</h2>
+                        <p className="section-subtitle mt-2 max-w-3xl text-sm sm:text-[13px]">
+                            Thao tác tối ưu trên máy tính: chuột, bàn phím và bảng nhiều cột. Dùng mục lục bên trái để nhảy
+                            nhanh tới từng phần.
+                        </p>
+                    </div>
+                </div>
+            </header>
+
+            <div className="guide-page__mobile-callout">
+                <div className="relative z-[1] flex gap-4 pl-3">
+                    <div className="guide-page__mobile-icon" aria-hidden>
+                        <Monitor size={22} />
+                    </div>
+                    <div className="min-w-0 space-y-2">
+                        <p className="font-bold text-slate-900">Nội dung đầy đủ trên màn lớn</p>
+                        <p className="text-sm leading-relaxed text-slate-600">
+                            Mục lục và toàn bộ hướng dẫn chi tiết hiển thị khi độ rộng cửa sổ từ{' '}
+                            <strong className="font-semibold text-slate-800">1024px</strong> trở lên (
+                            <code className="guide-page__code">lg</code>). Hãy mở trên máy tính hoặc thu phóng trình duyệt
+                            để đọc tiếp.
+                        </p>
                     </div>
                 </div>
             </div>
 
-            <div className="space-y-4">
-                <GuideItem
-                    title="Tổng Quan & Quy Trình Linh Hoạt"
-                    icon={BookOpen}
-                    isOpen={openIndex === 0}
-                    onToggle={() => setOpenIndex(0)}
-                    color="indigo"
-                >
-                    <p>Hệ thống FastAccounting được thiết kế để bạn quản lý dòng tiền, công nợ một cách nhanh chóng và chính xác nhất. Không gò bó trong quy trình cứng nhắc, bạn có thể thao tác linh hoạt tùy theo tình huống thực tế.</p>
-
-                    <SectionTitle>Giao diện thông minh cho mọi thiết bị:</SectionTitle>
-                    <ul className="space-y-2 mt-2">
-                        <Bullet type="check"><strong>Tablet (iPad Pro 11")</strong>: Giao diện hybrid tự động chuyển đổi - Card view dễ đọc khi xoay dọc, Table view gọn gàng khi xoay ngang.</Bullet>
-                        <Bullet type="check"><strong>Desktop</strong>: Bảng dữ liệu đầy đủ với nhiều cột, tối ưu cho màn hình lớn.</Bullet>
-                        <Bullet type="check"><strong>Mobile</strong>: Card view thân thiện với touch, dễ thao tác trên màn hình nhỏ.</Bullet>
+            <div className="guide-page__layout">
+                <nav aria-label="Mục lục hướng dẫn" className="guide-page__toc">
+                    <p className="guide-page__toc-label">
+                        <BookOpen size={14} className="text-slate-400" aria-hidden />
+                        Mục lục
+                    </p>
+                    <ul className="guide-page__toc-list">
+                        {toc.map((item) => (
+                            <li key={item.id}>
+                                <a
+                                    href={`#${item.id}`}
+                                    className={clsx(
+                                        'guide-page__toc-link',
+                                        activeId === item.id && 'guide-page__toc-link--active'
+                                    )}
+                                    aria-current={activeId === item.id ? 'location' : undefined}
+                                >
+                                    {item.label}
+                                </a>
+                            </li>
+                        ))}
                     </ul>
+                    <p className="guide-page__toc-foot">
+                        Mẹo:{' '}
+                        <kbd className="guide-page__kbd">
+                            Ctrl
+                        </kbd>{' '}
+                        + nhấp liên kết để mở tab mới (tùy trình duyệt).
+                    </p>
+                </nav>
 
-                    <SectionTitle>Bắt đầu từ đâu cũng được:</SectionTitle>
-                    <ul className="space-y-2 mt-2">
-                        <Bullet type="check"><strong>Có khách mới?</strong> Bạn có thể tạo ngay trong lúc lập phiếu ghi nợ, không cần thoát ra ngoài.</Bullet>
-                        <Bullet type="check"><strong>Chưa rõ lãi suất?</strong> Hãy cấu hình sẵn các gói lãi suất phổ biến, sau đó chỉ cần chọn nhanh.</Bullet>
-                        <Bullet type="check"><strong>Cần tra cứu?</strong> Tìm kiếm thông minh bằng tên hoặc số điện thoại ở mọi nơi.</Bullet>
-                    </ul>
-                </GuideItem>
+                <article className="guide-page__article">
+                    <Section id="bat-dau" title={<><LayoutDashboard size={20} className="text-blue-600" aria-hidden /> Bắt đầu trên desktop</>}>
+                        <p>
+                            FastAccounting trên máy tính tận dụng <strong>sidebar cố định</strong>,{' '}
+                            <strong>bảng nhiều cột</strong> và thao tác nhanh bằng chuột. Luồng gợi ý: đăng nhập → kiểm tra{' '}
+                            <strong>Cấu hình lãi suất</strong> → nhập <strong>Giao dịch</strong> → theo dõi{' '}
+                            <strong>Khách hàng</strong> / <strong>Báo cáo</strong>.
+                        </p>
+                        <ul className="guide-page__list">
+                            <Bullet variant="check">
+                                Có thể <strong>tạo khách hàng nhanh</strong> ngay trong form giao dịch nếu chưa có hồ sơ.
+                            </Bullet>
+                            <Bullet variant="check">
+                                Nên cấu hình sẵn các gói lãi (mã + tên dễ hiểu) để chọn một cú click khi lập phiếu.
+                            </Bullet>
+                            <Bullet variant="tip">
+                                Giữ cửa sổ trình duyệt đủ rộng để bảng giao dịch hiển thị đủ cột gốc / lãi / tổng.
+                            </Bullet>
+                        </ul>
+                    </Section>
 
-                <GuideItem
-                    title="1. Cấu Hình Lãi Suất (Nền Tảng)"
-                    icon={Settings}
-                    isOpen={openIndex === 1}
-                    onToggle={() => setOpenIndex(1)}
-                    color="purple"
-                >
-                    <p>Đây là bước chuẩn bị quan trọng giúp bạn nhập liệu nhanh hơn về sau. Thay vì mỗi lần nhập giao dịch phải nhớ lãi suất, bạn chỉ cần tạo các "Gói" sẵn.</p>
+                    <Section id="dieu-huong" title={<><MousePointerClick size={20} className="text-indigo-600" aria-hidden /> Thanh bên & điều hướng</>}>
+                        <p>
+                            Menu trái dẫn tới từng module. Trên desktop bạn có thể <strong>thu gọn sidebar</strong> (nút mũi
+                            tên) để tăng diện tích bảng — nhãn menu chuyển sang chế độ icon khi thu gọn.
+                        </p>
+                        <ul className="guide-page__list">
+                            <Bullet>
+                                Mục đang mở được tô sáng; dùng <strong>phím Tab</strong> để di chuyển focus an toàn hơn khi
+                                nhập liệu dài.
+                            </Bullet>
+                            <Bullet>
+                                Liên kết <strong>“Bỏ qua, tới nội dung chính”</strong> (đầu trang) hỗ trợ đọc màn hình / nhảy
+                                nhanh vào vùng làm việc.
+                            </Bullet>
+                        </ul>
+                    </Section>
 
-                    <SectionTitle>Cách tư duy:</SectionTitle>
-                    <ul className="space-y-2">
-                        <Bullet><strong>Mã (Code)</strong>: Là từ khóa gợi nhớ (viết liền không dấu), ví dụ: <code>VAY_NGAN</code>, <code>VAY_DAI</code>, <code>KHONG_LAI</code>.</Bullet>
-                        <Bullet><strong>Lãi suất chuẩn</strong>: Mức lãi suất mặc định cho gói này. Bạn vẫn có thể nhập số tiền lãi thủ công nếu muốn ghi đè.</Bullet>
-                    </ul>
+                    <Section id="lai-suat" title={<><Settings size={20} className="text-purple-600" aria-hidden /> Cấu hình lãi suất</>}>
+                        <p>
+                            Đây là bước nền: mỗi gói lãi có <strong>mã (code)</strong> dùng nội bộ và <strong>tên hiển thị</strong>{' '}
+                            cho người nhập liệu.
+                        </p>
+                        <ul className="guide-page__list">
+                            <Bullet>
+                                Code nên viết liền, không dấu, ví dụ{' '}
+                                <code className="guide-page__code">VAY_NGAN</code>,{' '}
+                                <code className="guide-page__code">KHONG_LAI</code>.
+                            </Bullet>
+                            <Bullet>
+                                Lãi suất mặc định của gói có thể được điều chỉnh khi nhập từng giao dịch nếu cần ghi đè.
+                            </Bullet>
+                        </ul>
+                        <ProTip>
+                            <strong>Mẹo:</strong> đặt tên gói theo ngữ cảnh kinh doanh (“Vay 10 ngày”, “Nóng 2%/tháng”) để
+                            nhân viên chọn đúng trong danh sách dropdown.
+                        </ProTip>
+                    </Section>
 
-                    <ProTip>
-                        <strong>Mẹo:</strong> Hãy đặt tên gói (Name) thật dễ hiểu như "Vay nóng 10 ngày", "Vay dài hạn 2%" để nhân viên dễ chọn lựa chính xác.
-                    </ProTip>
-                </GuideItem>
-
-                <GuideItem
-                    title="2. Quản Lý Giao Dịch Thông Minh"
-                    icon={Zap}
-                    isOpen={openIndex === 2}
-                    onToggle={() => setOpenIndex(2)}
-                    color="emerald"
-                >
-                    <SectionTitle>Tạo giao dịch siêu tốc</SectionTitle>
-                    <p className="mb-2">Khi bấm "Tạo Giao Dịch" (hoặc FAB button trên tablet), bạn có một công cụ mạnh mẽ trong tay:</p>
-                    <ul className="space-y-2">
-                        <Bullet type="check"><strong>Tìm khách hàng 2 trong 1</strong>: Gõ tên vào ô khách hàng. Nếu chưa có, hệ thống sẽ gợi ý <strong>"Tạo mới ngay"</strong>. Bấm vào đó, điền SĐT là xong. Tiết kiệm 50% thao tác!</Bullet>
-                        <Bullet type="info"><strong>Nhập liệu liên tục</strong>: Tích vào ô <strong>"Tạo tiếp giao dịch khác"</strong>. Sau khi Lưu, form sẽ tự làm mới nhưng giữ lại tên khách hàng cũ, rất tiện khi một người vay nhiều món.</Bullet>
-                        <Bullet type="check"><strong>Form tối ưu cho tablet</strong>: Trên màn hình dọc, "Ngày giao dịch" và "Khách hàng" được xếp cùng một hàng. "Loại giao dịch" hiển thị 4 phần tử mỗi hàng để tiết kiệm không gian.</Bullet>
-                    </ul>
-
-                    <SectionTitle>Xem danh sách giao dịch</SectionTitle>
-                    <ul className="space-y-2">
-                        <Bullet type="info"><strong>Tablet Portrait</strong>: Card view với thông tin đầy đủ, dễ đọc, dễ chạm. Mỗi card hiển thị: Ngày, Loại, Khách hàng, Nội dung, Thông tin tài chính, Lãi suất.</Bullet>
-                        <Bullet type="info"><strong>Tablet Landscape / Desktop</strong>: Bảng gọn gàng với 6 cột chính. Trạng thái được hiển thị bằng icon và màu nền, không cần cột riêng.</Bullet>
-                        <Bullet type="check"><strong>Double-click để đổi trạng thái</strong>: Trên bảng desktop, double-click vào dòng để chuyển đổi nhanh giữa OPEN và PAID.</Bullet>
-                    </ul>
-
-                    <SectionTitle>Thanh toán & Đóng hồ sơ</SectionTitle>
-                    <ul className="space-y-2">
-                        <Bullet>Để ghi nhận đã trả tiền, hãy chuyển trạng thái sang <strong>ĐÃ THANH TOÁN (Màu xanh)</strong>.</Bullet>
-                        <Bullet>Hệ thống sẽ tự động tính toán ngày đóng hồ sơ và chốt lãi tại thời điểm đó.</Bullet>
-                    </ul>
-                </GuideItem>
-
-                <GuideItem
-                    title="3. Lưu Trữ Hình Ảnh Chứng Từ"
-                    icon={ImageIcon}
-                    isOpen={openIndex === 3}
-                    onToggle={() => setOpenIndex(3)}
-                    color="sky"
-                >
-                    <p>Mỗi giao dịch đều có thể đính kèm một hình ảnh chứng từ (hóa đơn, biên lai, ảnh chụp hiện trường...).</p>
-
-                    <SectionTitle>Thao tác linh hoạt:</SectionTitle>
-                    <ul className="space-y-2">
-                        <Bullet type="check"><strong>Tải lên dễ dàng</strong>: Bấm vào biểu tượng <strong>Hình ảnh</strong> trên thanh tiêu đề khi tạo/sửa giao dịch.</Bullet>
-                        <Bullet type="check"><strong>Chụp ảnh trực tiếp</strong>: Trên điện thoại, bạn có thể chọn chụp ảnh ngay lập tức.</Bullet>
-                        <Bullet type="info"><strong>Xem chi tiết chuyên nghiệp</strong>:
-                            <ul className="pl-6 mt-1 space-y-1 list-disc text-slate-500">
-                                <li>Phóng to/Thu nhỏ bằng lăn chuột hoặc phím (+/-)</li>
-                                <li>Kéo thả để di chuyển vùng nhìn (Pan)</li>
-                                <li>Xoay ảnh để đọc dễ hơn</li>
-                            </ul>
-                        </Bullet>
-                    </ul>
-
-                    <ProTip>
-                        <strong>Mẹo:</strong> Biểu tượng <strong>Màu Xám</strong> nghĩa là chưa có ảnh. Biểu tượng <strong>Màu Xanh</strong> nghĩa là đã có ảnh được lưu trữ an toàn.
-                    </ProTip>
-                </GuideItem>
-
-                <GuideItem
-                    title="4. Quản Lý Khách Hàng & Nợ"
-                    icon={Users}
-                    isOpen={openIndex === 4}
-                    onToggle={() => setOpenIndex(4)}
-                    color="blue"
-                >
-                    <p>Hồ sơ khách hàng là nơi lưu trữ "Sổ cái" của từng người.</p>
-                    <ul className="space-y-2 mt-2">
-                        <Bullet type="info"><strong>Lịch sử minh bạch</strong>: Bấm vào từng khách hàng để xem toàn bộ lịch sử vay/trả với giao diện hybrid tương tự trang giao dịch.</Bullet>
-                        <Bullet type="check"><strong>Lọc theo thời gian</strong>: Sử dụng DatePicker tùy chỉnh để chọn khoảng thời gian cần xem. Giao diện compact, không chiếm nhiều không gian.</Bullet>
-                        <Bullet type="info"><strong>Nội dung tự động xuống dòng</strong>: Nội dung giao dịch có dấu gạch ngang (-) sẽ tự động xuống dòng tại mỗi dấu gạch để dễ đọc hơn.</Bullet>
-                        <Bullet type="warn"><strong>Xóa khách hàng</strong>: Cẩn thận! Xóa khách hàng sẽ xóa <strong>toàn bộ</strong> giao dịch liên quan đến họ. Chỉ Admin mới có quyền này.</Bullet>
-                    </ul>
-                </GuideItem>
-
-                <GuideItem
-                    title="5. Báo Cáo & Thống Kê"
-                    icon={BarChart3}
-                    isOpen={openIndex === 5}
-                    onToggle={() => setOpenIndex(5)}
-                    color="amber"
-                >
-                    <p>Theo dõi sức khỏe tài chính của bạn qua các con số thực tế.</p>
-                    <SectionTitle>Các chỉ số quan trọng:</SectionTitle>
-                    <ul className="space-y-2">
-                        <Bullet><strong>Tổng giải ngân</strong>: Số tiền gốc bạn đã đưa ra thị trường.</Bullet>
-                        <Bullet><strong>Lãi dự kiến</strong>: Số tiền lãi ước tính thu về nếu tất cả khoản vay đáo hạn hôm nay.</Bullet>
-                        <Bullet><strong>Dòng tiền thực</strong>: Số tiền thực tế đã thu về túi (Gốc đã thu + Lãi đã thu).</Bullet>
-                    </ul>
-                </GuideItem>
-
-                <GuideItem
-                    title="7. Giao Diện Thông Minh & Responsive"
-                    icon={Settings}
-                    isOpen={openIndex === 7}
-                    onToggle={() => setOpenIndex(7)}
-                    color="indigo"
-                >
-                    <p>Hệ thống được tối ưu hóa cho mọi thiết bị, đặc biệt là iPad Pro 11" với giao diện hybrid thông minh.</p>
-
-                    <SectionTitle>Hybrid UI - Tự động chuyển đổi:</SectionTitle>
-                    <ul className="space-y-2">
-                        <Bullet type="check"><strong>Portrait Mode (Màn hình dọc)</strong>: Card view với thông tin đầy đủ, dễ đọc, dễ chạm. FAB button nổi ở bottom center để tạo mới nhanh.</Bullet>
-                        <Bullet type="check"><strong>Landscape Mode (Màn hình ngang)</strong>: Table view gọn gàng với nhiều cột, tối ưu cho màn hình rộng. Tất cả controls nằm trên một hàng.</Bullet>
-                        <Bullet type="info"><strong>Breakpoint thông minh</strong>: Tự động chuyển đổi tại 1280px (xl breakpoint) để tận dụng tối đa không gian màn hình.</Bullet>
-                    </ul>
-
-                    <SectionTitle>Tính năng UI/UX mới:</SectionTitle>
-                    <ul className="space-y-2">
-                        <Bullet type="check"><strong>Custom DatePicker</strong>: Date picker tùy chỉnh với giao diện đẹp, không phụ thuộc vào browser default. Chọn ngày dễ dàng với calendar popup.</Bullet>
-                        <Bullet type="check"><strong>FAB Buttons</strong>: Floating Action Button xuất hiện ở portrait mode, giúp tạo mới nhanh chóng mà không chiếm không gian header.</Bullet>
-                        <Bullet type="check"><strong>Touch-friendly</strong>: Tất cả buttons và interactive elements có kích thước tối thiểu 44x44px, đảm bảo dễ chạm trên tablet.</Bullet>
-                        <Bullet type="check"><strong>Typography scaling</strong>: Font size tự động điều chỉnh theo breakpoint để đảm bảo dễ đọc trên mọi thiết bị.</Bullet>
-                        <Bullet type="info"><strong>Content wrapping</strong>: Nội dung có dấu gạch ngang tự động xuống dòng để dễ đọc hơn, đặc biệt hữu ích cho danh sách dài.</Bullet>
-                    </ul>
-
-                    <ProTip>
-                        <strong>Mẹo:</strong> Trên tablet, hãy thử xoay màn hình để trải nghiệm sự khác biệt giữa Card view và Table view. Mỗi chế độ đều được tối ưu cho mục đích sử dụng riêng.
-                    </ProTip>
-                </GuideItem>
-
-                <GuideItem
-                    title="6. Phân Quyền & Bảo Mật"
-                    icon={ShieldAlert}
-                    isOpen={openIndex === 6}
-                    onToggle={() => setOpenIndex(6)}
-                    color="rose"
-                >
-                    <p>Hệ thống phân chia quyền hạn rõ ràng để bảo vệ dữ liệu nhạy cảm.</p>
-                    <div className="grid grid-cols-2 gap-4 mt-4">
-                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                            <div className="font-bold text-slate-900 mb-2 flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full bg-slate-400"></span>
-                                Nhân viên (SALE)
-                            </div>
-                            <ul className="text-sm space-y-1 text-slate-600">
-                                <li>• Xem danh sách & Báo cáo</li>
-                                <li>• Tạo mới & Chỉnh sửa giao dịch</li>
-                                <li>• Quản lý khách hàng & cấu hình lãi suất</li>
-                                <li className="text-slate-400 italic">• Không thể xóa dữ liệu</li>
-                                <li className="text-slate-400 italic">• Không thể quản lý user</li>
-                            </ul>
+                    <Section id="giao-dich" title={<><Zap size={20} className="text-emerald-600" aria-hidden /> Giao dịch & bảng</>}>
+                        <p>
+                            Trang <strong>Giao dịch</strong> trên desktop dùng <strong>bảng</strong> với các cột ngày, khách,
+                            loại & lãi, nội dung, tiền gốc, tiền lãi, tổng. Dùng <strong>bộ lọc ngày</strong> và{' '}
+                            <strong>ô tìm / chọn khách</strong> phía trên để thu hẹp danh sách.
+                        </p>
+                        <ul className="guide-page__list">
+                            <Bullet variant="check">
+                                <strong>Nhấp một lần</strong> vào dòng để mở form sửa giao dịch.
+                            </Bullet>
+                            <Bullet variant="check">
+                                <strong>Nhấp đúp (double-click)</strong> vào dòng trên bảng desktop để đổi nhanh trạng thái đã
+                                thu / chưa thu.
+                            </Bullet>
+                            <Bullet variant="tip">
+                                Nội dung có nhiều dấu <code className="guide-page__code">-</code> có thể được hiển thị tách
+                                dòng để dễ đọc trên bảng.
+                            </Bullet>
+                            <Bullet>
+                                Khi đánh dấu <strong>đã thanh toán</strong>, hệ thống ghi nhận thời điểm đóng phù hợp cấu hình
+                                của bạn.
+                            </Bullet>
+                        </ul>
+                        <div className="guide-page__keyboard-hint">
+                            <Keyboard size={16} className="shrink-0 text-slate-400" aria-hidden />
+                            <span>
+                                Trong các ô combobox khách hàng, dùng phím mũi tên và Enter để chọn nhanh không cần chuột.
+                            </span>
                         </div>
-                        <div className="bg-purple-50 p-4 rounded-xl border border-purple-100">
-                            <div className="font-bold text-purple-900 mb-2 flex items-center gap-2">
-                                <span className="w-2 h-2 rounded-full bg-purple-500"></span>
-                                Quản trị (ADMIN)
-                            </div>
-                            <ul className="text-sm space-y-1 text-purple-800">
-                                <li>• Toàn quyền hệ thống</li>
-                                <li>• Quản lý tài khoản nhân viên</li>
-                                <li>• <strong>Xóa giao dịch & khách hàng</strong> (Yêu cầu mã PIN)</li>
-                                <li>• Backup & Restore dữ liệu</li>
-                                <li>• Cập nhật thông tin hệ thống</li>
-                            </ul>
-                        </div>
-                    </div>
+                    </Section>
 
-                    <ProTip>
-                        <strong>Lưu ý:</strong> Mã PIN Admin được yêu cầu cho các thao tác nhạy cảm như xóa user, xóa giao dịch. Đảm bảo mã PIN của bạn an toàn và không chia sẻ với người khác.
-                    </ProTip>
-                </GuideItem>
+                    <Section id="chung-tu" title={<><ImageIcon size={20} className="text-sky-600" aria-hidden /> Ảnh chứng từ</>}>
+                        <p>
+                            Ở chế độ sửa giao dịch, bạn có thể đính kèm <strong>một ảnh chứng từ</strong> (hóa đơn, biên
+                            lai…). Trên desktop, vùng xem ảnh thường hỗ trợ phóng to, thu nhỏ và xoay để đọc rõ chi tiết.
+                        </p>
+                        <ul className="guide-page__list">
+                            <Bullet variant="check">
+                                Thử dùng <strong>con lăn chuột</strong> hoặc phím tắt phóng to trong viewer (nếu có).
+                            </Bullet>
+                            <Bullet>Kéo để di chuyển vùng nhìn khi ảnh đã phóng to.</Bullet>
+                        </ul>
+                    </Section>
+
+                    <Section id="khach-hang" title={<><Users size={20} className="text-blue-600" aria-hidden /> Khách hàng & công nợ</>}>
+                        <p>
+                            Danh sách khách hàng dẫn tới chi tiết công nợ và lịch sử giao dịch. Trên màn hình lớn, bạn xem được
+                            nhiều thông tin cùng lúc, lọc theo thời gian dễ hơn.
+                        </p>
+                        <ul className="guide-page__list">
+                            <Bullet variant="warn">
+                                <strong>Xóa khách hàng</strong> có thể xóa luôn toàn bộ giao dịch liên quan — chỉ tài khoản có
+                                quyền mới thực hiện được, và thường cần xác nhận / PIN.
+                            </Bullet>
+                        </ul>
+                    </Section>
+
+                    <Section id="bao-cao" title={<><BarChart3 size={20} className="text-amber-600" aria-hidden /> Báo cáo</>}>
+                        <p>
+                            Báo cáo tổng hợp giúp theo dõi giải ngân, lãi và dòng tiền. Trên desktop, bảng số liệu và biểu đồ
+                            (nếu có) hiển thị rộng rãi hơn.
+                        </p>
+                        <ul className="guide-page__list">
+                            <Bullet>
+                                Dùng ô <strong>tìm kiếm</strong> trong báo cáo để lọc theo tên khách khi danh sách dài.
+                            </Bullet>
+                            <Bullet variant="tip">
+                                Kết hợp báo cáo với bộ lọc ngày ở trang giao dịch khi cần đối soát chi tiết.
+                            </Bullet>
+                        </ul>
+                    </Section>
+
+                    <Section id="phan-quyen" title={<><ShieldAlert size={20} className="text-rose-600" aria-hidden /> Phân quyền & PIN</>}>
+                        <p>
+                            Hệ thống phân quyền theo vai trò. Một số thao tác nhạy cảm yêu cầu{' '}
+                            <strong>mã PIN quản trị</strong>.
+                        </p>
+                        <div className="guide-page__role-grid">
+                            <div className="guide-page__role-card guide-page__role-card--sale">
+                                <p className="guide-page__role-title text-slate-900">Nhân viên (SALE)</p>
+                                <ul className="guide-page__role-list">
+                                    <li>• Xem danh sách, báo cáo</li>
+                                    <li>• Tạo / sửa giao dịch, khách hàng, cấu hình lãi</li>
+                                    <li className="guide-page__role-muted">• Không xóa dữ liệu / không quản lý user</li>
+                                </ul>
+                            </div>
+                            <div className="guide-page__role-card guide-page__role-card--admin">
+                                <p className="guide-page__role-title text-purple-950">Quản trị (ADMIN)</p>
+                                <ul className="guide-page__role-list text-purple-950/90">
+                                    <li>• Toàn quyền thao tác</li>
+                                    <li>• Quản lý tài khoản, sao lưu / phục hồi</li>
+                                    <li>• Xóa giao dịch, khách — kèm PIN khi có yêu cầu</li>
+                                    <li>• Cập nhật trang Thông tin hệ thống</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <ProTip>
+                            <strong>Lưu ý:</strong> không chia sẻ PIN quản trị; đổi PIN định kỳ nếu có nhân viên nghỉ việc.
+                        </ProTip>
+                    </Section>
+                </article>
             </div>
         </div>
     );

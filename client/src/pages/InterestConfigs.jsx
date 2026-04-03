@@ -4,6 +4,7 @@ import { getInterestConfigs, createInterestConfig, updateInterestConfig, deleteI
 import { Plus, Edit2, Trash2, Percent, Tag, Pencil, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useToast } from '../context/ToastContext';
+import { getApiErrorMessage } from '../utils/errorMessage';
 import { useAuth } from '../context/AuthContext';
 import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
 import { getInterestConfigColorScheme } from '../utils/colorSchemes';
@@ -46,7 +47,7 @@ export default function InterestConfigs() {
             showToast('Thành công', 'Đã thêm cấu hình lãi suất mới', 'success');
         },
         onError: (err) => {
-            showToast('Lỗi', err.response?.data?.detail || "Không thể tạo cấu hình", 'error');
+            showToast('Lỗi', getApiErrorMessage(err, 'Tạo cấu hình lãi suất'), 'error');
         }
     });
 
@@ -58,7 +59,7 @@ export default function InterestConfigs() {
             showToast('Thành công', 'Đã cập nhật cấu hình', 'success');
         },
         onError: (err) => {
-            showToast('Lỗi', err.response?.data?.detail || "Không thể cập nhật cấu hình", 'error');
+            showToast('Lỗi', getApiErrorMessage(err, 'Cập nhật cấu hình lãi suất'), 'error');
         }
     });
 
@@ -71,7 +72,7 @@ export default function InterestConfigs() {
             showToast('Thành công', 'Đã xóa cấu hình', 'success');
         },
         onError: (err) => {
-            showToast('Lỗi', err.response?.data?.detail || "Lỗi xóa cấu hình", 'error');
+            showToast('Lỗi', getApiErrorMessage(err, 'Xóa cấu hình lãi suất'), 'error');
         }
     });
 
@@ -103,7 +104,7 @@ export default function InterestConfigs() {
     };
 
     if (error) return (
-        <div className="p-8">
+        <div className="p-4">
             <ErrorStates.Network
                 error={error}
                 onRetry={refetch}
@@ -115,7 +116,7 @@ export default function InterestConfigs() {
     if (isLoading) return (
         <div className="space-y-4 lg:space-y-6">
             <div className="h-20 skeleton"></div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 lg:gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 lg:gap-4">
                 <LoadingSkeleton.Card count={5} />
             </div>
         </div>
@@ -125,19 +126,19 @@ export default function InterestConfigs() {
         <div className="space-y-4 lg:space-y-6">
             {/* Header Section */}
             <div className="space-y-0">
-                <div className="flex items-center justify-between gap-6">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                     {/* Left: Title & Subtitle */}
                     <div>
-                        <h2 className="section-title text-3xl">Cấu Hình Lãi Suất</h2>
-                        <p className="section-subtitle text-base mt-1">Tùy chỉnh các mức lãi suất mặc định cho giao dịch</p>
+                        <h2 className="section-title">Cấu hình lãi suất</h2>
+                        <p className="section-subtitle mt-1">Tùy chỉnh các mức lãi suất mặc định cho giao dịch</p>
                     </div>
 
                     {/* Right: Create Button */}
                     <button
                         onClick={() => { setIsEditing(false); setIsOpen(true); }}
-                        className="btn-primary btn-md justify-center text-base min-h-[44px] px-6 py-3 whitespace-nowrap shrink-0"
+                        className="btn-primary btn-md whitespace-nowrap shrink-0"
                     >
-                        <Plus size={20} className="shrink-0" />
+                        <Plus size={18} className="shrink-0" />
                         <span>Thêm cấu hình</span>
                     </button>
                 </div>
@@ -145,17 +146,17 @@ export default function InterestConfigs() {
 
             {isOpen && (
                 <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-all overflow-hidden">
-                    <div className="bg-white rounded-[2.5rem] w-full h-auto max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300 flex flex-col transition-all">
-                        <div className="px-8 py-6 border-b border-slate-100 bg-white flex justify-between items-center relative z-10">
+                    <div className="bg-white rounded-2xl w-full h-auto max-w-md shadow-xl overflow-hidden animate-in fade-in zoom-in duration-300 flex flex-col transition-all">
+                        <div className="px-5 py-4 border-b border-slate-100 bg-white flex justify-between items-center relative z-10">
                             <div className="flex items-center gap-3">
                                 <div className={clsx(
-                                    "p-2.5 rounded-2xl flex items-center justify-center",
+                                    "p-2 rounded-xl flex items-center justify-center",
                                     isEditing ? "bg-blue-50 text-blue-600" : "bg-emerald-50 text-emerald-600"
                                 )}>
                                     {isEditing ? <Edit2 size={22} /> : <Plus size={22} />}
                                 </div>
                                 <div>
-                                    <h3 className="text-xl font-bold text-slate-900 leading-tight">
+                                    <h3 className="text-lg font-bold text-slate-900 leading-tight">
                                         {isEditing ? 'Cập Nhật Cấu Hình' : 'Thêm Quy Tắc Mới'}
                                     </h3>
                                     <p className="text-xs font-medium text-slate-400 uppercase tracking-widest mt-0.5">
@@ -163,11 +164,11 @@ export default function InterestConfigs() {
                                     </p>
                                 </div>
                             </div>
-                            <button onClick={handleClose} className="p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-2xl transition-all active:scale-90">
-                                <X size={24} />
+                            <button onClick={handleClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-all active:scale-90">
+                                <X size={20} />
                             </button>
                         </div>
-                        <form onSubmit={handleSubmit} className="p-8 space-y-6 overflow-y-auto flex-1">
+                        <form onSubmit={handleSubmit} className="p-5 space-y-4 overflow-y-auto flex-1">
                             <div className="grid grid-cols-2 gap-5">
                                 <div className="space-y-2">
                                     <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Mã (Duy nhất)</label>
@@ -247,7 +248,7 @@ export default function InterestConfigs() {
                                 <button
                                     type="submit"
                                     disabled={createMutation.isPending || updateMutation.isPending}
-                                    className="w-full btn btn-primary btn-lg"
+                                    className="btn-primary btn-lg w-full"
                                 >
                                     {createMutation.isPending || updateMutation.isPending ? 'Đang xử lý...' : (isEditing ? 'Lưu thay đổi' : 'Tạo mới quy tắc')}
                                     <Plus size={18} />
@@ -257,7 +258,7 @@ export default function InterestConfigs() {
                                     <button
                                         type="button"
                                         onClick={() => setIsDeleteModalOpen(true)}
-                                        className="w-full btn btn-secondary btn-lg text-red-600 hover:text-red-700 hover:border-red-200"
+                                        className="btn-secondary btn-lg w-full text-red-600 hover:border-red-200 hover:text-red-700"
                                     >
                                         <Trash2 size={16} />
                                         Xóa quy tắc này
@@ -287,7 +288,7 @@ export default function InterestConfigs() {
                         <div
                             key={config._id}
                             onClick={() => handleEdit(config)}
-                            className="group relative bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-lg hover:shadow-blue-500/10 hover:border-blue-200 transition-all duration-300 cursor-pointer overflow-hidden flex flex-col items-center text-center card-hover"
+                            className="group relative bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md hover:shadow-blue-500/10 hover:border-blue-200 transition-all duration-300 cursor-pointer overflow-hidden flex flex-col items-center text-center card-hover"
                         >
                             {/* Visual Pattern Overlays */}
                             <div className={`absolute top-0 right-0 w-20 h-20 bg-gradient-to-br ${colors.gradient} opacity-[0.03] group-hover:opacity-[0.08] rounded-full -mr-10 -mt-10 transition-all duration-700 group-hover:scale-150`}></div>
@@ -312,7 +313,7 @@ export default function InterestConfigs() {
                                     </h3>
                                     <div className="flex justify-center">
                                         <div className={`px-3 py-1.5 rounded-lg ${colors.bgIcon} flex items-center gap-1 shadow-md shadow-current/20`}>
-                                            <span className="text-2xl font-bold text-white leading-none">
+                                            <span className="text-xl font-bold text-white leading-none">
                                                 {config.rate_per_month}%
                                             </span>
                                             <span className="text-[9px] font-bold text-white/90 uppercase">/ Th</span>

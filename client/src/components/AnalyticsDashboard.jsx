@@ -1,13 +1,22 @@
 import React, { useMemo } from 'react';
-import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { TrendingUp, DollarSign, Users, Activity } from 'lucide-react';
+import {
+    BarChart,
+    Bar,
+    PieChart as RechartsPieChart,
+    Pie,
+    Cell,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    ResponsiveContainer,
+} from 'recharts';
+import { TrendingUp, DollarSign, Users, Activity, PieChart, BarChart3 } from 'lucide-react';
 
 export default function AnalyticsDashboard({ report }) {
-    // Prepare data for charts
     const chartData = useMemo(() => {
         if (!report || report.length === 0) return null;
 
-        // 1. Pie Chart Data - Debt Distribution
         const totalDebt = report.reduce((sum, item) => sum + item.total_debt, 0);
         const totalPaid = report.reduce((sum, item) => sum + (item.total_collected || 0), 0);
 
@@ -16,23 +25,27 @@ export default function AnalyticsDashboard({ report }) {
             { name: 'Còn nợ', value: totalDebt, color: '#f59e0b' },
         ];
 
-        // 2. Bar Chart Data - Top Debtors
         const topDebtors = [...report]
             .sort((a, b) => b.total_debt - a.total_debt)
             .slice(0, 5)
-            .map(item => ({
-                name: item.customer_name.length > 15 ? item.customer_name.substring(0, 15) + '...' : item.customer_name,
+            .map((item) => ({
+                name:
+                    item.customer_name.length > 15
+                        ? `${item.customer_name.substring(0, 15)}…`
+                        : item.customer_name,
                 debt: item.total_debt,
-                fullName: item.customer_name
+                fullName: item.customer_name,
             }));
 
-        // 3. Transaction Volume by Customer (simplified)
         const txVolumeData = [...report]
             .sort((a, b) => b.transaction_count - a.transaction_count)
             .slice(0, 6)
-            .map(item => ({
-                name: item.customer_name.length > 12 ? item.customer_name.substring(0, 12) + '...' : item.customer_name,
-                count: item.transaction_count
+            .map((item) => ({
+                name:
+                    item.customer_name.length > 12
+                        ? `${item.customer_name.substring(0, 12)}…`
+                        : item.customer_name,
+                count: item.transaction_count,
             }));
 
         return { pieData, topDebtors, txVolumeData, totalDebt, totalPaid };
@@ -40,145 +53,242 @@ export default function AnalyticsDashboard({ report }) {
 
     if (!chartData) {
         return (
-            <div className="flex flex-col items-center justify-center py-24 text-slate-400">
-                <Activity size={64} className="opacity-20 mb-4" />
-                <p className="text-lg font-medium text-slate-500">Chưa có dữ liệu để phân tích</p>
+            <div className="reports-chart-empty min-h-[200px] flex-col gap-3 px-4 py-14 text-center">
+                <Activity size={40} className="text-slate-300" aria-hidden />
+                <p className="text-sm font-medium text-slate-500">Chưa có dữ liệu để phân tích</p>
+                <p className="text-xs text-slate-400">Thêm khách hàng và giao dịch để xem biểu đồ.</p>
             </div>
         );
     }
 
     const { pieData, topDebtors, txVolumeData } = chartData;
+    const denom = chartData.totalPaid + chartData.totalDebt;
+    const recoveryPct = denom > 0 ? ((chartData.totalPaid / denom) * 100).toFixed(1) : '0.0';
+    const avgDebtPerCustomer =
+        report.length > 0 ? chartData.totalDebt / report.length : 0;
 
     return (
-        <div className="space-y-6">
-            {/* Summary Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 p-6 rounded-2xl text-white shadow-lg shadow-emerald-200">
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 bg-white/20 backdrop-blur-sm rounded-lg">
-                            <DollarSign size={24} />
+        <div className="reports-charts-root space-y-6 lg:space-y-8">
+            <section className="reports-page__kpi-grid reports-page__kpi-grid--3" aria-label="Chỉ số phân tích">
+                <div className="reports-page__kpi-card reports-page__kpi-card--recovery">
+                    <div className="relative z-[1] flex items-start gap-3">
+                        <div
+                            className="reports-page__kpi-icon reports-page__kpi-icon--collected"
+                            aria-hidden
+                        >
+                            <DollarSign size={20} />
                         </div>
-                        <span className="font-medium text-emerald-100">Tỷ lệ thu hồi</span>
-                    </div>
-                    <div className="text-3xl font-bold">
-                        {((chartData.totalPaid / (chartData.totalPaid + chartData.totalDebt)) * 100 || 0).toFixed(1)}%
-                    </div>
-                </div>
-
-                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-                            <Users size={24} />
+                        <div className="min-w-0 flex-1">
+                            <p className="reports-page__kpi-label">Tỷ lệ thu hồi</p>
+                            <div className="mt-2 flex items-baseline gap-1.5">
+                                <span className="reports-page__kpi-value text-emerald-950">
+                                    {recoveryPct}
+                                </span>
+                                <span className="reports-page__kpi-suffix">%</span>
+                            </div>
+                            <p className="reports-page__kpi-foot">
+                                Đã thu so với tổng (đã thu + còn nợ) trên toàn danh sách.
+                            </p>
                         </div>
-                        <span className="font-medium text-slate-600">Tổng khách hàng</span>
                     </div>
-                    <div className="text-3xl font-bold text-slate-900">{report.length}</div>
                 </div>
 
-                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 bg-purple-50 text-purple-600 rounded-lg">
-                            <TrendingUp size={24} />
+                <div className="reports-page__kpi-card reports-page__kpi-card--principal">
+                    <div className="relative z-[1] flex items-start gap-3">
+                        <div
+                            className="reports-page__kpi-icon reports-page__kpi-icon--principal"
+                            aria-hidden
+                        >
+                            <Users size={20} />
                         </div>
-                        <span className="font-medium text-slate-600">Trung bình nợ/KH</span>
+                        <div className="min-w-0 flex-1">
+                            <p className="reports-page__kpi-label">Tổng khách hàng</p>
+                            <div className="mt-2 flex items-baseline gap-1.5">
+                                <span className="reports-page__kpi-value">{report.length}</span>
+                                <span className="reports-page__kpi-suffix">KH</span>
+                            </div>
+                            <p className="reports-page__kpi-foot">Số khách có trong báo cáo công nợ.</p>
+                        </div>
                     </div>
-                    <div className="text-3xl font-bold text-slate-900">
-                        {(chartData.totalDebt / report.length || 0).toLocaleString('vi-VN', { maximumFractionDigits: 0 })}
-                        <span className="text-sm text-slate-400 ml-1">đ</span>
+                </div>
+
+                <div className="reports-page__kpi-card reports-page__kpi-card--avg-debt">
+                    <div className="relative z-[1] flex items-start gap-3">
+                        <div
+                            className="reports-page__kpi-icon reports-page__kpi-icon--avg-debt"
+                            aria-hidden
+                        >
+                            <TrendingUp size={20} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <p className="reports-page__kpi-label">Trung bình nợ / KH</p>
+                            <div className="mt-2 flex flex-wrap items-baseline gap-1.5">
+                                <span className="reports-page__kpi-value text-violet-950">
+                                    {avgDebtPerCustomer.toLocaleString('vi-VN', {
+                                        maximumFractionDigits: 0,
+                                    })}
+                                </span>
+                                <span className="reports-page__kpi-suffix">đ</span>
+                            </div>
+                            <p className="reports-page__kpi-foot">Còn nợ tổng chia cho số khách hàng.</p>
+                        </div>
                     </div>
                 </div>
-            </div>
+            </section>
 
-            {/* Charts Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Pie Chart - Debt Distribution */}
-                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                    <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                        <div className="w-1 h-6 bg-gradient-to-b from-blue-500 to-indigo-500 rounded-full"></div>
-                        Phân bổ công nợ
-                    </h3>
-                    <ResponsiveContainer width="100%" height={300} minHeight={250}>
-                        <PieChart>
-                            <Pie
-                                data={pieData}
-                                cx="50%"
-                                cy="50%"
-                                labelLine={false}
-                                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                                outerRadius={100}
-                                fill="#8884d8"
-                                dataKey="value"
-                            >
-                                {pieData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={entry.color} />
-                                ))}
-                            </Pie>
-                            <Tooltip formatter={(value) => value.toLocaleString('vi-VN') + ' đ'} />
-                        </PieChart>
-                    </ResponsiveContainer>
-                </div>
+            <section className="reports-page__charts-panel" aria-label="Biểu đồ phân tích">
+                <div className="reports-page__charts-panel-accent" aria-hidden />
+                <div className="reports-page__charts-panel-inner space-y-5">
+                    <div className="border-b border-slate-100 pb-4">
+                        <h2 className="section-kicker text-slate-800">
+                            <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-700 shadow-sm">
+                                <BarChart3 size={17} />
+                            </span>
+                            Biểu đồ
+                        </h2>
+                        <p className="section-subtitle mt-1.5 max-w-3xl">
+                            Phân bổ đã thu / còn nợ, top nợ và tần suất giao dịch theo khách.
+                        </p>
+                    </div>
 
-                {/* Bar Chart - Top Debtors */}
-                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                    <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                        <div className="w-1 h-6 bg-gradient-to-b from-amber-500 to-orange-500 rounded-full"></div>
-                        Top 5 khách hàng nợ nhiều
-                    </h3>
-                    <ResponsiveContainer width="100%" height={300} minHeight={250}>
-                        <BarChart data={topDebtors}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                            <XAxis
-                                dataKey="name"
-                                style={{ fontSize: '12px' }}
-                                angle={-15}
-                                textAnchor="end"
-                                height={80}
-                            />
-                            <YAxis
-                                tickFormatter={(value) => (value / 1000000).toFixed(1) + 'M'}
-                            />
-                            <Tooltip
-                                formatter={(value) => [value.toLocaleString('vi-VN') + ' đ', 'Số nợ']}
-                                labelFormatter={(label, payload) => payload[0]?.payload?.fullName || label}
-                                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                            />
-                            <Bar dataKey="debt" name="Số nợ" fill="url(#colorDebt)" radius={[8, 8, 0, 0]} />
-                            <defs>
-                                <linearGradient id="colorDebt" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor="#f59e0b" stopOpacity={1} />
-                                    <stop offset="100%" stopColor="#ef4444" stopOpacity={0.8} />
-                                </linearGradient>
-                            </defs>
-                        </BarChart>
-                    </ResponsiveContainer>
-                </div>
+                    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                        <div className="reports-chart-card">
+                            <h3 className="reports-chart-card__title">
+                                <PieChart size={16} className="text-blue-600" />
+                                Phân bổ công nợ
+                            </h3>
+                            <p className="reports-chart-card__desc">
+                                Tỷ trọng đã thanh toán và còn nợ trên tổng số liệu tổng hợp.
+                            </p>
+                            <ResponsiveContainer width="100%" height={280} minHeight={220}>
+                                <RechartsPieChart>
+                                    <Pie
+                                        data={pieData}
+                                        cx="50%"
+                                        cy="50%"
+                                        labelLine={false}
+                                        label={({ name, percent }) =>
+                                            `${name}: ${(percent * 100).toFixed(0)}%`
+                                        }
+                                        outerRadius={90}
+                                        fill="#8884d8"
+                                        dataKey="value"
+                                    >
+                                        {pieData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={entry.color} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip formatter={(value) => `${Number(value).toLocaleString('vi-VN')} đ`} />
+                                </RechartsPieChart>
+                            </ResponsiveContainer>
+                        </div>
 
-                {/* Bar Chart - Transaction Volume */}
-                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm lg:col-span-2">
-                    <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                        <div className="w-1 h-6 bg-gradient-to-b from-indigo-500 to-purple-500 rounded-full"></div>
-                        Hoạt động giao dịch (Top khách hàng)
-                    </h3>
-                    <ResponsiveContainer width="100%" height={300} minHeight={250}>
-                        <BarChart data={txVolumeData}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                            <XAxis dataKey="name" style={{ fontSize: '12px' }} />
-                            <YAxis />
-                            <Tooltip
-                                formatter={(value) => [value, 'Số lượng GD']}
-                                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                            />
-                            <Bar dataKey="count" name="Số lượng GD" fill="url(#colorTx)" radius={[8, 8, 0, 0]} />
-                            <defs>
-                                <linearGradient id="colorTx" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor="#6366f1" stopOpacity={1} />
-                                    <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.8} />
-                                </linearGradient>
-                            </defs>
-                        </BarChart>
-                    </ResponsiveContainer>
+                        <div className="reports-chart-card">
+                            <h3 className="reports-chart-card__title">
+                                <BarChart3 size={16} className="text-amber-600" />
+                                Top 5 khách còn nợ lớn
+                            </h3>
+                            <p className="reports-chart-card__desc">
+                                So sánh nhanh dư nợ hiện tại theo khách hàng.
+                            </p>
+                            <ResponsiveContainer width="100%" height={280} minHeight={220}>
+                                <BarChart data={topDebtors}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                                    <XAxis
+                                        dataKey="name"
+                                        style={{ fontSize: '11px' }}
+                                        angle={-15}
+                                        textAnchor="end"
+                                        height={72}
+                                    />
+                                    <YAxis
+                                        tickFormatter={(value) =>
+                                            value >= 1e6
+                                                ? `${(value / 1e6).toFixed(1)}M`
+                                                : `${(value / 1e3).toFixed(0)}k`
+                                        }
+                                    />
+                                    <Tooltip
+                                        formatter={(value) => [
+                                            `${Number(value).toLocaleString('vi-VN')} đ`,
+                                            'Còn nợ',
+                                        ]}
+                                        labelFormatter={(label, payload) =>
+                                            payload?.[0]?.payload?.fullName || label
+                                        }
+                                        contentStyle={{
+                                            borderRadius: 10,
+                                            border: 'none',
+                                            fontSize: 12,
+                                        }}
+                                    />
+                                    <Bar
+                                        dataKey="debt"
+                                        name="Số nợ"
+                                        fill="url(#colorDebtAnalytics)"
+                                        radius={[6, 6, 0, 0]}
+                                    />
+                                    <defs>
+                                        <linearGradient
+                                            id="colorDebtAnalytics"
+                                            x1="0"
+                                            y1="0"
+                                            x2="0"
+                                            y2="1"
+                                        >
+                                            <stop offset="0%" stopColor="#f59e0b" stopOpacity={1} />
+                                            <stop offset="100%" stopColor="#ef4444" stopOpacity={0.85} />
+                                        </linearGradient>
+                                    </defs>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+
+                        <div className="reports-chart-card lg:col-span-2">
+                            <h3 className="reports-chart-card__title">
+                                <Activity size={16} className="text-indigo-600" />
+                                Hoạt động giao dịch (top khách)
+                            </h3>
+                            <p className="reports-chart-card__desc">
+                                Số lượng giao dịch theo khách — ưu tiên khách có nhiều GD nhất.
+                            </p>
+                            <ResponsiveContainer width="100%" height={280} minHeight={220}>
+                                <BarChart data={txVolumeData}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                                    <XAxis dataKey="name" style={{ fontSize: '11px' }} />
+                                    <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                                    <Tooltip
+                                        formatter={(value) => [value, 'Số lượng GD']}
+                                        contentStyle={{
+                                            borderRadius: 10,
+                                            border: 'none',
+                                            fontSize: 12,
+                                        }}
+                                    />
+                                    <Bar
+                                        dataKey="count"
+                                        name="Số lượng GD"
+                                        fill="url(#colorTxAnalytics)"
+                                        radius={[6, 6, 0, 0]}
+                                    />
+                                    <defs>
+                                        <linearGradient
+                                            id="colorTxAnalytics"
+                                            x1="0"
+                                            y1="0"
+                                            x2="0"
+                                            y2="1"
+                                        >
+                                            <stop offset="0%" stopColor="#6366f1" stopOpacity={1} />
+                                            <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.85} />
+                                        </linearGradient>
+                                    </defs>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            </section>
         </div>
     );
 }

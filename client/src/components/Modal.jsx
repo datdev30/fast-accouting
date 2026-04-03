@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { clsx } from 'clsx';
 import { X } from 'lucide-react';
 import { trapFocus, handleEscapeKey, preventBodyScroll } from '../utils/a11y';
 
@@ -159,15 +160,22 @@ export const ConfirmModal = ({
             footer={
                 <>
                     <button
+                        type="button"
                         onClick={onClose}
-                        className="btn btn-secondary btn-md"
+                        className="btn-secondary btn-md"
                         disabled={isLoading}
                     >
                         {cancelLabel}
                     </button>
                     <button
+                        type="button"
                         onClick={onConfirm}
-                        className={`btn btn-md ${variantClasses[variant]}`}
+                        className={clsx(
+                            'btn-md',
+                            variant === 'warning'
+                                ? 'inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-amber-600 px-4 text-sm font-semibold text-white shadow-md shadow-amber-200/40 hover:bg-amber-700'
+                                : variantClasses[variant]
+                        )}
                         disabled={isLoading}
                     >
                         {isLoading && <div className="spinner"></div>}

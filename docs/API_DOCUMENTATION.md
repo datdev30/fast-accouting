@@ -269,7 +269,7 @@ Authorization: Bearer <JWT_TOKEN>
 ```json
 {
   "id": "KH001",
-  "pin": "123456"
+  "pin": "1234"
 }
 ```
 
@@ -429,7 +429,7 @@ Authorization: Bearer <JWT_TOKEN>
 {
   "customer_id": "KH001 (required)",
   "payment_date": "2025-04-15 (required, ISO date string)",
-  "pin": "123456 (required)"
+  "pin": "1234 (required)"
 }
 ```
 
@@ -462,7 +462,7 @@ Authorization: Bearer <JWT_TOKEN>
 ```json
 {
   "id": "GD001",
-  "pin": "123456"
+  "pin": "1234"
 }
 ```
 
@@ -733,7 +733,7 @@ Authorization: Bearer <JWT_TOKEN>
 ```json
 {
   "code": "TIEN_MAT",
-  "pin": "123456"
+  "pin": "1234"
 }
 ```
 
@@ -924,7 +924,7 @@ Authorization: Bearer <JWT_TOKEN>
 ```json
 {
   "id": "ObjectId",
-  "pin": "123456"
+  "pin": "1234"
 }
 ```
 

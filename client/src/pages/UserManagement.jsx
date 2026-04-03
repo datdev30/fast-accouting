@@ -5,6 +5,7 @@ import { createUser, deleteUserSecure, getUsers, updateUser } from '../services/
 import { Plus, Pencil, Trash2, User as UserIcon, Shield, X } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
 import { useToast } from '../context/ToastContext';
+import { getApiErrorMessage } from '../utils/errorMessage';
 import { useAuth } from '../context/AuthContext';
 import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
 
@@ -59,7 +60,7 @@ export default function UserManagement() {
             showToast('Thành công', 'Đã tạo user mới', 'success');
         },
         onError: (err) => {
-            showToast('Lỗi', err.response?.data?.error || 'Không thể tạo user', 'error');
+            showToast('Lỗi', getApiErrorMessage(err, 'Tạo tài khoản người dùng'), 'error');
         }
     });
 
@@ -71,7 +72,7 @@ export default function UserManagement() {
             showToast('Thành công', 'Đã cập nhật user', 'success');
         },
         onError: (err) => {
-            showToast('Lỗi', err.response?.data?.error || 'Không thể cập nhật user', 'error');
+            showToast('Lỗi', getApiErrorMessage(err, 'Cập nhật tài khoản người dùng'), 'error');
         }
     });
 
@@ -84,7 +85,7 @@ export default function UserManagement() {
             showToast('Thành công', 'Đã xóa user', 'success');
         },
         onError: (err) => {
-            showToast('Lỗi', err.response?.data?.error || 'Không thể xóa user', 'error');
+            showToast('Lỗi', getApiErrorMessage(err, 'Xóa tài khoản người dùng'), 'error');
         }
     });
 
@@ -199,26 +200,26 @@ export default function UserManagement() {
     }
 
     if (isLoading) {
-        return <div className="p-8">Đang tải...</div>;
+        return <div className="p-4 text-sm text-slate-500">Đang tải...</div>;
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4 lg:space-y-5">
             {/* Header Section */}
             <div className="space-y-0">
-                <div className="flex items-center justify-between gap-6">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                     {/* Left: Title & Subtitle */}
                     <div>
-                        <h2 className="section-title text-3xl">Quản Lý User</h2>
-                        <p className="section-subtitle text-base mt-1">Tạo và phân quyền user (SALE/ADMIN)</p>
+                        <h2 className="section-title">Quản lý user</h2>
+                        <p className="section-subtitle mt-1">Tạo và phân quyền user (SALE/ADMIN)</p>
                     </div>
 
                     {/* Right: Create Button */}
                     <button
                         onClick={openCreate}
-                        className="btn-primary btn-md justify-center text-base min-h-[44px] px-6 py-3 whitespace-nowrap shrink-0"
+                        className="btn-primary btn-md whitespace-nowrap shrink-0"
                     >
-                        <Plus size={20} className="shrink-0" />
+                        <Plus size={18} className="shrink-0" />
                         <span>Thêm user</span>
                     </button>
                 </div>
@@ -266,14 +267,14 @@ export default function UserManagement() {
                                     <td className="table-td text-right">
                                         <div className="inline-flex items-center gap-2">
                                             <button
-                                                className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                                className="p-1.5 min-w-9 min-h-9 flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                                                 onClick={() => openEdit(u)}
                                                 title="Sửa"
                                             >
                                                 <Pencil size={18} />
                                             </button>
                                             <button
-                                                className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                                className="p-1.5 min-w-9 min-h-9 flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                                                 onClick={() => { openEdit(u); setIsDeleteModalOpen(true); }}
                                                 title="Xóa"
                                             >
@@ -285,7 +286,7 @@ export default function UserManagement() {
                             ))}
                             {(users || []).length === 0 && (
                                 <tr>
-                                    <td colSpan={4} className="text-center text-slate-400 py-12">
+                                    <td colSpan={4} className="text-center text-slate-400 py-8">
                                         <div className="flex flex-col items-center gap-3">
                                             <div className="w-12 h-12 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center">
                                                 <UserIcon size={24} />
@@ -302,18 +303,18 @@ export default function UserManagement() {
 
             {isOpen && (
                 <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-50 p-4 overflow-hidden">
-                    <div className="bg-white rounded-[2.5rem] w-full h-auto max-w-lg shadow-2xl overflow-hidden flex flex-col">
-                        <div className="px-8 py-6 border-b border-slate-100 bg-white flex justify-between items-center">
+                    <div className="bg-white rounded-2xl w-full h-auto max-w-lg shadow-xl overflow-hidden flex flex-col">
+                        <div className="px-5 py-4 border-b border-slate-100 bg-white flex justify-between items-center">
                             <div>
-                                <h3 className="text-lg font-bold text-slate-900">{isEditing ? 'Cập nhật user' : 'Thêm user'}</h3>
+                                <h3 className="text-base font-bold text-slate-900">{isEditing ? 'Cập nhật user' : 'Thêm user'}</h3>
                                 <p className="text-xs text-slate-500">{selectedUserTitle}</p>
                             </div>
-                            <button className="btn btn-ghost btn-sm" onClick={handleClose} aria-label="Close">
+                            <button type="button" className="btn-ghost btn-sm" onClick={handleClose} aria-label="Đóng">
                                 <X size={18} />
                             </button>
                         </div>
 
-                        <form onSubmit={handleSubmit} className="p-8 space-y-4 overflow-auto">
+                        <form onSubmit={handleSubmit} className="p-5 space-y-3 overflow-auto">
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="label">Username</label>
@@ -374,16 +375,16 @@ export default function UserManagement() {
                             </div>
 
                             <div className="flex flex-row gap-3 pt-2">
-                                <button type="submit" className="btn btn-primary btn-md" disabled={createMutation.isPending || updateMutation.isPending}>
+                                <button type="submit" className="btn-primary btn-md" disabled={createMutation.isPending || updateMutation.isPending}>
                                     {isEditing ? 'Lưu thay đổi' : 'Tạo user'}
                                 </button>
-                                <button type="button" className="btn btn-secondary btn-md" onClick={handleClose}>
+                                <button type="button" className="btn-secondary btn-md" onClick={handleClose}>
                                     Huỷ
                                 </button>
                                 {isEditing && (
                                     <button
                                         type="button"
-                                        className="btn btn-ghost btn-md text-red-600 hover:text-red-700"
+                                        className="btn-ghost btn-md text-red-600 hover:text-red-700"
                                         onClick={() => setIsDeleteModalOpen(true)}
                                     >
                                         <Trash2 size={18} />

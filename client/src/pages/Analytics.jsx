@@ -13,36 +13,39 @@ export default function Analytics() {
     });
 
     if (error) return (
-        <div className="p-8">
-            <ErrorStates.Network
-                error={error}
-                onRetry={refetch}
-                showDetails={true}
-            />
+        <div className="reports-page px-1 pb-8 sm:px-0">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+                <ErrorStates.Network
+                    error={error}
+                    onRetry={refetch}
+                    showDetails={true}
+                />
+            </div>
         </div>
     );
 
     if (isLoading) return (
-        <div className="space-y-6">
-            <LoadingSkeleton.Stats count={4} />
-            <div className="grid grid-cols-2 gap-6">
+        <div className="reports-page space-y-6 pb-8">
+            <div className="h-32 animate-pulse rounded-2xl bg-slate-100/90" />
+            <LoadingSkeleton.Stats count={3} />
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <LoadingSkeleton.Card count={2} />
             </div>
         </div>
     );
 
     return (
-        <div className="space-y-8">
-            {/* Header Section */}
-            <div className="space-y-0">
-                <div className="flex items-center justify-between gap-6">
-                    {/* Left: Title & Subtitle */}
-                    <div>
-                        <h2 className="section-title text-3xl">Phân Tích & Báo Cáo</h2>
-                        <p className="section-subtitle text-base mt-1">Biểu đồ và phân tích dữ liệu tài chính</p>
-                    </div>
+        <div className="reports-page space-y-6 pb-10 animate-in fade-in duration-300 lg:space-y-8">
+            <header className="reports-page__masthead">
+                <div className="reports-page__masthead-accent" aria-hidden />
+                <div className="relative z-[1] min-w-0 flex-1">
+                    <p className="reports-page__kicker">Menu Báo cáo</p>
+                    <h1 className="section-title text-xl lg:text-2xl">Phân tích &amp; báo cáo</h1>
+                    <p className="section-subtitle mt-1 max-w-2xl">
+                        Biểu đồ phân bổ nợ, top công nợ và mức độ hoạt động giao dịch — cùng nguồn dữ liệu với Tổng quan.
+                    </p>
                 </div>
-            </div>
+            </header>
 
             <AnalyticsDashboard report={report} />
         </div>

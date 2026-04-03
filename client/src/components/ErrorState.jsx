@@ -1,4 +1,5 @@
 import React from 'react';
+import { getApiErrorMessage } from '../utils/errorMessage';
 
 /**
  * ErrorState Component
@@ -64,7 +65,7 @@ const ErrorState = ({
                 {onRetry && (
                     <button
                         onClick={onRetry}
-                        className="btn btn-primary btn-md"
+                        className="btn-primary btn-md"
                     >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -76,7 +77,7 @@ const ErrorState = ({
                 {onHelp && (
                     <button
                         onClick={onHelp}
-                        className="btn btn-secondary btn-md"
+                        className="btn-secondary btn-md"
                     >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -115,20 +116,32 @@ export const ErrorIcons = {
 
 // Preset error states for common scenarios
 export const ErrorStates = {
-    Network: (props) => (
+    Network: ({ error, description, ...rest }) => (
         <ErrorState
             icon={ErrorIcons.Network}
             title="Lỗi kết nối"
-            description="Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối internet và thử lại."
-            {...props}
+            description={
+                description ||
+                (error
+                    ? getApiErrorMessage(error, 'Kết nối tới máy chủ')
+                    : 'Không thể kết nối đến máy chủ. Kiểm tra mạng, địa chỉ API (VITE_API_URL) và xem máy chủ có đang chạy.')
+            }
+            error={error}
+            {...rest}
         />
     ),
-    Server: (props) => (
+    Server: ({ error, description, ...rest }) => (
         <ErrorState
             icon={ErrorIcons.Server}
             title="Lỗi máy chủ"
-            description="Máy chủ đang gặp sự cố. Vui lòng thử lại sau ít phút."
-            {...props}
+            description={
+                description ||
+                (error
+                    ? getApiErrorMessage(error, 'Máy chủ xử lý yêu cầu')
+                    : 'Máy chủ trả lỗi (thường HTTP 5xx). Thử lại sau; nếu vẫn lỗi, gửi quản trị kèm thời điểm và thao tác.')
+            }
+            error={error}
+            {...rest}
         />
     ),
     NotFound: (props) => (
@@ -147,11 +160,17 @@ export const ErrorStates = {
             {...props}
         />
     ),
-    Generic: (props) => (
+    Generic: ({ error, description, ...rest }) => (
         <ErrorState
             title="Đã xảy ra lỗi"
-            description="Đã có lỗi xảy ra. Vui lòng thử lại hoặc liên hệ hỗ trợ nếu vấn đề vẫn tiếp diễn."
-            {...props}
+            description={
+                description ||
+                (error
+                    ? getApiErrorMessage(error, 'Tải hoặc xử lý dữ liệu')
+                    : 'Có lỗi không xác định. Thử lại; nếu lặp lại, mở “Xem chi tiết lỗi” (nếu có) hoặc báo quản trị.')
+            }
+            error={error}
+            {...rest}
         />
     ),
 };

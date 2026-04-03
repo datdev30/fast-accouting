@@ -51,6 +51,11 @@ export default function BankAccountConfig() {
 
     // Load dữ liệu từ server khi có cấu hình
     useEffect(() => {
+        // Chỉ xử lý khi đã load xong (không còn loading)
+        if (isLoadingConfig) {
+            return;
+        }
+
         if (bankConfig) {
             // Load form data cho ADMIN (để có thể chỉnh sửa)
             // SALE cũng thấy thông tin này (read-only)
@@ -62,20 +67,10 @@ export default function BankAccountConfig() {
                 default_add_info: bankConfig.default_add_info || ''
             });
 
-            // Load QR code (cả ADMIN và SALE đều thấy)
-            if (bankConfig.qr_code_url) {
-                setQrCodeUrl(bankConfig.qr_code_url);
-            }
-
-            // Tìm và set selectedBank nếu có bank_code
-            if (bankConfig.bank_code && bankList.length > 0) {
-                const bank = bankList.find(b => b.code === bankConfig.bank_code);
-                if (bank) {
-                    setSelectedBank(bank);
-                }
-            }
-        } else if (bankConfig === null && !isLoadingConfig) {
-            // Chưa có cấu hình, reset form
+            // Luôn set qrCodeUrl, kể cả khi null/undefined
+            setQrCodeUrl(bankConfig.qr_code_url || null);
+        } else {
+            // bankConfig là null hoặc undefined - reset form
             setFormData({
                 bank_code: '',
                 bank_name: '',
@@ -86,7 +81,23 @@ export default function BankAccountConfig() {
             setQrCodeUrl(null);
             setSelectedBank(null);
         }
-    }, [bankConfig, bankList, isLoadingConfig]);
+    }, [bankConfig, isLoadingConfig]);
+
+    // Cập nhật selectedBank khi bankList hoặc bankConfig thay đổi
+    useEffect(() => {
+        if (bankConfig?.bank_code && bankList.length > 0) {
+            const bank = bankList.find(b => b.code === bankConfig.bank_code);
+            if (bank) {
+                setSelectedBank(bank);
+            } else {
+                // Nếu không tìm thấy bank trong list, reset selectedBank
+                setSelectedBank(null);
+            }
+        } else if (!bankConfig?.bank_code) {
+            // Nếu không có bank_code trong config, reset selectedBank
+            setSelectedBank(null);
+        }
+    }, [bankConfig?.bank_code, bankList]);
 
     const validateForm = () => {
         const errors = {
