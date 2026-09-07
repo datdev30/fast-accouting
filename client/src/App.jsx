@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Layout from './components/Layout';
 import Dashboard from './pages/Reports'; // Using Reports as Dashboard for now
@@ -15,56 +15,12 @@ import Guide from './pages/Guide';
 import BackupData from './pages/BackupData';
 import Settings from './pages/Settings';
 import BankAccountConfig from './pages/BankAccountConfig';
+import SystemNotificationConfig from './pages/SystemNotificationConfig';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { WorkingYearProvider } from './context/WorkingYearContext';
 import { ToastProvider } from './context/ToastContext';
 import BackupModal from './components/BackupModal';
-
-function useZoom() {
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.ctrlKey) {
-        if (e.key === '=' || e.key === '+' || e.key === 'Add') { // + or Numpad +
-          e.preventDefault();
-          updateZoom(0.1);
-        } else if (e.key === '-' || e.key === 'Subtract') { // - or Numpad -
-          e.preventDefault();
-          updateZoom(-0.1);
-        } else if (e.key === '0') {
-          e.preventDefault();
-          setZoom(1);
-        }
-      }
-    };
-
-    const handleWheel = (e) => {
-      if (e.ctrlKey) {
-        e.preventDefault();
-        const delta = e.deltaY < 0 ? 0.1 : -0.1;
-        updateZoom(delta);
-      }
-    };
-
-    const updateZoom = (delta) => {
-      const currentZoom = parseFloat(document.body.style.zoom) || 1;
-      let newZoom = currentZoom + delta;
-      // Clamp between 1.0 (100%) and 1.5 (150%)
-      newZoom = Math.min(Math.max(newZoom, 1.0), 1.5);
-      document.body.style.zoom = newZoom;
-    };
-
-    const setZoom = (val) => {
-      document.body.style.zoom = val;
-    }
-
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('wheel', handleWheel, { passive: false });
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('wheel', handleWheel);
-    };
-  }, []);
-}
+import SystemNotificationBanner from './components/SystemNotificationBanner';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -83,6 +39,7 @@ function AppContent() {
   const { isBackingUp } = useAuth();
   return (
     <>
+      <SystemNotificationBanner />
       {isBackingUp && <BackupModal />}
       <Routes>
         <Route path="/login" element={<Login />} />
@@ -99,6 +56,7 @@ function AppContent() {
           <Route path="backup-data" element={<BackupData />} />
           <Route path="settings" element={<Settings />} />
           <Route path="bank-account-config" element={<BankAccountConfig />} />
+          <Route path="system-notification-config" element={<SystemNotificationConfig />} />
           <Route path="info" element={<Info />} />
           <Route path="guide" element={<Guide />} />
         </Route>
@@ -110,11 +68,13 @@ function AppContent() {
 }
 
 function App() {
-  useZoom();
+
   return (
     <ToastProvider>
       <AuthProvider>
-        <AppContent />
+        <WorkingYearProvider>
+          <AppContent />
+        </WorkingYearProvider>
       </AuthProvider>
     </ToastProvider>
   );

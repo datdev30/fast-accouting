@@ -1,3 +1,4 @@
+import useScrollLock from '../hooks/useScrollLock';
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getInterestConfigs, createInterestConfig, updateInterestConfig, deleteInterestConfigSecure } from '../services/api';
@@ -18,6 +19,7 @@ export default function InterestConfigs() {
     const { user } = useAuth();
     const isAdmin = user?.role === 'ADMIN';
     const [isOpen, setIsOpen] = useState(false);
+    useScrollLock(isOpen);
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState({
         code: '',

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Settings as SettingsIcon, Info, BookOpen, Calculator, Users, DatabaseBackup, LogOut, ChevronRight, CreditCard, Cloud, Eye, EyeOff, Copy, Check, ExternalLink, Loader2, AlertCircle, Save } from 'lucide-react';
+import { Settings as SettingsIcon, Info, BookOpen, Calculator, Users, DatabaseBackup, LogOut, ChevronRight, CreditCard, Bell, Cloud, Eye, EyeOff, Copy, Check, ExternalLink, Loader2, AlertCircle, Save, CalendarRange } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useWorkingYear } from '../context/WorkingYearContext';
 import { useToast } from '../context/ToastContext';
 import { getApiErrorMessage } from '../utils/errorMessage';
 import { getDriveOAuthRefreshToken, updateDriveOAuthRefreshToken, getDriveOAuthGenerateUrl, handleDriveOAuthCallback } from '../services/api';
@@ -26,6 +27,7 @@ const SettingLink = ({ to, icon: Icon, label, desc }) => (
 
 export default function Settings() {
     const { user, logout } = useAuth();
+    const { year: workingYear, availableYears, setYear, isChanging, isAdmin: yearAdmin } = useWorkingYear();
     const navigate = useNavigate();
     const { showToast } = useToast();
     const queryClient = useQueryClient();
@@ -118,11 +120,47 @@ export default function Settings() {
                 <p className="section-subtitle mt-1">Thông tin, hướng dẫn và tùy chọn hệ thống</p>
             </div>
 
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                        <div className="rounded-lg bg-indigo-50 p-2 text-indigo-600">
+                            <CalendarRange size={20} />
+                        </div>
+                        <div>
+                            <h3 className="text-base font-bold text-slate-900">Năm làm việc</h3>
+                            <p className="mt-0.5 text-xs text-slate-500">
+                                Chỉ lọc giao dịch theo năm. Khách hàng và mọi cấu hình (lãi suất, STK, thông báo, user…) dùng chung mọi năm.
+                            </p>
+                        </div>
+                    </div>
+                    {yearAdmin ? (
+                        <select
+                            value={workingYear}
+                            disabled={isChanging}
+                            onChange={(e) => setYear(Number(e.target.value))}
+                            className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                        >
+                            {availableYears.map((y) => (
+                                <option key={y} value={y}>{y}</option>
+                            ))}
+                            {!availableYears.includes(workingYear + 1) && (
+                                <option value={workingYear + 1}>{workingYear + 1} (mở năm mới)</option>
+                            )}
+                        </select>
+                    ) : (
+                        <span className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-bold text-slate-800">
+                            {workingYear}
+                        </span>
+                    )}
+                </div>
+            </div>
+
             <div className="space-y-2">
                 <SettingLink to="/info" icon={Info} label="Thông tin" desc="Phiên bản, cập nhật hệ thống" />
                 <SettingLink to="/guide" icon={BookOpen} label="Hướng dẫn" desc="Hướng dẫn sử dụng" />
                 <SettingLink to="/interest-configs" icon={Calculator} label="Cấu hình lãi suất" desc="Thiết lập lãi vay" />
                 <SettingLink to="/bank-account-config" icon={CreditCard} label="Cấu hình STK" desc="Thiết lập tài khoản ngân hàng" />
+                <SettingLink to="/system-notification-config" icon={Bell} label="Cấu hình thông báo hệ thống" desc="Bảng tin nội bộ và cảnh báo nghiệp vụ" />
                 {isAdmin && (
                     <>
                         <SettingLink to="/users" icon={Users} label="Người dùng" desc="Quản lý tài khoản" />
@@ -215,7 +253,7 @@ export default function Settings() {
                             <button
                                 onClick={handleSaveManualToken}
                                 disabled={updateMutation.isPending || !manualToken.trim()}
-                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                className="btn-primary btn-md"
                             >
                                 {updateMutation.isPending ? (
                                     <Loader2 size={16} className="animate-spin" />
@@ -237,7 +275,7 @@ export default function Settings() {
                             <button
                                 onClick={handleGenerateToken}
                                 disabled={generateUrlMutation.isPending}
-                                className="w-full px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                className="btn-secondary btn-md w-full"
                             >
                                 {generateUrlMutation.isPending ? (
                                     <>
@@ -281,7 +319,7 @@ export default function Settings() {
                                         <button
                                             onClick={handleProcessCallback}
                                             disabled={callbackMutation.isPending || !oauthCode.trim()}
-                                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                            className="btn-primary btn-md"
                                         >
                                             {callbackMutation.isPending ? (
                                                 <Loader2 size={16} className="animate-spin" />
@@ -298,7 +336,7 @@ export default function Settings() {
                                         setOAuthUrl(null);
                                         setOAuthCode('');
                                     }}
-                                    className="w-full px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg transition-colors cursor-pointer"
+                                    className="btn-secondary btn-md w-full"
                                 >
                                     Hủy
                                 </button>

@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
-import User from '../models/User.js';
+import { getUserModel } from '../db/models.js';
+import { withUserAuthMethods } from '../utils/userAuth.js';
 import logger from '../utils/logger.js';
 
 /**
@@ -74,8 +75,16 @@ export const requireAdmin = async (req, res, next) => {
             return res.status(401).json({ error: 'Access denied. Not authenticated.' });
         }
 
-        // Need `pin_hash` to verify admin PIN in delete-secure endpoints.
-        const currentUser = await User.findById(req.user.id).select('role username pin_hash');
+        const User = getUserModel();
+        let currentUser = await User.findById(req.user.id);
+        if (currentUser?.select) {
+            // mongoose query chain leftover — not used when findById returns doc
+        }
+        // Prefer lean fields; mongoose may return full doc
+        if (!currentUser && User.findById) {
+            currentUser = await User.findById(req.user.id).select?.('role username pin_hash');
+        }
+        currentUser = withUserAuthMethods(currentUser);
         if (!currentUser) {
             return res.status(401).json({ error: 'User not found' });
         }
@@ -103,8 +112,9 @@ export const requireAdminOrSale = async (req, res, next) => {
             return res.status(401).json({ error: 'Access denied. Not authenticated.' });
         }
 
-        // Need `pin_hash` to verify PIN in bulk-pay endpoints.
-        const currentUser = await User.findById(req.user.id).select('role username pin_hash');
+        const User = getUserModel();
+        let currentUser = await User.findById(req.user.id);
+        currentUser = withUserAuthMethods(currentUser);
         if (!currentUser) {
             return res.status(401).json({ error: 'User not found' });
         }

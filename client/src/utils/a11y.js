@@ -130,12 +130,22 @@ export const handleEscapeKey = (callback) => {
 };
 
 /**
- * Prevent body scroll (for modals)
+ * Khóa scroll nền khi mở modal.
+ *
+ * `body` đã là overflow:hidden từ index.css nên set lại nó là no-op —
+ * scroller thật là #app-scroll trong Layout. Khóa đúng phần tử đó,
+ * và vẫn khóa body để phòng trường hợp document tự cuộn.
+ *
  * @returns {Function} Cleanup function to restore scroll
  */
 export const preventBodyScroll = () => {
-    const originalOverflow = document.body.style.overflow;
-    const originalPaddingRight = document.body.style.paddingRight;
+    const scroller = document.getElementById('app-scroll');
+
+    const original = {
+        bodyOverflow: document.body.style.overflow,
+        bodyPaddingRight: document.body.style.paddingRight,
+        scrollerOverflow: scroller ? scroller.style.overflow : null,
+    };
 
     // Get scrollbar width
     const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
@@ -146,9 +156,16 @@ export const preventBodyScroll = () => {
         document.body.style.paddingRight = `${scrollbarWidth}px`;
     }
 
+    if (scroller) {
+        scroller.style.overflow = 'hidden';
+    }
+
     return () => {
-        document.body.style.overflow = originalOverflow;
-        document.body.style.paddingRight = originalPaddingRight;
+        document.body.style.overflow = original.bodyOverflow;
+        document.body.style.paddingRight = original.bodyPaddingRight;
+        if (scroller) {
+            scroller.style.overflow = original.scrollerOverflow;
+        }
     };
 };
 

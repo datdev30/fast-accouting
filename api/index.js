@@ -18,7 +18,11 @@ import userRoutes from './routes/users.js';
 import infoRoutes from './routes/info.js';
 import backupRoutes from './routes/backup.js';
 import bankAccountConfigRoutes from './routes/bankAccountConfig.js';
+import systemNotificationRoutes from './routes/systemNotifications.js';
 import driveOAuthRoutes from './routes/driveOAuth.js';
+import workingYearRoutes from './routes/workingYear.js';
+import { attachWorkingYear } from './utils/workingYear.js';
+import { getDataStore, initDataStore } from './db/dataStore.js';
 
 // Load environment variables: ưu tiên api/.env (kể cả khi chạy từ thư mục gốc)
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -109,7 +113,8 @@ app.get('/', (req, res) => {
     res.json({
         message: 'FastAccounting API',
         version: '1.0.0',
-        status: 'running'
+        status: 'running',
+        data_store: getDataStore()
     });
 });
 
@@ -126,15 +131,26 @@ app.use(async (req, res, next) => {
     }
 
     try {
-        await connectDB();
+        await initDataStore();
+        if (getDataStore() === 'mongo') {
+            await connectDB();
+        }
         return next();
     } catch (err) {
-        logger.error('MongoDB connection failed', { error: err.message, stack: err.stack });
+        logger.error('Database connection failed', { error: err.message, stack: err.stack, store: getDataStore() });
         return res.status(500).json({
             error: 'Database connection failed',
             code: 'DATABASE_ERROR'
         });
     }
+});
+
+// Gắn năm làm việc hiện tại (bỏ qua /auth — login không cần)
+app.use('/api', (req, res, next) => {
+    if (req.path.startsWith('/auth')) {
+        return next();
+    }
+    return attachWorkingYear(req, res, next);
 });
 
 // API Routes
@@ -147,7 +163,9 @@ app.use('/api/users', userRoutes);
 app.use('/api/info', infoRoutes);
 app.use('/api/backup', backupRoutes);
 app.use('/api/bank-account-config', bankAccountConfigRoutes);
+app.use('/api/system-notifications', systemNotificationRoutes);
 app.use('/api/drive-oauth', driveOAuthRoutes);
+app.use('/api/working-year', workingYearRoutes);
 
 // 404 handler
 app.use((req, res) => {

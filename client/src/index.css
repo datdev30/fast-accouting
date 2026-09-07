@@ -1,17 +1,33 @@
 @import "tailwindcss";
 
-:root {
+/* ============================================================
+   TẦNG 1 — TOKEN
+   Nguồn sự thật duy nhất cho typography, màu thương hiệu, và
+   kích thước phụ thuộc thiết bị. Thay thế tailwind.config.js
+   (Tailwind v4 không đọc file JS config nếu thiếu @config).
+   ============================================================ */
+
+@theme {
   /* Typography - Modern Professional (Poppins + Open Sans) */
   --font-heading: 'Poppins', system-ui, -apple-system, sans-serif;
   --font-body: 'Open Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
-  font-family: var(--font-body);
 
-  /* Design System - Fintech Color Palette (from UI-UX Pro Max) */
+  /* Design System - Fintech Color Palette */
   --color-primary: #2563EB;
   --color-primary-hover: #1D4ED8;
   --color-secondary: #3B82F6;
   --color-cta: #F97316;
   --color-cta-hover: #EA580C;
+
+  /* Spacing bổ sung */
+  --spacing-18: 4.5rem;
+  --spacing-22: 5.5rem;
+}
+
+:root {
+  font-family: var(--font-body);
+
+  /* Bề mặt & chữ */
   --color-background: #F8FAFC;
   --color-text: #1E293B;
   --color-text-muted: #64748B;
@@ -30,6 +46,43 @@
   --color-info: #3B82F6;
   --color-info-bg: #EFF6FF;
   --color-info-border: #BFDBFE;
+
+  /* --- Kích thước phụ thuộc thiết bị -----------------------
+     Đổi ở đây thì toàn bộ .input / .btn-* / .icon-btn của mọi
+     page tự đúng — không cần sửa JSX.
+     -------------------------------------------------------- */
+  --tap-min: 40px;
+  --field-h: 40px;
+  --field-fs: 0.875rem;
+  /* 14px */
+  --gutter: 0.75rem;
+  --modal-max-h: 90dvh;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-t: env(safe-area-inset-top, 0px);
+}
+
+/* Thiết bị cảm ứng — phone VÀ mọi tablet, kể cả iPad landscape 1194px.
+   Điều kiện theo loại con trỏ, không theo bề rộng (F14).
+   --field-fs: 1rem = 16px là ngưỡng chặn iOS Safari tự phóng to
+   khi focus ô nhập (F5). */
+@media (pointer: coarse) {
+  :root {
+    --tap-min: 44px;
+    --field-h: 48px;
+    --field-fs: 1rem;
+  }
+}
+
+@media (min-width: 640px) {
+  :root {
+    --gutter: 1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --gutter: 1.5rem;
+  }
 }
 
 html {
@@ -128,22 +181,22 @@ body {
 
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 rounded-lg text-sm font-semibold transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100 bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-200/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2;
-    min-height: 40px;
+    min-height: var(--tap-min);
   }
 
   .btn-secondary {
     @apply inline-flex items-center justify-center gap-2 rounded-lg text-sm font-semibold transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-blue-600 hover:border-blue-200 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2;
-    min-height: 40px;
+    min-height: var(--tap-min);
   }
 
   .btn-danger {
     @apply inline-flex items-center justify-center gap-2 rounded-lg text-sm font-semibold transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100 bg-red-600 hover:bg-red-700 text-white shadow-md shadow-red-200/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2;
-    min-height: 40px;
+    min-height: var(--tap-min);
   }
 
   .btn-success {
     @apply inline-flex items-center justify-center gap-2 rounded-lg text-sm font-semibold transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100 bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-200/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2;
-    min-height: 40px;
+    min-height: var(--tap-min);
   }
 
   .icon-btn {
@@ -200,7 +253,7 @@ body {
     @apply inline-flex items-center justify-center gap-1.5 rounded-lg text-sm font-medium text-slate-600 transition-colors;
     @apply hover:bg-slate-100 hover:text-slate-900;
     @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2;
-    min-height: 40px;
+    min-height: var(--tap-min);
     @apply px-3;
   }
 
@@ -874,9 +927,24 @@ body {
     @apply text-slate-800;
   }
 
-  /* Trang đăng nhập — nền ảnh toàn màn, form kính mờ giữa */
+  /* ==========================================================
+     Trang đăng nhập — liquid glass trên nền ảnh
+     --------------------------------------------------------
+     Nguyên tắc: chữ SÁNG trên kính TỐI.
+     Bản trước dùng chữ slate-900 trên kính trắng mờ, nên độ đọc
+     phụ thuộc vào chỗ sáng/tối của tấm ảnh nền — trên vùng trời
+     sáng thì nhãn và placeholder gần như biến mất. Kính tối cộng
+     scrim khoanh vùng cho tương phản ổn định bất kể ảnh là gì.
+     ========================================================== */
+
   .login-page {
     @apply relative min-h-screen w-full overflow-x-hidden antialiased lg:min-h-dvh;
+    --glass-fill: rgb(15 23 42 / 0.46);
+    --glass-line: rgb(255 255 255 / 0.16);
+    --glass-line-strong: rgb(255 255 255 / 0.26);
+    --glass-ink: rgb(248 250 252 / 0.96);
+    --glass-ink-dim: rgb(203 213 225 / 0.82);
+    --glass-accent: #60A5FA;
   }
 
   .login-page--splash {
@@ -894,30 +962,27 @@ body {
     background-size: cover;
   }
 
-  /* Chỉ hơi tối nhẹ để chữ footer vẫn đọc được; overlay đậm sẽ khiến ảnh trông “mờ/xỉn” dù file gốc nét */
+  /* Scrim hai lớp: một lớp phủ đều cho toàn ảnh, một lớp elip đậm hơn
+     khoanh đúng vùng đặt form. Ảnh vẫn nhìn rõ ở rìa, chữ vẫn đọc tốt ở giữa. */
   .login-page__overlay {
     position: absolute;
     inset: 0;
     z-index: 0;
-    background: linear-gradient(
-      165deg,
-      rgba(15, 23, 42, 0.22) 0%,
-      rgba(15, 23, 42, 0.14) 45%,
-      rgba(30, 41, 59, 0.2) 100%
-    );
+    background: linear-gradient(180deg,
+        rgb(2 6 23 / 0.52) 0%,
+        rgb(2 6 23 / 0.34) 38%,
+        rgb(2 6 23 / 0.62) 100%);
   }
 
-  /* Vignette nhẹ hai bên — tăng tương phản chữ ở rìa mà không “dìm” cả khung ảnh */
   .login-page__overlay::after {
     content: '';
     position: absolute;
     inset: 0;
     pointer-events: none;
-    background: radial-gradient(
-      ellipse 85% 70% at 50% 45%,
-      transparent 0%,
-      rgba(15, 23, 42, 0.18) 100%
-    );
+    background: radial-gradient(ellipse 72% 58% at 50% 48%,
+        rgb(2 6 23 / 0.42) 0%,
+        rgb(2 6 23 / 0.12) 55%,
+        transparent 100%);
   }
 
   .login-page__main--splash {
@@ -928,34 +993,37 @@ body {
     @apply rounded-2xl p-7 sm:p-8;
   }
 
-  /* Liquid glass — khối form (trong hơn: ít fill trắng, blur hơi mạnh hơn) */
+  /* Khối kính chính */
   .login-page__card--splash {
-    @apply relative overflow-hidden border border-white/38 bg-white/22 backdrop-blur-[20px] backdrop-saturate-[1.35];
+    @apply relative overflow-hidden;
+    border: 1px solid var(--glass-line-strong);
+    background: var(--glass-fill);
+    backdrop-filter: blur(28px) saturate(1.25);
+    -webkit-backdrop-filter: blur(28px) saturate(1.25);
     box-shadow:
-      0 25px 50px -12px rgb(15 23 42 / 0.24),
-      inset 0 1px 0 0 rgb(255 255 255 / 0.48),
-      inset 0 0 0 1px rgb(255 255 255 / 0.08);
+      0 32px 64px -20px rgb(2 6 23 / 0.62),
+      inset 0 1px 0 0 rgb(255 255 255 / 0.22);
   }
 
+  /* Vệt sáng chéo — giữ chất "liquid", nhưng nhạt hơn nhiều so với bản cũ
+     để không làm loang chữ bên dưới. */
   .login-page__card--splash::before {
     content: '';
     position: absolute;
     inset: 0;
     border-radius: inherit;
     pointer-events: none;
-    background: linear-gradient(
-      135deg,
-      rgb(255 255 255 / 0.22) 0%,
-      transparent 42%,
-      transparent 58%,
-      rgb(255 255 255 / 0.06) 100%
-    );
-    opacity: 0.78;
+    background: linear-gradient(135deg,
+        rgb(255 255 255 / 0.13) 0%,
+        transparent 46%,
+        transparent 62%,
+        rgb(255 255 255 / 0.05) 100%);
+    opacity: 0.7;
   }
 
   @media (prefers-reduced-motion: no-preference) {
     .login-page__card--splash::before {
-      animation: login-liquid-sheen 14s ease-in-out infinite alternate;
+      animation: login-liquid-sheen 16s ease-in-out infinite alternate;
     }
   }
 
@@ -965,130 +1033,173 @@ body {
   }
 
   .login-page__splash-foot {
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+    text-shadow: 0 1px 3px rgb(2 6 23 / 0.6);
   }
+
+  /* Logo không có khung — thay bằng quầng sáng phía sau.
+     Logo là chữ CP xanh lá đậm, trên nền ảnh đã làm tối thì tự nó chìm;
+     quầng sáng tách nó khỏi nền mà không cần hộp trắng bao quanh. */
+  .login-page__brand {
+    @apply relative flex items-center justify-center;
+  }
+
+  .login-page__brand::before {
+    content: '';
+    position: absolute;
+    inset: -28%;
+    z-index: 0;
+    border-radius: 9999px;
+    background: radial-gradient(circle,
+        rgb(255 255 255 / 0.5) 0%,
+        rgb(209 250 229 / 0.26) 38%,
+        rgb(255 255 255 / 0.08) 60%,
+        transparent 74%);
+    filter: blur(16px);
+  }
+
+  .login-page__brand > * {
+    position: relative;
+    z-index: 1;
+    filter:
+      drop-shadow(0 0 14px rgb(255 255 255 / 0.55)) drop-shadow(0 2px 10px rgb(2 6 23 / 0.5));
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .login-page__brand::before {
+      animation: login-brand-glow 6s ease-in-out infinite alternate;
+    }
+  }
+
+  /* --- Chữ trên kính ------------------------------------- */
+
+  .login-page__card--splash h1 {
+    color: var(--glass-ink);
+    text-shadow: 0 1px 2px rgb(2 6 23 / 0.45);
+  }
+
+  .login-page__card--splash .field-label {
+    color: var(--glass-ink-dim);
+    text-shadow: none;
+    letter-spacing: 0.04em;
+  }
+
+  .login-page__lead {
+    @apply text-sm;
+    color: var(--glass-ink-dim);
+    text-shadow: 0 1px 2px rgb(2 6 23 / 0.4);
+  }
+
+  .login-page__divider {
+    border-color: var(--glass-line);
+  }
+
+  /* --- Ô nhập -------------------------------------------- */
 
   .login-page__input-group {
     @apply relative;
   }
 
   .login-page__input-icon {
-    @apply pointer-events-none absolute inset-y-0 left-0 z-[2] flex w-11 items-center justify-center text-slate-500 transition-colors;
+    @apply pointer-events-none absolute inset-y-0 left-0 z-[2] flex w-11 items-center justify-center transition-colors;
+    color: rgb(226 232 240 / 0.62);
   }
 
   .login-page__input-group:focus-within .login-page__input-icon {
-    @apply text-blue-600;
+    color: var(--glass-accent);
   }
 
-  /* Liquid glass — ô nhập */
   .login-page__field {
-    @apply min-h-11 w-full rounded-xl py-2.5 pl-11 pr-4 text-sm font-medium text-slate-900 outline-none transition-[border,box-shadow,background-color,backdrop-filter] duration-200;
-    border: 1px solid rgb(255 255 255 / 0.34);
-    background: rgb(255 255 255 / 0.16);
-    box-shadow:
-      inset 0 1px 1px 0 rgb(255 255 255 / 0.38),
-      0 2px 16px rgb(15 23 42 / 0.05);
-    backdrop-filter: blur(18px) saturate(1.3);
-    -webkit-backdrop-filter: blur(18px) saturate(1.3);
+    @apply w-full rounded-xl py-2.5 pl-11 pr-4 text-sm font-medium outline-none transition-[border-color,box-shadow,background-color] duration-200;
+    min-height: var(--tap-min);
+    color: var(--glass-ink);
+    border: 1px solid var(--glass-line-strong);
+    background: rgb(255 255 255 / 0.09);
+    box-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.08);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
   }
 
   .login-page__field::placeholder {
-    @apply text-slate-500;
+    color: rgb(203 213 225 / 0.52);
   }
 
-  /* Đang nhập: nền đặc, không blur — dễ đọc chữ */
+  /* Đang nhập: nền đặc hơn + viền xanh, KHÔNG lật sang nền trắng như bản cũ
+     — lật màu giữa chừng làm mắt phải thích nghi lại mỗi lần chuyển ô. */
   .login-page__field:focus,
   .login-page__field:focus-visible {
-    border-color: rgb(59 130 246 / 0.65);
-    background: rgb(255 255 255 / 0.97);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
+    border-color: var(--glass-accent);
+    background: rgb(255 255 255 / 0.15);
     box-shadow:
-      0 1px 2px rgb(15 23 42 / 0.06),
-      0 0 0 3px rgb(37 99 235 / 0.18);
-  }
-
-  .login-page__input-group:focus-within .login-page__toggle-password {
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    background: rgb(248 250 252 / 0.98);
-    @apply text-slate-600;
-  }
-
-  .login-page__input-group:focus-within .login-page__toggle-password:hover {
-    background: rgb(241 245 249 / 1);
-    @apply text-slate-800;
+      inset 0 1px 0 0 rgb(255 255 255 / 0.1),
+      0 0 0 3px rgb(96 165 250 / 0.28);
   }
 
   .login-page__field--password {
     @apply pr-12;
   }
 
+  /* Tự động điền của trình duyệt vốn ép nền trắng — ghi đè để giữ kính tối */
+  .login-page__field:-webkit-autofill,
+  .login-page__field:-webkit-autofill:hover,
+  .login-page__field:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--glass-ink);
+    caret-color: var(--glass-ink);
+    transition: background-color 9999s ease-out;
+  }
+
   .login-page__toggle-password {
-    @apply absolute inset-y-0 right-0 z-[2] flex min-h-11 min-w-11 items-center justify-center rounded-r-xl text-slate-500 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/50 focus-visible:ring-offset-0;
-    background: rgb(255 255 255 / 0.06);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    @apply absolute inset-y-0 right-0 z-[2] flex items-center justify-center rounded-r-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/60;
+    min-height: var(--tap-min);
+    min-width: var(--tap-min);
+    color: rgb(226 232 240 / 0.66);
+    background: rgb(255 255 255 / 0.05);
   }
 
   .login-page__toggle-password:hover {
-    background: rgb(255 255 255 / 0.22);
-    @apply text-slate-700;
+    color: var(--glass-ink);
+    background: rgb(255 255 255 / 0.14);
   }
 
-  /* Liquid glass — nút đăng nhập */
+  /* --- Nút đăng nhập -------------------------------------
+     Hành động chính thì phải ĐẶC, không mờ. Kính ở đây chỉ làm
+     nút chìm vào nền và khó nhận ra là nút. */
   .login-page__submit {
-    @apply inline-flex w-full min-h-11 items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-base font-semibold text-white transition-[transform,box-shadow,background-color,border-color,backdrop-filter] duration-200 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-55 disabled:active:scale-100;
-    text-shadow: 0 1px 2px rgb(0 0 0 / 0.18);
-    border: 1px solid rgb(255 255 255 / 0.32);
-    background: linear-gradient(
-      135deg,
-      rgb(37 99 235 / 0.38) 0%,
-      rgb(29 78 216 / 0.48) 50%,
-      rgb(37 99 235 / 0.34) 100%
-    );
+    @apply inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-base font-semibold text-white transition-[transform,box-shadow,filter] duration-200 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100;
+    min-height: calc(var(--tap-min) + 6px);
+    border: 1px solid rgb(96 165 250 / 0.5);
+    background: linear-gradient(135deg, #3B82F6 0%, #2563EB 52%, #1D4ED8 100%);
     box-shadow:
-      0 10px 36px rgb(37 99 235 / 0.22),
-      inset 0 1px 0 0 rgb(255 255 255 / 0.28);
-    backdrop-filter: blur(20px) saturate(1.4);
-    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+      0 12px 28px -8px rgb(37 99 235 / 0.65),
+      inset 0 1px 0 0 rgb(255 255 255 / 0.24);
   }
 
-  /* Hover: nút đặc, không kính — dễ nhìn nhãn nút */
   .login-page__submit:hover:not(:disabled) {
-    border-color: rgb(191 219 254 / 0.55);
-    background: linear-gradient(180deg, rgb(37 99 235) 0%, rgb(29 78 216) 100%);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    text-shadow: none;
+    filter: brightness(1.08);
     box-shadow:
-      0 10px 28px rgb(37 99 235 / 0.4),
-      inset 0 1px 0 0 rgb(255 255 255 / 0.22);
+      0 16px 34px -8px rgb(37 99 235 / 0.75),
+      inset 0 1px 0 0 rgb(255 255 255 / 0.28);
   }
 
   .login-page__submit:focus-visible {
-    @apply outline-none ring-2 ring-white/70 ring-offset-2 ring-offset-transparent;
+    @apply outline-none ring-2 ring-white/80 ring-offset-2;
+    --tw-ring-offset-color: transparent;
   }
 
-  /* Nhãn + cảnh báo cùng ngôn ngữ kính */
-  .login-page__card--splash .field-label {
-    @apply text-slate-800;
-    text-shadow: 0 1px 0 rgb(255 255 255 / 0.45), 0 0 12px rgb(255 255 255 / 0.2);
-  }
+  /* --- Cảnh báo lỗi -------------------------------------- */
 
   .login-page__alert {
-    @apply flex gap-3 rounded-xl px-3.5 py-3 text-sm font-medium leading-snug text-red-900;
+    @apply flex gap-3 rounded-xl px-3.5 py-3 text-sm font-medium leading-snug;
+    color: rgb(254 226 226);
     animation: fadeIn 0.3s ease-out;
-    border: 1px solid rgb(248 113 113 / 0.36);
-    background: rgb(254 226 226 / 0.22);
-    backdrop-filter: blur(14px) saturate(1.2);
-    -webkit-backdrop-filter: blur(14px) saturate(1.2);
-    box-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.32);
+    border: 1px solid rgb(248 113 113 / 0.45);
+    background: rgb(127 29 29 / 0.5);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.1);
   }
 
-  .login-page__lead {
-    @apply text-sm text-slate-600;
-    text-shadow: 0 1px 0 rgb(255 255 255 / 0.4), 0 0 10px rgb(255 255 255 / 0.18);
+  .login-page__alert svg {
+    color: rgb(252 165 165);
   }
 }
 
@@ -1256,4 +1367,546 @@ body {
   width: 1px;
   height: 1px;
   overflow: hidden;
+}
+/* ============================================================
+   TẦNG 2 — PRIMITIVE (responsive)
+   Đặt SAU khối @layer components gốc: cùng specificity, thắng
+   nhờ thứ tự nguồn. JSX không phải đổi.
+   ============================================================ */
+
+@layer components {
+
+  /* --- Ô nhập: chiều cao & cỡ chữ lấy từ token (F5, F14) --- */
+  .input,
+  .select,
+  .input-filter {
+    min-height: var(--field-h);
+    font-size: var(--field-fs);
+  }
+
+  .textarea {
+    font-size: var(--field-fs);
+    min-height: calc(var(--field-h) * 2.5);
+  }
+
+  input[type="date"] {
+    font-size: var(--field-fs);
+  }
+
+  /* .input-icon được khai báo TRƯỚC .input-filter ở khối gốc, nên `px-3`
+     của .input-filter đè mất `pl-10` và icon tìm kiếm chồng lên placeholder.
+     Khai báo lại ở đây để nó thắng theo thứ tự nguồn. */
+  .input-icon {
+    @apply pl-10;
+  }
+
+  /* --- Nút biểu tượng: hộp chạm vuông theo token (F14) ----- */
+  .icon-btn,
+  .filter-clear-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: var(--tap-min);
+    min-height: var(--tap-min);
+  }
+
+  /* --- Mở rộng vùng chạm mà KHÔNG đổi kích thước hiển thị ---
+     Dùng cho các pill/nhãn nhỏ (ví dụ nút đổi trạng thái thu/chưa thu)
+     mà việc kéo cao lên 44px sẽ phá bố cục thẻ. */
+  .tap-expand {
+    position: relative;
+  }
+
+  .tap-expand::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max(100%, var(--tap-min));
+    height: max(100%, var(--tap-min));
+    transform: translate(-50%, -50%);
+  }
+
+  /* --- Modal: panel & bottom sheet (F7, F13) --------------- */
+  .modal-panel {
+    max-height: min(var(--modal-max-h), 100dvh - 1.5rem);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .modal-panel > form {
+    min-height: 0;
+  }
+
+  .modal-footer,
+  .modal-panel__footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    padding-bottom: max(1rem, var(--safe-b));
+  }
+
+  /* --- Bottom tab bar cho mobile (F14) --------------------- */
+  /* lg:hidden — tablet dùng chung kiến trúc điều hướng với điện thoại */
+  .tabbar {
+    @apply fixed inset-x-0 bottom-0 z-40 flex border-t border-slate-200 bg-white/95 backdrop-blur-md lg:hidden;
+    padding-bottom: var(--safe-b);
+    box-shadow: 0 -4px 16px -8px rgb(15 23 42 / 0.18);
+  }
+
+  .tabbar__item {
+    @apply flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-semibold text-slate-500 transition-colors;
+    min-height: var(--tap-min);
+  }
+
+  .tabbar__item[aria-current="page"] {
+    @apply text-blue-600;
+  }
+
+  /* --- Khung xem trước bản in (F15) ------------------------
+     Chỉ thu nhỏ phần HIỂN THỊ. PrintableReport / PrintableAllTransactions
+     không bị chạm tới, và ref của react-to-print vẫn nằm trên chúng nên
+     transform ở wrapper không đi vào bản in.
+
+     __sizer nhận đúng kích thước sau khi scale, để wrapper cuộn chuẩn —
+     transform không làm thay đổi luồng bố cục. */
+  .print-preview-frame {
+    @apply flex-1 overflow-auto bg-slate-200/50;
+  }
+
+  .print-preview-frame__pad {
+    display: flex;
+    justify-content: center;
+    padding: clamp(0.5rem, 2vw, 2rem);
+    min-width: 100%;
+    width: max-content;
+  }
+
+  .print-preview-frame__sizer {
+    position: relative;
+    flex: none;
+    width: calc(var(--pv-w, 794px) * var(--pv-scale, 1));
+    height: calc(var(--pv-h, 1123px) * var(--pv-scale, 1));
+  }
+
+  /* Bề rộng CỐ ĐỊNH bằng khổ trang. Nếu để nó co theo sizer thì sinh vòng
+     lặp (sizer phụ thuộc bề rộng nội dung, nội dung phụ thuộc sizer) và bản
+     xem trước bị dồn chữ, không còn giống bản in thật. */
+  .print-preview-frame__scale {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: var(--pv-w, 794px);
+    transform: scale(var(--pv-scale, 1));
+    transform-origin: top left;
+  }
+
+  .print-preview-frame__toolbar {
+    @apply flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-1 py-1 shadow-sm;
+  }
+}
+
+/* ============================================================
+   Ghi đè KHÔNG layer — thắng cả utilities layer của Tailwind.
+   ============================================================ */
+
+/* --- F5: chặn iOS Safari tự phóng to khi focus ô nhập ------
+   Chỉ nâng các ô đang nhỏ hơn 16px; ô nào tác giả cố ý đặt to
+   hơn (text-base trở lên) thì giữ nguyên. */
+@media (pointer: coarse) {
+
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(.text-base):not(.text-lg):not(.text-xl):not(.text-2xl):not(.text-3xl):not(.text-4xl):not(.text-5xl),
+  select:not(.text-base):not(.text-lg):not(.text-xl),
+  textarea:not(.text-base):not(.text-lg):not(.text-xl) {
+    font-size: 16px;
+  }
+
+  /* Nút nhỏ vẫn phải đủ hộp chạm */
+  .btn-sm,
+  .btn-ghost.btn-sm {
+    min-height: var(--tap-min);
+  }
+}
+
+/* --- F7: mọi max-h/h dựa trên vh chuyển sang dvh ------------
+   Sửa 5 modal đang dùng max-h-[90vh] mà không đụng vào JSX:
+   dvh co lại khi bàn phím ảo bật, vh thì không. */
+@supports (height: 100dvh) {
+
+  .max-h-\[90vh\] {
+    max-height: 90dvh;
+  }
+
+  .max-h-\[80vh\] {
+    max-height: 80dvh;
+  }
+
+  .h-\[90vh\] {
+    height: 90dvh;
+  }
+
+  .max-h-\[calc\(100vh-80px\)\] {
+    max-height: calc(100dvh - 80px);
+  }
+}
+
+/* --- F14: bỏ hover "dính" trên thiết bị cảm ứng ------------- */
+@media (hover: none) {
+
+  .card-hover:hover {
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    border-color: rgb(226 232 240);
+  }
+}
+
+/* --- F10: Toast không được tràn ở màn 320–360px ------------- */
+.toast-viewport {
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(28rem, calc(100vw - 1.5rem));
+  padding-top: var(--safe-t);
+}
+
+.toast-panel {
+  min-width: 0;
+  width: 100%;
+}
+
+/* --- F16: bổ sung cho bản in (THÊM, không sửa block gốc) ---- */
+@media print {
+
+  .print-preview-frame {
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  .print-preview-frame__pad {
+    padding: 0 !important;
+    width: auto !important;
+    min-width: 0 !important;
+  }
+
+  .print-preview-frame__sizer {
+    position: static !important;
+    width: auto !important;
+    height: auto !important;
+  }
+
+  .print-preview-frame__scale {
+    position: static !important;
+    transform: none !important;
+  }
+
+  .print-preview-frame__toolbar,
+  .tabbar,
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* --- Chiều cao bottom tab bar, để nội dung không bị che ------ */
+:root {
+  --tabbar-h: 0px;
+}
+
+@media (max-width: 63.9375rem) {
+  :root {
+    --tabbar-h: calc(3.5rem + var(--safe-b));
+  }
+}
+
+/* --- F13: safe-area cho các overlay modal viết tay ----------
+   Chúng đều là `fixed inset-0 … p-4`. Không layer → thắng utilities. */
+@supports (padding: env(safe-area-inset-bottom)) {
+
+  .fixed.inset-0.p-4 {
+    padding-bottom: max(1rem, var(--safe-b));
+    padding-top: max(1rem, var(--safe-t));
+  }
+}
+
+/* --- Login: dvh ở MỌI bề rộng, không chỉ lg ------------------
+   Với vh, thanh địa chỉ của Safari/Chrome mobile làm form bị đẩy
+   xuống dưới mép nhìn thấy được. */
+@supports (height: 100dvh) {
+
+  .login-page,
+  .login-page__main--splash {
+    min-height: 100dvh;
+  }
+}
+
+@keyframes login-brand-glow {
+  0% {
+    opacity: 0.72;
+    transform: scale(0.97);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+}
+
+/* ==========================================================
+   Thông báo hệ thống — thẻ nổi lớn, dễ đọc
+   ========================================================== */
+
+.sys-notice {
+  position: fixed;
+  top: max(0.85rem, env(safe-area-inset-top, 0px));
+  left: 50%;
+  z-index: 100;
+  width: min(40rem, calc(100vw - 1.25rem));
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.sys-notice__card {
+  pointer-events: auto;
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 1rem;
+  align-items: start;
+  padding: 1.15rem 1.25rem 1.35rem;
+  overflow: hidden;
+  border-radius: 1.25rem;
+  border: 1px solid rgb(255 255 255 / 0.6);
+  background:
+    linear-gradient(165deg, rgb(255 255 255 / 0.96) 0%, rgb(248 250 252 / 0.92) 100%);
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  box-shadow:
+    0 22px 48px -18px rgb(15 23 42 / 0.38),
+    0 6px 16px -6px rgb(15 23 42 / 0.14),
+    inset 0 1px 0 0 rgb(255 255 255 / 0.85);
+  animation: sys-notice-enter 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.sys-notice__card--exit {
+  animation: sys-notice-exit 0.38s ease forwards;
+  pointer-events: none;
+}
+
+.sys-notice__leading {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding-top: 0.1rem;
+}
+
+.sys-notice__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 1rem;
+  flex-shrink: 0;
+}
+
+.sys-notice__icon--info {
+  background: #eff6ff;
+  color: #1d4ed8;
+  box-shadow: inset 0 0 0 1px #bfdbfe;
+}
+
+.sys-notice__icon--warning {
+  background: #fffbeb;
+  color: #b45309;
+  box-shadow: inset 0 0 0 1px #fde68a;
+}
+
+.sys-notice__icon--critical {
+  background: #fef2f2;
+  color: #b91c1c;
+  box-shadow: inset 0 0 0 1px #fecaca;
+}
+
+.sys-notice__body {
+  min-width: 0;
+  padding-top: 0.05rem;
+}
+
+.sys-notice__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 0.35rem;
+}
+
+.sys-notice__badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.55rem;
+  border-radius: 0.4rem;
+  font-family: var(--font-heading);
+}
+
+.sys-notice__badge--info {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.sys-notice__badge--warning {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.sys-notice__badge--critical {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.sys-notice__count {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #94a3b8;
+  font-variant-numeric: tabular-nums;
+}
+
+.sys-notice__title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #0f172a;
+  letter-spacing: -0.015em;
+}
+
+.sys-notice__message {
+  margin: 0.4rem 0 0;
+  font-family: var(--font-body);
+  font-size: 0.975rem;
+  line-height: 1.55;
+  color: #334155;
+  white-space: pre-line;
+  max-height: calc(1.55em * 10);
+  overflow: hidden;
+}
+
+.sys-notice__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  margin-top: 0.1rem;
+  border-radius: 0.75rem;
+  color: #64748b;
+  background: rgb(241 245 249 / 0.85);
+  border: 1px solid rgb(226 232 240 / 0.9);
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.sys-notice__close:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
+.sys-notice__close:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.sys-notice__progress {
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  bottom: 0;
+  height: 3px;
+  border-radius: 999px;
+  background: rgb(148 163 184 / 0.22);
+  overflow: hidden;
+}
+
+.sys-notice__progress-bar {
+  display: block;
+  height: 100%;
+  width: 100%;
+  transform-origin: left center;
+  animation: sys-notice-progress 30s linear forwards;
+  border-radius: inherit;
+}
+
+.sys-notice__card--info .sys-notice__progress-bar {
+  background: #3b82f6;
+}
+
+.sys-notice__card--warning .sys-notice__progress-bar {
+  background: #d97706;
+}
+
+.sys-notice__card--critical .sys-notice__progress-bar {
+  background: #dc2626;
+}
+
+@keyframes sys-notice-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-0.75rem) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes sys-notice-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-0.5rem) scale(0.98);
+  }
+}
+
+@keyframes sys-notice-progress {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+@media (max-width: 480px) {
+  .sys-notice__card {
+    gap: 0.75rem;
+    padding: 1rem 1rem 1.2rem;
+  }
+
+  .sys-notice__icon {
+    width: 2.85rem;
+    height: 2.85rem;
+    border-radius: 0.85rem;
+  }
+
+  .sys-notice__title {
+    font-size: 1.05rem;
+  }
+
+  .sys-notice__message {
+    font-size: 0.925rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sys-notice__card,
+  .sys-notice__card--exit,
+  .sys-notice__progress-bar {
+    animation: none !important;
+  }
+
+  .sys-notice__progress {
+    display: none;
+  }
 }

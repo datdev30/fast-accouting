@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, AlertTriangle, ShieldAlert } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import { trapFocus, focusFirstElement } from '../utils/focusTrap';
+import useScrollLock from '../hooks/useScrollLock';
 
 const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, title, warningMessage, isDeleting }) => {
     const [pin, setPin] = useState('');
@@ -9,6 +10,8 @@ const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, title, warningMes
     const { showToast } = useToast();
     const modalRef = useRef(null);
     const pinInputRef = useRef(null);
+
+    useScrollLock(isOpen);
 
     // Reset state when opened
     useEffect(() => {

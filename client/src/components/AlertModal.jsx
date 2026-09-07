@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { X, AlertCircle, CheckCircle, AlertTriangle } from 'lucide-react';
 import { clsx } from 'clsx';
+import useScrollLock from '../hooks/useScrollLock';
 
 /**
  * Reusable Alert Modal
@@ -11,6 +12,8 @@ import { clsx } from 'clsx';
  * @param {'success' | 'error' | 'warning' | 'info'} type - Type of alert
  */
 export default function AlertModal({ isOpen, onClose, title, message, type = 'info' }) {
+    useScrollLock(isOpen);
+
     if (!isOpen) return null;
 
     // Auto close for success messages after 3s? 

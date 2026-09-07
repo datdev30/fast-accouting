@@ -3,7 +3,7 @@ import { google } from 'googleapis';
 import { authMiddleware, requireAdmin } from '../middleware/auth.js';
 import { APIError, ErrorCodes } from '../utils/errors.js';
 import logger from '../utils/logger.js';
-import DriveOAuthConfig from '../models/DriveOAuthConfig.js';
+import { getDriveOAuthConfigModel } from '../db/models.js';
 
 const router = express.Router();
 
@@ -37,7 +37,7 @@ function getOAuthCredentials() {
  */
 router.get('/refresh-token', authMiddleware, requireAdmin, async (req, res, next) => {
     try {
-        const config = await DriveOAuthConfig.findOne();
+        const config = await getDriveOAuthConfigModel().findOne();
         
         if (!config) {
             return res.json({
@@ -80,13 +80,13 @@ router.put('/refresh-token', authMiddleware, requireAdmin, async (req, res, next
         const token = String(refresh_token).trim();
 
         // Tìm hoặc tạo config
-        let config = await DriveOAuthConfig.findOne();
+        let config = await getDriveOAuthConfigModel().findOne();
         
         if (config) {
             config.refresh_token = token;
             config.token_created_at = new Date();
         } else {
-            config = new DriveOAuthConfig({
+            config = new (getDriveOAuthConfigModel())({
                 refresh_token: token,
                 token_created_at: new Date()
             });
@@ -175,14 +175,14 @@ router.post('/callback', authMiddleware, requireAdmin, async (req, res, next) =>
         }
 
         // Lưu refresh token vào DB
-        let config = await DriveOAuthConfig.findOne();
+        let config = await getDriveOAuthConfigModel().findOne();
         
         if (config) {
             config.refresh_token = tokens.refresh_token;
             config.token_created_at = new Date();
             config.google_account_email = googleAccountEmail;
         } else {
-            config = new DriveOAuthConfig({
+            config = new (getDriveOAuthConfigModel())({
                 refresh_token: tokens.refresh_token,
                 token_created_at: new Date(),
                 google_account_email: googleAccountEmail

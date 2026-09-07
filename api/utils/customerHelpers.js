@@ -3,35 +3,31 @@
  * Centralized logic for customer ID resolution and debt calculation
  */
 
-import Customer from '../models/Customer.js';
-import Transaction from '../models/Transaction.js';
 import { calculateInterestAmount } from './interest.js';
+import { getCustomerModel } from '../db/models.js';
 
 /**
- * Resolve customer ID (handles both custom ID and MongoDB _id)
- * @param {string} customerId - Customer ID (KHxxx) or MongoDB _id
- * @returns {Promise<Object|null>} Customer document or null
+ * Resolve customer ID (global — không theo năm làm việc)
  */
 export async function resolveCustomerId(customerId) {
     if (!customerId) return null;
-    
+
     const id = String(customerId).trim();
-    const customer = await Customer.findOne({ 
-        $or: [{ id }, { _id: id }] 
+    const CustomerModel = getCustomerModel();
+    const customer = await CustomerModel.findOne({
+        $or: [{ id }, { _id: id }]
     });
-    
+
     return customer;
 }
 
 /**
  * Build customer ID resolver map
  * Maps both custom ID and MongoDB _id to unified key
- * @param {Array} customers - Array of customer documents
- * @returns {Object} ID resolver map
  */
 export function buildCustomerIdResolver(customers) {
     const idResolver = {};
-    
+
     customers.forEach(c => {
         const rawCustomId = c?.id;
         const customId = rawCustomId !== null && rawCustomId !== undefined
@@ -48,15 +44,12 @@ export function buildCustomerIdResolver(customers) {
         if (customId) idResolver[customId] = key;
         if (mongoId) idResolver[mongoId] = key;
     });
-    
+
     return idResolver;
 }
 
 /**
  * Calculate total debt for a customer
- * @param {Array} transactions - Array of transaction documents
- * @param {Date} asOfDate - Date to calculate debt as of (default: now)
- * @returns {Object} Debt calculation result
  */
 export function calculateCustomerDebt(transactions, asOfDate = new Date()) {
     let lifetimePrincipal = 0;
@@ -100,8 +93,6 @@ export function calculateCustomerDebt(transactions, asOfDate = new Date()) {
 
 /**
  * Get customer status flags
- * @param {Array} transactions - Array of transaction documents
- * @returns {Object} Status flags
  */
 export function getCustomerStatus(transactions) {
     const hasHistory = transactions.length > 0;

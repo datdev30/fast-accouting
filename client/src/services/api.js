@@ -411,3 +411,34 @@ export const getDriveOAuthGenerateUrl = () => api.get('/drive-oauth/generate-url
 export const handleDriveOAuthCallback = (code) => api.post('/drive-oauth/callback', { code }).then(res => res.data);
 
 export default api;
+
+// ==========================================================
+// Thông báo hệ thống (chỉ ADMIN được tạo/sửa/xoá)
+// ==========================================================
+
+/** Thông báo đang hiệu lực — công khai, không cần đăng nhập. */
+export const getActiveSystemNotifications = () =>
+    api.get('/system-notifications/active').then(res => res.data);
+
+/** Toàn bộ thông báo kể cả đã tắt (ADMIN). */
+export const getSystemNotifications = () =>
+    api.get('/system-notifications').then(res => res.data);
+
+export const createSystemNotification = (data) =>
+    api.post('/system-notifications', data).then(res => res.data);
+
+export const updateSystemNotification = (id, data) =>
+    api.patch(`/system-notifications/${id}`, data).then(res => res.data);
+
+export const deleteSystemNotificationSecure = (id, pin) =>
+    api.post('/system-notifications/delete-secure', { id, pin }).then(res => res.data);
+
+// ==========================================================
+// Năm làm việc
+// ==========================================================
+
+export const getWorkingYear = () =>
+    api.get('/working-year').then(res => res.data);
+
+export const setWorkingYear = (year) =>
+    api.put('/working-year', { current_working_year: year }).then(res => res.data);

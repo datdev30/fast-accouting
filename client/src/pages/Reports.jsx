@@ -1,13 +1,14 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getDebtReport } from '../services/api';
-import { Download, TrendingUp, Wallet, ArrowUpRight, ArrowDownRight, PieChart, Search, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Download, TrendingUp, Wallet, ArrowUpRight, ArrowDownRight, PieChart, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import ReportsAdminCharts from '../components/ReportsAdminCharts';
 import LoadingSkeleton from '../components/LoadingSkeleton';
 import { EmptyStates } from '../components/EmptyState';
 import { ErrorStates } from '../components/ErrorState';
+import DataTable from '../components/DataTable';
 
 export default function Reports() {
     const navigate = useNavigate();
@@ -55,13 +56,6 @@ export default function Reports() {
             direction = 'desc';
         }
         setSortConfig({ key, direction });
-    };
-
-    const getSortIcon = (key) => {
-        if (sortConfig.key !== key) return <ArrowUpDown size={14} className="opacity-30" />;
-        return sortConfig.direction === 'asc'
-            ? <ArrowUp size={14} className="text-blue-600" />
-            : <ArrowDown size={14} className="text-blue-600" />;
     };
 
     if (reportError) return (
@@ -231,133 +225,98 @@ export default function Reports() {
                     </div>
                 </div>
 
-                {/* Desktop: Table View */}
-                <div className="overflow-x-auto block">
-                    <table className="table min-w-[1000px]">
-                        <thead className="table-head">
-                            <tr>
-                                <th
-                                    scope="col"
-                                    className="table-th table-th-sortable group"
-                                    onClick={() => handleSort('customer_name')}
-                                >
-                                    <div className="flex items-center gap-2">
-                                        Khách hàng
-                                        {getSortIcon('customer_name')}
-                                    </div>
-                                </th>
-                                <th
-                                    scope="col"
-                                    className="table-th table-th-sortable text-center"
-                                    onClick={() => handleSort('transaction_count')}
-                                >
-                                    <div className="flex items-center justify-center gap-2">
-                                        Giao dịch
-                                        {getSortIcon('transaction_count')}
-                                    </div>
-                                </th>
-                                <th
-                                    scope="col"
-                                    className="table-th table-th-sortable text-right"
-                                    onClick={() => handleSort('total_principal')}
-                                >
-                                    <div className="flex items-center justify-end gap-2">
-                                        Tổng gốc vay
-                                        {getSortIcon('total_principal')}
-                                    </div>
-                                </th>
-                                <th
-                                    scope="col"
-                                    className="table-th table-th-sortable text-right"
-                                    onClick={() => handleSort('total_interest')}
-                                >
-                                    <div className="flex items-center justify-end gap-2">
-                                        Tổng lãi
-                                        {getSortIcon('total_interest')}
-                                    </div>
-                                </th>
-                                <th
-                                    scope="col"
-                                    className="table-th table-th-sortable text-right"
-                                    onClick={() => handleSort('total_collected')}
-                                >
-                                    <div className="flex items-center justify-end gap-2">
-                                        Đã thanh toán
-                                        {getSortIcon('total_collected')}
-                                    </div>
-                                </th>
-                                <th
-                                    scope="col"
-                                    className="table-th table-th-sortable text-right"
-                                    onClick={() => handleSort('total_debt')}
-                                >
-                                    <div className="flex items-center justify-end gap-2">
-                                        Còn nợ
-                                        {getSortIcon('total_debt')}
-                                    </div>
-                                </th>
-                                <th scope="col" className="table-th text-right">
-                                    Trạng thái
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 text-sm">
-                            {processedData.map((item) => (
-                                <tr
-                                    key={item.customer_id}
-                                    className="table-row group cursor-pointer transition-colors hover:bg-slate-50/80"
-                                    onClick={() => navigate(`/customers/${item.customer_id}/debt`)}
-                                >
-                                    <td className="table-td font-medium text-slate-700 group-hover:text-blue-600 transition-colors">
-                                        {item.customer_name}
-                                    </td>
-                                    <td className="table-td text-center">
-                                        <span className="badge-neutral">
-                                            {item.transaction_count} GD
-                                        </span>
-                                    </td>
-                                    <td className="table-td text-right font-mono text-slate-600">
-                                        {item.total_principal.toLocaleString('vi-VN')}
-                                    </td>
-                                    <td className="table-td text-right font-mono text-blue-600 font-medium">
-                                        +{item.total_interest.toLocaleString('vi-VN')}
-                                    </td>
-                                    <td className="table-td text-right font-mono text-emerald-600 font-medium">
-                                        {item.total_collected?.toLocaleString('vi-VN') || 0}
-                                    </td>
-                                    <td className="table-td text-right font-mono font-semibold text-red-600">
-                                        {item.total_debt.toLocaleString('vi-VN')}
-                                    </td>
-                                    <td className="table-td text-right">
-                                        {item.total_debt > 0 ? (
-                                            <span className="badge-warning">
-                                                <ArrowUpRight size={12} /> Đang nợ
-                                            </span>
-                                        ) : (
-                                            <span className="badge-success">
-                                                <ArrowDownRight size={12} /> Hoàn tất
-                                            </span>
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
-                            {processedData.length === 0 && (
-                                <tr>
-                                    <td colSpan="7" className="table-td py-8">
-                                        {searchTerm ? (
-                                            <EmptyStates.NoResults
-                                                action={() => setSearchTerm('')}
-                                                actionLabel="Xóa tìm kiếm"
-                                            />
-                                        ) : (
-                                            <EmptyStates.NoReports />
-                                        )}
-                                    </td>
-                                </tr>
+                <DataTable
+                    rows={processedData}
+                    getRowKey={(item) => item.customer_id}
+                    onRowClick={(item) => navigate(`/customers/${item.customer_id}/debt`)}
+                    caption="Công nợ theo khách hàng, nhấp để xem chi tiết"
+                    sort={sortConfig}
+                    onSort={handleSort}
+                    tableMinWidth="min-w-[58rem]"
+                    columns={[
+                        {
+                            id: 'customer_name',
+                            header: 'Khách hàng',
+                            priority: 1,
+                            sortable: true,
+                            cellClassName: 'font-medium text-slate-700',
+                            cell: (item) => item.customer_name,
+                        },
+                        {
+                            id: 'transaction_count',
+                            header: 'Giao dịch',
+                            priority: 3,
+                            align: 'center',
+                            sortable: true,
+                            cell: (item) => <span className="badge-neutral">{item.transaction_count} GD</span>,
+                        },
+                        {
+                            id: 'total_principal',
+                            header: 'Tổng gốc vay',
+                            priority: 3,
+                            align: 'right',
+                            sortable: true,
+                            cellClassName: 'font-mono text-slate-600',
+                            cell: (item) => item.total_principal.toLocaleString('vi-VN'),
+                        },
+                        {
+                            id: 'total_interest',
+                            header: 'Tổng lãi',
+                            priority: 3,
+                            align: 'right',
+                            sortable: true,
+                            cellClassName: 'font-mono text-blue-600 font-medium',
+                            cell: (item) => `+${item.total_interest.toLocaleString('vi-VN')}`,
+                        },
+                        {
+                            id: 'total_collected',
+                            header: 'Đã thanh toán',
+                            priority: 2,
+                            align: 'right',
+                            sortable: true,
+                            cellClassName: 'font-mono text-emerald-600 font-medium',
+                            cell: (item) => item.total_collected?.toLocaleString('vi-VN') || 0,
+                        },
+                        {
+                            id: 'total_debt',
+                            header: 'Còn nợ',
+                            priority: 2,
+                            align: 'right',
+                            sortable: true,
+                            cellClassName: 'font-mono font-semibold text-red-600',
+                            cell: (item) => item.total_debt.toLocaleString('vi-VN'),
+                        },
+                        {
+                            id: 'status',
+                            header: 'Trạng thái',
+                            priority: 2,
+                            align: 'right',
+                            cellClassName: 'whitespace-nowrap',
+                            headerClassName: 'whitespace-nowrap',
+                            cell: (item) => (item.total_debt > 0 ? (
+                                <span className="badge-warning">
+                                    <ArrowUpRight size={12} /> Đang nợ
+                                </span>
+                            ) : (
+                                <span className="badge-success">
+                                    <ArrowDownRight size={12} /> Hoàn tất
+                                </span>
+                            )),
+                        },
+                    ]}
+                    empty={(
+                        <div className="py-8">
+                            {searchTerm ? (
+                                <EmptyStates.NoResults
+                                    action={() => setSearchTerm('')}
+                                    actionLabel="Xóa tìm kiếm"
+                                />
+                            ) : (
+                                <EmptyStates.NoReports />
                             )}
-                        </tbody>
-                    </table>
-                </div>
+                        </div>
+                    )}
+                />
             </section>
         </div>
     );

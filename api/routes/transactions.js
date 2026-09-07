@@ -3,10 +3,7 @@ import { pipeline } from 'stream';
 import { promisify } from 'util';
 
 import mongoose, { Types } from 'mongoose';
-import Transaction from '../models/Transaction.js';
-import Customer from '../models/Customer.js';
-import InterestConfig from '../models/InterestConfig.js';
-import User from '../models/User.js';
+import { getInterestConfigModel, getTransactionModel, getCustomerModel } from '../db/models.js';
 import { getNextId } from '../utils/counter.js';
 import { calculateInterestAmount } from '../utils/interest.js';
 import { verifyAdminPin } from '../utils/helpers.js';
@@ -21,11 +18,13 @@ import { deleteDriveFile, downloadDriveFileStream, getDriveAccountDebugInfo, get
 const router = express.Router();
 const pipelineAsync = promisify(pipeline);
 
-function buildTransactionLookupQuery(idParam) {
+function buildTransactionLookupQuery(idParam, workingYear = null) {
     // Transaction schema uses `_id: Mixed` (PROD may store business key in `_id`, e.g. "GD0001").
     // So we can safely query `_id` as a string without ObjectId casting issues.
     const or = [{ id: idParam }, { _id: idParam }];
-    return { $or: or };
+    const query = { $or: or };
+    if (workingYear != null) query.working_year = workingYear;
+    return query;
 }
 
 const upload = multer({
@@ -53,7 +52,7 @@ const handleTransactionImageUpload = (req, res, next) => {
  */
 router.post('/:id/image', authMiddleware, handleTransactionImageUpload, async (req, res, next) => {
     try {
-        const tx = await Transaction.findOne(buildTransactionLookupQuery(req.params.id));
+        const tx = await getTransactionModel().findOne(buildTransactionLookupQuery(req.params.id, req.workingYear));
         if (!tx) {
             throw new APIError('Transaction not found', 404, ErrorCodes.NOT_FOUND);
         }
@@ -165,7 +164,7 @@ router.post('/:id/image', authMiddleware, handleTransactionImageUpload, async (r
  */
 router.get('/:id/image', authMiddleware, async (req, res, next) => {
     try {
-        const tx = await Transaction.findOne(buildTransactionLookupQuery(req.params.id));
+        const tx = await getTransactionModel().findOne(buildTransactionLookupQuery(req.params.id, req.workingYear));
         if (!tx) {
             throw new APIError('Transaction not found', 404, ErrorCodes.NOT_FOUND);
         }
@@ -253,7 +252,7 @@ router.get('/:id/image', authMiddleware, async (req, res, next) => {
  */
 router.delete('/:id/image', authMiddleware, async (req, res, next) => {
     try {
-        const tx = await Transaction.findOne(buildTransactionLookupQuery(req.params.id));
+        const tx = await getTransactionModel().findOne(buildTransactionLookupQuery(req.params.id, req.workingYear));
         if (!tx) {
             throw new APIError('Transaction not found', 404, ErrorCodes.NOT_FOUND);
         }
@@ -303,14 +302,16 @@ router.post('/', validate(transactionSchemas.create), async (req, res, next) => 
     try {
         const { customer_id, type, amount, content, transaction_date } = req.body;
 
-        // Validate customer exists
-        const customer = await resolveCustomerId(customer_id);
+        const year = req.workingYear;
+
+        // Validate customer exists (trong năm làm việc hiện tại)
+        const customer = await resolveCustomerId(customer_id, year);
         if (!customer) {
             throw new APIError('Customer not found', 404, ErrorCodes.NOT_FOUND);
         }
 
         // Validate interest config exists
-        const interestConfig = await InterestConfig.findOne({ code: type });
+        const interestConfig = await getInterestConfigModel().findOne({ code: type });
         if (!interestConfig) {
             throw new APIError('Invalid transaction type', 404, ErrorCodes.INVALID_TRANSACTION_TYPE);
         }
@@ -318,11 +319,12 @@ router.post('/', validate(transactionSchemas.create), async (req, res, next) => 
         // Snapshot interest rate
         const rateSnapshot = interestConfig.rate_per_month;
 
-        // Generate custom ID
-        const newId = await getNextId('transaction');
+        // Generate custom ID (scoped by working year)
+        const newId = await getNextId('transaction', year);
 
-        const transaction = new Transaction({
+        const transaction = new (getTransactionModel())({
             id: newId,
+            working_year: year,
             customer_id: customer.id ?? customer._id,
             type,
             amount,
@@ -353,9 +355,10 @@ router.post('/', validate(transactionSchemas.create), async (req, res, next) => 
 router.get('/', async (req, res, next) => {
     try {
         const { customer_id, start_date, end_date } = req.query;
+        const year = req.workingYear;
 
-        // Build query
-        let query = {};
+        // Build query — luôn lọc theo năm làm việc (không theo năm lịch ngày GD)
+        let query = { working_year: year };
 
         if (customer_id) {
             // Check if customer_id is a custom ID (KHxxx) or MongoDB _id
@@ -363,7 +366,7 @@ router.get('/', async (req, res, next) => {
                 query.customer_id = customer_id;
             } else if (Types.ObjectId.isValid(customer_id)) {
                 // If it's a valid MongoDB ObjectId, find the customer and use their custom ID
-                const customer = await Customer.findById(customer_id);
+                const customer = await getCustomerModel().findOne({ _id: customer_id });
                 if (customer) {
                     const raw = customer.toObject({ virtuals: false });
                     query.customer_id = raw.id?.trim();
@@ -384,7 +387,7 @@ router.get('/', async (req, res, next) => {
             query.transaction_date = { ...query.transaction_date, $lte: new Date(end_date) };
         }
 
-        const transactions = await Transaction.find(query).sort({ transaction_date: -1 });
+        const transactions = await getTransactionModel().find(query).sort({ transaction_date: -1 });
 
         // Get unique customer IDs (normalize + drop empty)
         const custIds = [...new Set(
@@ -393,10 +396,12 @@ router.get('/', async (req, res, next) => {
                 .filter(Boolean)
         )];
 
-        // Fetch customers
+        // Fetch customers trong cùng năm làm việc
         // PROD can store the business key in `_id` (e.g., "KH001") instead of `id`.
         const customers = custIds.length
-            ? await Customer.find({ $or: [{ id: { $in: custIds } }, { _id: { $in: custIds } }] })
+            ? await getCustomerModel().find({
+                $or: [{ id: { $in: custIds } }, { _id: { $in: custIds } }]
+            })
             : [];
 
         const custMap = {};
@@ -457,7 +462,7 @@ router.patch('/:id', validate(transactionSchemas.update), async (req, res, next)
     try {
         const { customer_id, type, amount, content, transaction_date, status, closed_at } = req.body;
 
-        const tx = await Transaction.findOne(buildTransactionLookupQuery(req.params.id));
+        const tx = await getTransactionModel().findOne(buildTransactionLookupQuery(req.params.id, req.workingYear));
 
         if (!tx) {
             throw new APIError('Transaction not found', 404, ErrorCodes.NOT_FOUND);
@@ -467,7 +472,7 @@ router.patch('/:id', validate(transactionSchemas.update), async (req, res, next)
 
         // Update type (and snapshot rate)
         if (type !== undefined) {
-            const interestConfig = await InterestConfig.findOne({ code: type });
+            const interestConfig = await getInterestConfigModel().findOne({ code: type });
             if (!interestConfig) {
                 throw new APIError('Invalid transaction type', 404, ErrorCodes.INVALID_TRANSACTION_TYPE);
             }
@@ -478,11 +483,13 @@ router.patch('/:id', validate(transactionSchemas.update), async (req, res, next)
 
         // Update customer
         if (customer_id !== undefined) {
-            const customer = await Customer.findOne({ $or: [{ id: customer_id }, { _id: customer_id }] });
+            const customer = await getCustomerModel().findOne({
+                $or: [{ id: customer_id }, { _id: customer_id }]
+            });
             if (!customer) {
                 throw new APIError('Customer not found', 404, ErrorCodes.NOT_FOUND);
             }
-            tx.customer_id = customer_id;
+            tx.customer_id = customer.id ?? customer_id;
         }
 
         // Update amount
@@ -601,10 +608,11 @@ router.post('/bulk-pay', authMiddleware, requireAdminOrSale, async (req, res, ne
         // Verify user PIN (ADMIN or SALE)
         await verifyAdminPin(pin, req.currentUser);
 
-        // Find OPEN transactions
-        const transactions = await Transaction.find({
+        // Find OPEN transactions trong năm làm việc hiện tại
+        const transactions = await getTransactionModel().find({
             customer_id,
-            status: 'OPEN'
+            status: 'OPEN',
+            working_year: req.workingYear
         });
 
         if (transactions.length === 0) {
@@ -641,7 +649,7 @@ router.post('/bulk-pay', authMiddleware, requireAdminOrSale, async (req, res, ne
             
             // Check if transaction is still OPEN (race condition protection)
             // Reload from DB to ensure we have the latest status
-            const currentTx = await Transaction.findById(tx._id);
+            const currentTx = await getTransactionModel().findById(tx._id);
             if (!currentTx) {
                 logger.warn('Transaction not found during bulk pay', { 
                     transactionId: tx.id || tx._id
@@ -717,13 +725,19 @@ router.post('/delete-secure', authMiddleware, requireAdmin, async (req, res) => 
         // Verify admin PIN
         await verifyAdminPin(pin, req.currentUser);
 
-        const tx = await Transaction.findOne({ $or: [{ id }, { _id: id }] });
+        const tx = await getTransactionModel().findOne({
+            working_year: req.workingYear,
+            $or: [{ id }, { _id: id }]
+        });
 
         if (!tx) {
             throw new APIError('Transaction not found', 404, ErrorCodes.NOT_FOUND);
         }
 
-        await Transaction.deleteOne({ $or: [{ id }, { _id: id }] });
+        await getTransactionModel().deleteOne({
+            working_year: req.workingYear,
+            $or: [{ id }, { _id: id }]
+        });
 
         res.json({ message: 'Đã xóa giao dịch' });
     } catch (error) {
@@ -742,12 +756,17 @@ router.post('/delete-secure', authMiddleware, requireAdmin, async (req, res) => 
  */
 router.get('/reports/monthly-count', async (req, res, next) => {
     try {
-        const year = parseInt(req.query.year, 10) || new Date().getFullYear();
-        const start = new Date(year, 0, 1);
-        const end = new Date(year, 11, 31, 23, 59, 59, 999);
+        const calendarYear = parseInt(req.query.year, 10) || new Date().getFullYear();
+        const start = new Date(calendarYear, 0, 1);
+        const end = new Date(calendarYear, 11, 31, 23, 59, 59, 999);
 
-        const agg = await Transaction.aggregate([
-            { $match: { transaction_date: { $gte: start, $lte: end } } },
+        const agg = await getTransactionModel().aggregate([
+            {
+                $match: {
+                    working_year: req.workingYear,
+                    transaction_date: { $gte: start, $lte: end }
+                }
+            },
             { $group: { _id: { $month: '$transaction_date' }, count: { $sum: 1 } } },
             { $sort: { _id: 1 } }
         ]);
@@ -774,8 +793,8 @@ router.get('/reports/monthly-count', async (req, res, next) => {
  */
 router.get('/reports/debt', async (req, res, next) => {
     try {
-        const customers = await Customer.find().lean();
-        const transactions = await Transaction.find().lean();
+        const customers = await getCustomerModel().find({}).lean();
+        const transactions = await getTransactionModel().find({ working_year: req.workingYear }).lean();
 
         const txByCustomerId = {};
         for (const tx of transactions) {

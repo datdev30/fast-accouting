@@ -1,6 +1,5 @@
 import express from 'express';
-import InterestConfig from '../models/InterestConfig.js';
-import User from '../models/User.js';
+import { getInterestConfigModel } from '../db/models.js';
 import { verifyAdminPin } from '../utils/helpers.js';
 import { authMiddleware, requireAdmin } from '../middleware/auth.js';
 import { validate, interestConfigSchemas } from '../middleware/validation.js';
@@ -15,6 +14,7 @@ const router = express.Router();
  */
 router.get('/', async (req, res, next) => {
     try {
+        const InterestConfig = getInterestConfigModel();
         const configs = await InterestConfig.find();
         res.json(configs);
     } catch (error) {
@@ -29,6 +29,7 @@ router.get('/', async (req, res, next) => {
 router.post('/', async (req, res, next) => {
     try {
         const { code, name, rate_per_month, description } = req.body;
+        const InterestConfig = getInterestConfigModel();
 
         if (!code || !name || rate_per_month === undefined) {
             throw new APIError('Code, name, and rate_per_month are required', 400, ErrorCodes.VALIDATION_ERROR);
@@ -66,6 +67,7 @@ router.post('/', async (req, res, next) => {
  */
 router.get('/:code', async (req, res, next) => {
     try {
+        const InterestConfig = getInterestConfigModel();
         const config = await InterestConfig.findOne({ code: req.params.code.toUpperCase() });
 
         if (!config) {
@@ -85,6 +87,7 @@ router.get('/:code', async (req, res, next) => {
 router.patch('/:code', validate(interestConfigSchemas.update), async (req, res, next) => {
     try {
         const { name, rate_per_month, description } = req.body;
+        const InterestConfig = getInterestConfigModel();
 
         const config = await InterestConfig.findOne({ code: req.params.code.toUpperCase() });
 
@@ -114,6 +117,7 @@ router.patch('/:code', validate(interestConfigSchemas.update), async (req, res, 
 router.post('/delete-secure', authMiddleware, requireAdmin, async (req, res, next) => {
     try {
         const { code, pin } = req.body;
+        const InterestConfig = getInterestConfigModel();
 
         if (!code) {
             throw new APIError('Config code is required', 400, ErrorCodes.VALIDATION_ERROR);

@@ -31,8 +31,7 @@ const customerSchema = new mongoose.Schema({
     timestamps: false
 });
 
-// Index for faster queries
-// NOTE: `unique: true` on `id` already creates an index; do not duplicate it here.
+// Khách hàng dùng chung mọi năm làm việc — không gắn working_year
 customerSchema.index({ name: 1 });
 
 const Customer = mongoose.model('Customer', customerSchema);

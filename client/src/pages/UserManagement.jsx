@@ -1,3 +1,4 @@
+import useScrollLock from '../hooks/useScrollLock';
 import React, { useMemo, useState } from 'react';
 import { clsx } from 'clsx';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -8,6 +9,7 @@ import { useToast } from '../context/ToastContext';
 import { getApiErrorMessage } from '../utils/errorMessage';
 import { useAuth } from '../context/AuthContext';
 import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
+import DataTable from '../components/DataTable';
 
 const ROLE_OPTIONS = [
     { value: 'ADMIN', label: 'ADMIN' },
@@ -30,6 +32,8 @@ export default function UserManagement() {
     const [isOpen, setIsOpen] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+    useScrollLock(isOpen);
 
     const [formData, setFormData] = useState({
         _id: '',
@@ -226,79 +230,90 @@ export default function UserManagement() {
             </div>
 
             <div className="card p-0 overflow-hidden">
-                <div className="overflow-auto">
-                    <table className="table w-full">
-                        <thead className="table-head">
-                            <tr>
-                                <th className="table-th text-left">User</th>
-                                <th className="table-th text-left">Display name</th>
-                                <th className="table-th text-left">Role</th>
-                                <th className="table-th text-right">Thao tác</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                            {(users || []).map((u) => (
-                                <tr key={u._id} className="table-row hover:bg-slate-50/50 transition-colors">
-                                    <td className="table-td">
-                                        <div className="flex items-center gap-3">
-                                            <div className="flex-none w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                                                <UserIcon size={20} />
-                                            </div>
-                                            <div>
-                                                <div className="font-bold text-slate-800 text-sm">{u.username}</div>
-                                                {u.legacy_password ? (
-                                                    <div className="text-[10px] font-bold text-amber-600 uppercase tracking-wider bg-amber-50 px-1.5 py-0.5 rounded-md mt-1 w-fit">Legacy</div>
-                                                ) : null}
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="table-td text-slate-600 font-medium">{u.display_name || '—'}</td>
-                                    <td className="table-td">
-                                        <span className={clsx(
-                                            "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border",
-                                            u.role === 'ADMIN'
-                                                ? 'bg-purple-50 text-purple-700 border-purple-100'
-                                                : 'bg-slate-100 text-slate-600 border-slate-200'
-                                        )}>
-                                            <Shield size={12} />
-                                            {u.role || 'SALE'}
-                                        </span>
-                                    </td>
-                                    <td className="table-td text-right">
-                                        <div className="inline-flex items-center gap-2">
-                                            <button
-                                                className="p-1.5 min-w-9 min-h-9 flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                                                onClick={() => openEdit(u)}
-                                                title="Sửa"
-                                            >
-                                                <Pencil size={18} />
-                                            </button>
-                                            <button
-                                                className="p-1.5 min-w-9 min-h-9 flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                                                onClick={() => { openEdit(u); setIsDeleteModalOpen(true); }}
-                                                title="Xóa"
-                                            >
-                                                <Trash2 size={18} />
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                            {(users || []).length === 0 && (
-                                <tr>
-                                    <td colSpan={4} className="text-center text-slate-400 py-8">
-                                        <div className="flex flex-col items-center gap-3">
-                                            <div className="w-12 h-12 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center">
-                                                <UserIcon size={24} />
-                                            </div>
-                                            <p className="font-medium">Chưa có người dùng nào</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                <DataTable
+                    rows={users || []}
+                    getRowKey={(u) => u._id}
+                    caption="Danh sách người dùng và phân quyền"
+                    columns={[
+                        {
+                            id: 'username',
+                            header: 'User',
+                            priority: 1,
+                            cell: (u) => (
+                                <div className="flex items-center gap-3">
+                                    <div className="flex-none w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                                        <UserIcon size={20} />
+                                    </div>
+                                    <div>
+                                        <div className="font-bold text-slate-800 text-sm">{u.username}</div>
+                                        {u.legacy_password ? (
+                                            <div className="text-[10px] font-bold text-amber-600 uppercase tracking-wider bg-amber-50 px-1.5 py-0.5 rounded-md mt-1 w-fit">Legacy</div>
+                                        ) : null}
+                                    </div>
+                                </div>
+                            ),
+                        },
+                        {
+                            id: 'display_name',
+                            header: 'Display name',
+                            priority: 2,
+                            cellClassName: 'text-slate-600 font-medium',
+                            cell: (u) => u.display_name || '—',
+                        },
+                        {
+                            id: 'role',
+                            header: 'Role',
+                            priority: 2,
+                            cell: (u) => (
+                                <span className={clsx(
+                                    "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border",
+                                    u.role === 'ADMIN'
+                                        ? 'bg-purple-50 text-purple-700 border-purple-100'
+                                        : 'bg-slate-100 text-slate-600 border-slate-200'
+                                )}>
+                                    <Shield size={12} />
+                                    {u.role || 'SALE'}
+                                </span>
+                            ),
+                        },
+                        {
+                            id: 'actions',
+                            header: 'Thao tác',
+                            priority: 2,
+                            align: 'right',
+                            cell: (u) => (
+                                <div className="inline-flex items-center gap-2">
+                                    <button
+                                        className="p-1.5 min-w-[var(--tap-min)] min-h-[var(--tap-min)] flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                        onClick={() => openEdit(u)}
+                                        title="Sửa"
+                                        aria-label={`Sửa ${u.username}`}
+                                    >
+                                        <Pencil size={18} />
+                                    </button>
+                                    <button
+                                        className="p-1.5 min-w-[var(--tap-min)] min-h-[var(--tap-min)] flex items-center justify-center text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                        onClick={() => { openEdit(u); setIsDeleteModalOpen(true); }}
+                                        title="Xóa"
+                                        aria-label={`Xóa ${u.username}`}
+                                    >
+                                        <Trash2 size={18} />
+                                    </button>
+                                </div>
+                            ),
+                        },
+                    ]}
+                    empty={(
+                        <div className="text-center text-slate-400 py-8">
+                            <div className="flex flex-col items-center gap-3">
+                                <div className="w-12 h-12 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center">
+                                    <UserIcon size={24} />
+                                </div>
+                                <p className="font-medium">Chưa có người dùng nào</p>
+                            </div>
+                        </div>
+                    )}
+                />
             </div>
 
             {isOpen && (

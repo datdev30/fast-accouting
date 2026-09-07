@@ -48,16 +48,20 @@ export default function Login() {
 
             <main className="login-page__main login-page__main--splash">
                 <div className="flex w-full max-w-[420px] flex-col items-center">
-                    <AppBrandLogo
-                        variant="mark"
-                        alt="FastAccounting"
-                        className="mb-7 h-[4.75rem] max-h-24 w-auto max-w-[min(100%,19rem)] object-contain drop-shadow-[0_2px_14px_rgba(0,0,0,0.5)] sm:h-24 sm:max-h-28 sm:max-w-[min(100%,21rem)]"
-                    />
+                    {/* Logo là chữ CP xanh lá đậm — trên nền ảnh đã làm tối thì tự nó chìm,
+                        nên dùng quầng sáng phía sau để tách khỏi nền. */}
+                    <div className="login-page__brand mb-8">
+                        <AppBrandLogo
+                            variant="mark"
+                            alt="FastAccounting"
+                            className="h-32 w-auto max-w-[min(100%,26rem)] object-contain sm:h-36"
+                        />
+                    </div>
 
                     <div className="login-page__card login-page__card--splash w-full">
-                        <div className="mb-6 border-b border-white/25 pb-6">
+                        <div className="login-page__divider mb-6 border-b pb-6">
                             <h1
-                                className="text-xl font-bold tracking-tight text-slate-900 drop-shadow-sm sm:text-2xl"
+                                className="text-xl font-bold tracking-tight sm:text-2xl"
                                 style={{ fontFamily: 'var(--font-heading)' }}
                             >
                                 Đăng nhập
@@ -69,14 +73,14 @@ export default function Login() {
 
                         {error && (
                             <div className="login-page__alert mb-5" role="alert" aria-live="assertive">
-                                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" aria-hidden />
+                                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden />
                                 <span>{error}</span>
                             </div>
                         )}
 
                         <form onSubmit={handleSubmit} className="space-y-5">
                             <div className="space-y-1.5">
-                                <label htmlFor="username" className="field-label text-slate-600">
+                                <label htmlFor="username" className="field-label">
                                     Tài khoản
                                 </label>
                                 <div className="login-page__input-group">
@@ -99,7 +103,7 @@ export default function Login() {
                             </div>
 
                             <div className="space-y-1.5">
-                                <label htmlFor="password" className="field-label text-slate-600">
+                                <label htmlFor="password" className="field-label">
                                     Mật khẩu
                                 </label>
                                 <div className="login-page__input-group">

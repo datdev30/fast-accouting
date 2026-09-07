@@ -1,5 +1,6 @@
 import express from 'express';
-import User from '../models/User.js';
+import { getUserModel } from '../db/models.js';
+import { hashPassword, hashPin } from '../utils/userAuth.js';
 import { authMiddleware, requireAdmin } from '../middleware/auth.js';
 import { verifyAdminPin } from '../utils/helpers.js';
 import { validate, userSchemas } from '../middleware/validation.js';
@@ -21,6 +22,7 @@ function normalizeRole(role) {
  */
 router.get('/', authMiddleware, requireAdmin, async (req, res, next) => {
     try {
+        const User = getUserModel();
         const users = await User.find()
             .select('username display_name role legacy_password')
             .sort({ username: 1 });
@@ -47,6 +49,7 @@ router.post('/', authMiddleware, requireAdmin, validate(userSchemas.create), asy
             hasPin: pin !== undefined && pin !== null && pin !== '' 
         });
 
+        const User = getUserModel();
         // Normalize username to lowercase
         const normalizedUsername = String(username).trim().toLowerCase();
 
@@ -55,7 +58,9 @@ router.post('/', authMiddleware, requireAdmin, validate(userSchemas.create), asy
             throw new APIError('Username already exists', 400, ErrorCodes.ALREADY_EXISTS);
         }
 
-        const hashedPassword = await User.hashPassword(password);
+        const hashPw = User.hashPassword || hashPassword;
+        const hashP = User.hashPin || hashPin;
+        const hashedPassword = await hashPw(password);
         const normalizedRole = normalizeRole(role) || 'SALE';
 
         const userData = {
@@ -71,7 +76,7 @@ router.post('/', authMiddleware, requireAdmin, validate(userSchemas.create), asy
             const pinStr = String(pin).trim();
             // Validate PIN format (should be 4 digits, but validation schema already checked)
             if (pinStr.length === 4 && /^\d{4}$/.test(pinStr)) {
-                userData.pin_hash = await User.hashPin(pinStr);
+                userData.pin_hash = await hashP(pinStr);
                 logger.info('PIN hashed for user', { username: normalizedUsername });
             } else {
                 logger.warn('Invalid PIN format', { pin: pinStr, username: normalizedUsername });
@@ -115,6 +120,9 @@ router.post('/', authMiddleware, requireAdmin, validate(userSchemas.create), asy
 router.patch('/:id', authMiddleware, requireAdmin, validate(userSchemas.update), async (req, res, next) => {
     try {
         const { display_name, role, password, pin } = req.body;
+        const User = getUserModel();
+        const hashPw = User.hashPassword || hashPassword;
+        const hashP = User.hashPin || hashPin;
 
         const user = await User.findById(req.params.id);
         if (!user) {
@@ -134,7 +142,7 @@ router.patch('/:id', authMiddleware, requireAdmin, validate(userSchemas.update),
         }
 
         if (password !== undefined && String(password).length > 0) {
-            user.password_hash = await User.hashPassword(password);
+            user.password_hash = await hashPw(password);
             user.legacy_password = false;
         }
 
@@ -142,7 +150,7 @@ router.patch('/:id', authMiddleware, requireAdmin, validate(userSchemas.update),
             const pinStr = String(pin).trim();
             // Validate PIN format (should be 4 digits, but validation schema already checked)
             if (pinStr.length === 4 && /^\d{4}$/.test(pinStr)) {
-                user.pin_hash = await User.hashPin(pinStr);
+                user.pin_hash = await hashP(pinStr);
                 logger.info('PIN updated for user', { userId: user._id, username: user.username });
             } else {
                 logger.warn('Invalid PIN format on update', { pin: pinStr, userId: user._id });
@@ -180,6 +188,7 @@ router.post('/delete-secure', authMiddleware, requireAdmin, async (req, res, nex
 
         await verifyAdminPin(pin, req.currentUser);
 
+        const User = getUserModel();
         const user = await User.findById(id);
         if (!user) {
             throw new APIError('User not found', 404, ErrorCodes.NOT_FOUND);

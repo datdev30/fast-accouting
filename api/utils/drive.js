@@ -21,12 +21,13 @@ function cleanEnvValue(value) {
  */
 async function getRefreshToken() {
     try {
-        // Dynamic import để tránh circular dependency
-        const DriveOAuthConfig = (await import('../models/DriveOAuthConfig.js')).default;
-        const connectDB = (await import('../config/db.js')).default;
-        
-        await connectDB();
-        const config = await DriveOAuthConfig.findOne();
+        const { getDriveOAuthConfigModel } = await import('../db/models.js');
+        const { isFirestore } = await import('../db/dataStore.js');
+        if (!isFirestore()) {
+            const connectDB = (await import('../config/db.js')).default;
+            await connectDB();
+        }
+        const config = await getDriveOAuthConfigModel().findOne();
         
         if (config && config.refresh_token) {
             return config.refresh_token;

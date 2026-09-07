@@ -1,5 +1,5 @@
 import express from 'express';
-import BankAccountConfig from '../models/BankAccountConfig.js';
+import { getBankAccountConfigModel } from '../db/models.js';
 import { authMiddleware, requireAdmin } from '../middleware/auth.js';
 import { APIError, ErrorCodes } from '../utils/errors.js';
 import logger from '../utils/logger.js';
@@ -13,7 +13,7 @@ const router = express.Router();
 router.get('/', async (req, res, next) => {
     try {
         // Chỉ có 1 record duy nhất, lấy record đầu tiên
-        const config = await BankAccountConfig.findOne().sort({ updatedAt: -1 });
+        const config = await getBankAccountConfigModel().findOne().sort({ updatedAt: -1 });
         
         if (!config) {
             // Trả về null nếu chưa có cấu hình
@@ -70,7 +70,7 @@ router.put('/', authMiddleware, requireAdmin, async (req, res, next) => {
         }
 
         // Tìm hoặc tạo cấu hình (chỉ có 1 record duy nhất)
-        let config = await BankAccountConfig.findOne();
+        let config = await getBankAccountConfigModel().findOne();
         
         if (config) {
             // Cập nhật record hiện có
@@ -87,7 +87,7 @@ router.put('/', authMiddleware, requireAdmin, async (req, res, next) => {
             await config.save();
         } else {
             // Tạo record mới
-            config = new BankAccountConfig({
+            config = new (getBankAccountConfigModel())({
                 bank_code: bank_code.trim(),
                 bank_name: bank_name.trim(),
                 account_number: account_number.trim(),
@@ -119,7 +119,7 @@ router.patch('/', authMiddleware, requireAdmin, async (req, res, next) => {
         const { bank_code, bank_name, account_number, account_holder, qr_code_url, default_add_info } = req.body;
 
         // Tìm cấu hình hiện có
-        let config = await BankAccountConfig.findOne();
+        let config = await getBankAccountConfigModel().findOne();
         
         if (!config) {
             // Nếu chưa có, tạo mới (nhưng cần đủ thông tin bắt buộc)
@@ -130,7 +130,7 @@ router.patch('/', authMiddleware, requireAdmin, async (req, res, next) => {
                     ErrorCodes.VALIDATION_ERROR
                 );
             }
-            config = new BankAccountConfig({
+            config = new (getBankAccountConfigModel())({
                 bank_code: bank_code.trim(),
                 bank_name: bank_name.trim(),
                 account_number: account_number.trim(),

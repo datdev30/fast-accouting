@@ -1,6 +1,5 @@
 import express from 'express';
-import Customer from '../models/Customer.js';
-import Transaction from '../models/Transaction.js';
+import { getCustomerModel, getTransactionModel } from '../db/models.js';
 import { generatePDF } from '../utils/pdf.js';
 import archiver from 'archiver';
 import fs from 'fs/promises';
@@ -30,14 +29,16 @@ router.get('/:customer_id/pdf', async (req, res, next) => {
 
         // Fetch customer
         const customerKey = customer_id.trim();
-        const customer = await Customer.findOne({ $or: [{ id: customerKey }, { _id: customerKey }] });
+        const customer = await getCustomerModel().findOne({
+            $or: [{ id: customerKey }, { _id: customerKey }]
+        });
 
         if (!customer) {
             throw new APIError('Customer not found', 404, ErrorCodes.NOT_FOUND);
         }
 
         // Build query for transactions
-        let query = { customer_id: customerKey };
+        let query = { customer_id: customerKey, working_year: req.workingYear };
 
         if (start_date || end_date) {
             query.transaction_date = {};
@@ -51,7 +52,7 @@ router.get('/:customer_id/pdf', async (req, res, next) => {
             }
         }
 
-        const transactions = await Transaction.find(query).sort({ transaction_date: 1 });
+        const transactions = await getTransactionModel().find(query).sort({ transaction_date: 1 });
 
         // Ensure transactions have valid dates and convert to plain objects if needed
         const normalizedTransactions = transactions.map(tx => {
@@ -95,15 +96,16 @@ router.post('/batch-export', async (req, res, next) => {
     try {
         const outputPath = req.body?.output_path ? String(req.body.output_path) : null;
 
-        const customers = await Customer.find().sort({ id: 1, _id: 1 });
+        const customers = await getCustomerModel().find({}).sort({ id: 1, _id: 1 });
 
         const generated = [];
         for (const customer of customers) {
             const customerId = (customer.id ?? customer._id)?.toString().trim();
             if (!customerId) continue;
 
-            const transactions = await Transaction.find({
+            const transactions = await getTransactionModel().find({
                 customer_id: customerId,
+                working_year: req.workingYear,
                 status: 'OPEN'
             }).sort({ transaction_date: 1 });
 

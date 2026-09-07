@@ -1,6 +1,9 @@
 import React from 'react';
+import useScrollLock from '../hooks/useScrollLock';
 
 const BackupModal = () => {
+    useScrollLock(true);
+
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center">
             {/* Backdrop with heavy blur */}

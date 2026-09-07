@@ -37,6 +37,8 @@ api/.env
 
 # Service account keys (DO NOT COMMIT)
 strange-tome-478807-q2-bc8ad8e5225e.json
+api/firebase-service-account.json
+**/firebase-service-account.json
 
 # Node.js API Backend
 api/node_modules/

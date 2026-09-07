@@ -9,7 +9,10 @@
         "start": "node index.js",
         "test": "echo \"Error: no test specified\" && exit 1",
         "backup:export": "node scripts/backup-export.js",
-        "backup:import": "node scripts/backup-import.js"
+        "backup:import": "node scripts/backup-import.js",
+        "backfill:working-year": "node scripts/backfill-working-year.js",
+        "migrate:firestore": "node scripts/mongo-to-firestore.js",
+        "migrate:firestore:preview": "node scripts/mongo-to-firestore.js --preview"
     },
     "keywords": [
         "accounting",
@@ -25,11 +28,12 @@
         "cors": "^2.8.5",
         "dotenv": "^16.3.1",
         "express": "^4.18.2",
+        "firebase-admin": "^13.10.0",
         "googleapis": "^144.0.0",
         "joi": "^17.11.0",
         "jsonwebtoken": "^9.0.2",
-        "multer": "^1.4.5-lts.1",
         "mongoose": "^8.0.0",
+        "multer": "^1.4.5-lts.1",
         "pdfkit": "^0.14.0"
     },
     "devDependencies": {

@@ -1,3 +1,4 @@
+import useScrollLock from '../hooks/useScrollLock';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getTransactions, createTransaction, updateTransaction, getCustomers, getInterestConfigs, createCustomer, uploadTransactionImage, fetchTransactionImageBlob, deleteTransactionImage } from '../services/api';
@@ -131,6 +132,7 @@ export default function Transactions() {
 
     // Quick Create Customer State
     const [isQuickCreateOpen, setIsQuickCreateOpen] = useState(false);
+    useScrollLock(isOpen || isImageDetailOpen || isDeleteImageModalOpen || isImagePickerOpen || isQuickCreateOpen);
     const [newCustomerName, setNewCustomerName] = useState('');
     const [newCustomerContact, setNewCustomerContact] = useState('');
     const [createAnother, setCreateAnother] = useState(false);
@@ -1061,7 +1063,7 @@ export default function Transactions() {
                             <div className="flex-1 overflow-y-auto p-5 custom-scrollbar min-h-0">
                                 <div className="space-y-4">
                                     {/* Row 1: Date & Customer - Same row for portrait */}
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                         {/* Date Input */}
                                         <div className="space-y-2">
                                             <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Ngày giao dịch</label>
@@ -1206,14 +1208,14 @@ export default function Transactions() {
                                 <div className="space-y-2 mt-5">
                                     <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Loại giao dịch</label>
                                     {/* 4 cols on all screens */}
-                                    <div className="grid grid-cols-4 gap-3">
+                                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
                                         {configs?.map((config) => (
                                             <button
                                                 key={config.code}
                                                 type="button"
                                                 onClick={() => setFormData({ ...formData, type: config.code })}
                                                 className={clsx(
-                                                    "px-2 py-2 rounded-lg text-[11px] font-bold border transition-all text-center flex items-center justify-center min-h-10 leading-tight active:scale-95 whitespace-nowrap",
+                                                    "px-2 py-2 rounded-lg text-[11px] font-bold border transition-all text-center flex items-center justify-center min-h-[var(--tap-min)] leading-tight active:scale-95 hyphens-auto",
                                                     formData.type === config.code
                                                         ? "bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-200"
                                                         : "bg-slate-50 text-slate-500 border-slate-100 hover:border-slate-200 hover:bg-white"
@@ -1249,7 +1251,7 @@ export default function Transactions() {
                                 </div>
 
                                 {editingId && (
-                                    <div className="grid grid-cols-2 gap-4 mt-5 pt-5 border-t border-slate-50">
+                                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 mt-5 pt-5 border-t border-slate-50">
                                         <div className="space-y-2">
                                             <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Trạng thái</label>
                                             <button
@@ -1439,7 +1441,7 @@ export default function Transactions() {
                                     <div className="flex items-center gap-1">
                                         <button
                                             type="button"
-                                            className="btn-secondary btn-md min-h-9 px-2.5 py-1.5"
+                                            className="btn-secondary btn-md min-h-[var(--tap-min)] min-w-[var(--tap-min)] px-2.5 py-1.5"
                                             disabled={txPage <= 1}
                                             onClick={() => setTxPage((p) => Math.max(1, p - 1))}
                                             aria-label="Trang trước"
@@ -1451,7 +1453,7 @@ export default function Transactions() {
                                         </span>
                                         <button
                                             type="button"
-                                            className="btn-secondary btn-md min-h-9 px-2.5 py-1.5"
+                                            className="btn-secondary btn-md min-h-[var(--tap-min)] min-w-[var(--tap-min)] px-2.5 py-1.5"
                                             disabled={txPage >= totalTxPages}
                                             onClick={() => setTxPage((p) => Math.min(totalTxPages, p + 1))}
                                             aria-label="Trang sau"
@@ -1502,7 +1504,7 @@ export default function Transactions() {
                                                 type="button"
                                                 onClick={(e) => handleStatusToggle(e, tx)}
                                                 className={clsx(
-                                                    'shrink-0 rounded-lg px-2 py-1 text-[10px] font-bold uppercase tracking-wide border',
+                                                    'tap-expand shrink-0 rounded-lg px-2 py-1 text-[10px] font-bold uppercase tracking-wide border',
                                                     tx.status === 'PAID'
                                                         ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
                                                         : 'border-amber-200 bg-amber-50 text-amber-900'
@@ -1677,7 +1679,7 @@ export default function Transactions() {
                             <p className="text-sm text-slate-500 mt-1 font-medium">Chọn phương thức để đính kèm hình ảnh</p>
                         </div>
 
-                        <div className="p-8 grid grid-cols-2 gap-4">
+                        <div className="p-5 sm:p-8 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
                             <button
                                 type="button"
                                 onClick={() => {

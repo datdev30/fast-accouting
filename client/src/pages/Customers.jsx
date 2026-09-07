@@ -1,3 +1,5 @@
+import useScrollLock from '../hooks/useScrollLock';
+import PaidRibbon from '../components/PaidRibbon';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
@@ -50,6 +52,7 @@ export default function Customers() {
     const [isTxDeleteModalOpen, setIsTxDeleteModalOpen] = useState(false);
     const [txHasImage, setTxHasImage] = useState(false);
     const [isTxImageModalOpen, setIsTxImageModalOpen] = useState(false);
+    useScrollLock(isOpen || isTxModalOpen || isTxImageModalOpen);
     const [txImageUrl, setTxImageUrl] = useState(null);
     const [txImageLoading, setTxImageLoading] = useState(false);
     const [txImageError, setTxImageError] = useState('');
@@ -740,7 +743,7 @@ export default function Customers() {
                                     />
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                     <div className="space-y-2">
                                         <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Số tiền gốc</label>
                                         <div className="relative group">
@@ -770,7 +773,7 @@ export default function Customers() {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                     <div className="space-y-2">
                                         <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Trạng thái</label>
                                         <StatusDropdown
@@ -934,13 +937,7 @@ export default function Customers() {
                             <div className="absolute -top-12 -right-12 w-32 h-32 bg-gradient-to-br from-blue-50 to-indigo-50/30 rounded-full group-hover:scale-150 transition-transform duration-500 ease-out z-0 opacity-60"></div>
 
                             {/* Paid in Full Ribbon */}
-                            {customer.is_paid_in_full && (
-                                <div className="absolute top-0 right-0 z-20 text-center pointer-events-none overflow-hidden w-32 h-32">
-                                    <div className="absolute top-[24px] right-[-34px] rotate-45 bg-gradient-to-r from-emerald-500 to-green-600 text-white text-xs font-bold py-1.5 w-[160px] shadow-lg shadow-emerald-500/40 uppercase tracking-widest leading-none">
-                                        Đã tất toán
-                                    </div>
-                                </div>
-                            )}
+                            {customer.is_paid_in_full && <PaidRibbon />}
 
                             <div className="flex items-center gap-3 mb-4 relative z-10">
                                 {/* Avatar Circle */}
@@ -948,18 +945,15 @@ export default function Customers() {
                                     <User size={22} />
                                 </div>
                                 <div className="flex-1 min-w-0 text-left">
-                                    <h3 className="text-lg font-bold text-slate-900 truncate group-hover:text-blue-600 transition-colors">
+                                    {/* Chừa chỗ cho dải băng ở góc phải — nếu không, tên dài sẽ
+                                        chạy xuống dưới băng và không đọc được. */}
+                                    <h3 className={clsx(
+                                        "text-lg font-bold text-slate-900 truncate group-hover:text-blue-600 transition-colors",
+                                        customer.is_paid_in_full && "pr-16"
+                                    )}>
                                         {customer.name}
                                     </h3>
                                 </div>
-                                <button
-                                    type="button"
-                                    onClick={(e) => { e.stopPropagation(); handleOpenHistory(customer); }}
-                                    aria-label="Lịch sử giao dịch"
-                                    className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-blue-600 transition-colors duration-200 active:opacity-70 flex-shrink-0 cursor-pointer min-w-9 min-h-9 flex items-center justify-center"
-                                >
-                                    <History size={18} />
-                                </button>
                             </div>
 
                             <div className="space-y-2 mb-4 relative z-10">
@@ -973,11 +967,21 @@ export default function Customers() {
                                 </div>
                             </div>
 
-                            <div className="mt-auto pt-3 border-t border-slate-50 flex items-center justify-end relative z-10">
+                            {/* Nút lịch sử chuyển xuống đây: góc phải trên đã dành cho dải băng */}
+                            <div className="mt-auto pt-3 border-t border-slate-50 flex items-center gap-2 relative z-10">
+                                <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); handleOpenHistory(customer); }}
+                                    aria-label={`Lịch sử giao dịch của ${customer.name}`}
+                                    title="Lịch sử giao dịch"
+                                    className="shrink-0 rounded-xl border border-slate-100 text-slate-400 hover:bg-slate-100 hover:text-blue-600 transition-colors duration-200 active:opacity-70 cursor-pointer min-w-[var(--tap-min)] min-h-[var(--tap-min)] flex items-center justify-center"
+                                >
+                                    <History size={18} />
+                                </button>
                                 <Link
                                     to={`/customers/${customer.id}/debt`}
                                     onClick={(e) => e.stopPropagation()}
-                                    className="w-full flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-wider text-blue-600 hover:text-white hover:bg-blue-600 border border-blue-100 hover:border-blue-600 transition-all px-3 py-2.5 rounded-xl shadow-sm group/btn"
+                                    className="flex-1 flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-wider text-blue-600 hover:text-white hover:bg-blue-600 border border-blue-100 hover:border-blue-600 transition-all px-3 py-2.5 min-h-[var(--tap-min)] rounded-xl shadow-sm group/btn"
                                 >
                                     Xem chi tiết nợ <ChevronRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
                                 </Link>

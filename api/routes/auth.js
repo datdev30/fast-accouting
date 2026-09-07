@@ -1,5 +1,6 @@
 import express from 'express';
-import User from '../models/User.js';
+import { getUserModel } from '../db/models.js';
+import { withUserAuthMethods, hashPassword } from '../utils/userAuth.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { validate, authSchemas } from '../middleware/validation.js';
 import { APIError, ErrorCodes } from '../utils/errors.js';
@@ -15,6 +16,7 @@ const router = express.Router();
 router.post('/register', validate(authSchemas.register), async (req, res, next) => {
     try {
         const { username, password, display_name } = req.body;
+        const User = getUserModel();
 
         // Normalize username to lowercase
         const normalizedUsername = String(username).trim().toLowerCase();
@@ -26,10 +28,13 @@ router.post('/register', validate(authSchemas.register), async (req, res, next) 
         }
 
         // Hash password
-        const hashedPassword = await User.hashPassword(password);
+        const hashedPassword = User.hashPassword
+            ? await User.hashPassword(password)
+            : await hashPassword(password);
 
         // Create user
         const user = new User({
+            _id: normalizedUsername,
             username: normalizedUsername,
             password_hash: hashedPassword,
             legacy_password: false,
@@ -57,12 +62,14 @@ router.post('/register', validate(authSchemas.register), async (req, res, next) 
 router.post('/login', validate(authSchemas.login), async (req, res, next) => {
     try {
         const { username, password } = req.body;
+        const User = getUserModel();
 
         // Normalize username to lowercase
         const normalizedUsername = String(username).trim().toLowerCase();
 
         // Find user
-        const user = await User.findOne({ username: normalizedUsername });
+        let user = await User.findOne({ username: normalizedUsername });
+        user = withUserAuthMethods(user);
         if (!user) {
             throw new APIError('Tên đăng nhập hoặc mật khẩu không đúng', 401, ErrorCodes.INVALID_CREDENTIALS);
         }
@@ -108,18 +115,18 @@ router.post('/logout', (req, res) => {
  */
 router.get('/me', authMiddleware, async (req, res, next) => {
     try {
+        const User = getUserModel();
         const userId = req.user?.id;
         const username = req.user?.username;
 
         let user = null;
         if (userId !== null && userId !== undefined) {
-            user = await User.findById(userId).select('-password_hash -pin_hash');
+            user = await User.findById(userId);
         }
 
         if (!user && username) {
-            // Normalize username to lowercase
             const normalizedUsername = String(username).trim().toLowerCase();
-            user = await User.findOne({ username: normalizedUsername }).select('-password_hash -pin_hash');
+            user = await User.findOne({ username: normalizedUsername });
         }
 
         if (!user) {
@@ -153,14 +160,14 @@ router.post('/clear-rate-limit', async (req, res, next) => {
                     const userId = req.user?.id;
                     const username = req.user?.username;
 
+                    const User = getUserModel();
                     let user = null;
                     if (userId !== null && userId !== undefined) {
-                        user = await User.findById(userId).select('role');
+                        user = await User.findById(userId);
                     }
                     if (!user && username) {
-                        // Normalize username to lowercase
                         const normalizedUsername = String(username).trim().toLowerCase();
-                        user = await User.findOne({ username: normalizedUsername }).select('role');
+                        user = await User.findOne({ username: normalizedUsername });
                     }
 
                     if (!user || user.role !== 'ADMIN') {

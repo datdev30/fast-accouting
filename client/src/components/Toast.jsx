@@ -40,12 +40,12 @@ export default function Toast({ toast, onClose }) {
     return (
         <div
             className={clsx(
-                "fixed top-4 left-1/2 -translate-x-1/2 z-[100] transition-all duration-500 ease-out transform",
+                "toast-viewport fixed top-4 z-[100] transition-all duration-500 ease-out",
                 isVisible ? "translate-y-0 opacity-100" : "-translate-y-12 opacity-0"
             )}
         >
             <div className={clsx(
-                "flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border-2 min-w-[320px] max-w-md",
+                "toast-panel flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border-2",
                 bgColors[toast.type] || bgColors.info
             )}>
                 <div className="shrink-0">

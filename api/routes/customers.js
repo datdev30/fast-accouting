@@ -1,9 +1,7 @@
 import express from 'express';
-import Customer from '../models/Customer.js';
-import Transaction from '../models/Transaction.js';
+import { getCustomerModel, getTransactionModel } from '../db/models.js';
 import { getNextId } from '../utils/counter.js';
 import { isMongoWriteForbidden, verifyAdminPin } from '../utils/helpers.js';
-import User from '../models/User.js';
 import { authMiddleware, requireAdmin } from '../middleware/auth.js';
 import { validate, customerSchemas } from '../middleware/validation.js';
 import { APIError, ErrorCodes } from '../utils/errors.js';
@@ -14,17 +12,18 @@ const router = express.Router();
 
 /**
  * GET /api/customers
- * Get all customers with status
+ * Danh sách KH dùng chung; nợ/số GD tính theo năm làm việc đang chọn.
  */
 router.get('/', async (req, res, next) => {
     try {
-        const customers = await Customer.find().lean();
-        const transactions = await Transaction.find().lean();
+        const Customer = getCustomerModel();
+        const Transaction = getTransactionModel();
+        const year = req.workingYear;
+        const customers = await Customer.find({}).lean();
+        const transactions = await Transaction.find({ working_year: year }).lean();
 
-        // Use helper function for ID resolution
         const idResolver = buildCustomerIdResolver(customers);
 
-        // Map transactions to unified Custom ID
         const txMap = {};
         for (const tx of transactions) {
             const txObj = tx;
@@ -37,7 +36,6 @@ router.get('/', async (req, res, next) => {
             }
         }
 
-        // Build results with status and total_debt using helper functions
         const now = new Date();
         const results = customers.map(c => {
             const rawCustomId = c?.id;
@@ -51,13 +49,12 @@ router.get('/', async (req, res, next) => {
             const key = customId || mongoId;
             const cTxs = key ? (txMap[key] || []) : [];
 
-            // Use helper functions
             const status = getCustomerStatus(cTxs);
             const debt = calculateCustomerDebt(cTxs, now);
 
             return {
                 _id: c._id,
-                id: key, // Custom ID (KHxxx) or fallback to Mongo _id
+                id: key,
                 name: c.name,
                 contact_info: c.contact_info,
                 created_at: c.created_at,
@@ -76,13 +73,12 @@ router.get('/', async (req, res, next) => {
 
 /**
  * POST /api/customers
- * Create new customer
  */
 router.post('/', validate(customerSchemas.create), async (req, res, next) => {
     try {
         const { name, contact_info } = req.body;
+        const Customer = getCustomerModel();
 
-        // Generate custom ID
         const newId = await getNextId('customer');
 
         const customer = new Customer({
@@ -110,7 +106,6 @@ router.post('/', validate(customerSchemas.create), async (req, res, next) => {
 
 /**
  * GET /api/customers/:id
- * Get single customer
  */
 router.get('/:id', async (req, res, next) => {
     try {
@@ -129,19 +124,17 @@ router.get('/:id', async (req, res, next) => {
 
 /**
  * PATCH /api/customers/:id
- * Update customer
  */
 router.patch('/:id', validate(customerSchemas.update), async (req, res, next) => {
     try {
         const { name, contact_info } = req.body;
         const customerId = String(req.params.id ?? '').trim();
-        
+
         const customer = await resolveCustomerId(customerId);
         if (!customer) {
             throw new APIError('Customer not found', 404, ErrorCodes.NOT_FOUND);
         }
 
-        // Update fields
         if (name !== undefined) customer.name = name;
         if (contact_info !== undefined) customer.contact_info = contact_info;
 
@@ -157,7 +150,7 @@ router.patch('/:id', validate(customerSchemas.update), async (req, res, next) =>
 
 /**
  * POST /api/customers/delete-secure
- * Delete customer with PIN verification (cascade delete transactions)
+ * Xóa KH + toàn bộ GD của KH (mọi năm)
  */
 router.post('/delete-secure', authMiddleware, requireAdmin, async (req, res, next) => {
     try {
@@ -167,24 +160,29 @@ router.post('/delete-secure', authMiddleware, requireAdmin, async (req, res, nex
             throw new APIError('Customer ID is required', 400, ErrorCodes.VALIDATION_ERROR);
         }
 
-        // Verify admin PIN
         await verifyAdminPin(pin, req.currentUser);
 
-        const customer = await Customer.findOne({ id });
+        const Customer = getCustomerModel();
+        const Transaction = getTransactionModel();
+        const customer = await Customer.findOne({ $or: [{ id }, { _id: id }] });
         if (!customer) {
             throw new APIError('Customer not found', 404, ErrorCodes.NOT_FOUND);
         }
 
-        // Cascade delete transactions
-        const deleteResult = await Transaction.deleteMany({ customer_id: id });
+        const customerKey = customer.id || String(customer._id);
+        const deleteResult = await Transaction.deleteMany({
+            $or: [
+                { customer_id: customerKey },
+                { customer_id: id }
+            ]
+        });
 
-        // Delete customer
-        await Customer.deleteOne({ id });
+        await Customer.deleteOne({ $or: [{ id: customer.id }, { _id: customer._id }] });
 
-        logger.warn('Customer deleted', { 
-            customerId: id, 
+        logger.warn('Customer deleted', {
+            customerId: customerKey,
             customerName: customer.name,
-            deletedTransactions: deleteResult.deletedCount 
+            deletedTransactions: deleteResult.deletedCount
         });
 
         res.json({ message: 'Đã xóa khách hàng và toàn bộ dữ liệu liên quan' });

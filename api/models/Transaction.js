@@ -9,8 +9,14 @@ const transactionSchema = new mongoose.Schema({
     id: {
         type: String,
         required: false,
-        unique: true,
         sparse: true
+    },
+    /** Năm làm việc — lọc theo field này, không theo năm của transaction_date */
+    working_year: {
+        type: Number,
+        required: true,
+        default: 2025,
+        index: true
     },
     customer_id: {
         type: String,
@@ -83,11 +89,18 @@ const transactionSchema = new mongoose.Schema({
     timestamps: false
 });
 
-// Indexes for faster queries
-// NOTE: `unique: true` on `id` already creates an index; do not duplicate it here.
 transactionSchema.index({ customer_id: 1 });
 transactionSchema.index({ status: 1 });
 transactionSchema.index({ transaction_date: 1 });
+transactionSchema.index(
+    { working_year: 1, id: 1 },
+    {
+        unique: true,
+        name: 'working_year_1_id_1_partial',
+        partialFilterExpression: { id: { $type: 'string' } }
+    }
+);
+transactionSchema.index({ working_year: 1, customer_id: 1 });
 
 const Transaction = mongoose.model('Transaction', transactionSchema);
 

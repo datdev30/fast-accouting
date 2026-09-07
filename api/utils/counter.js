@@ -1,34 +1,47 @@
-import Counter from '../models/Counter.js';
 import { isMongoWriteForbidden } from './helpers.js';
+import { getCurrentWorkingYear } from './workingYear.js';
+import { getCounterModel } from '../db/models.js';
 
 /**
- * Get next sequential ID for a given code
- * Ported from Python utils.py
+ * Get next sequential ID.
+ * - customer: global (`customer`)
+ * - transaction: theo năm làm việc (`transaction_2025`, …)
  */
-export async function getNextId(code) {
+export async function getNextId(code, workingYear = null) {
     try {
-        // Find or create counter
-        let counter = await Counter.findOne({ code });
+        const Counter = getCounterModel();
+        let counterCode = code;
+        if (code === 'transaction') {
+            const year = workingYear ?? (await getCurrentWorkingYear());
+            counterCode = `${code}_${year}`;
+        }
+
+        let counter = await Counter.findOne({ code: counterCode });
 
         if (!counter) {
-            counter = new Counter({ code, seq: 0 });
+            // Bootstrap transaction year counter from legacy unscoped once
+            const legacy = code === 'transaction'
+                ? await Counter.findOne({ code: 'transaction' })
+                : null;
+            counter = new Counter({
+                code: counterCode,
+                seq: legacy?.seq || 0
+            });
             await counter.save();
         }
 
-        // Increment sequence
         counter.seq += 1;
         await counter.save();
 
         const seq = counter.seq;
 
-    // Format ID based on code
         if (code === 'customer') {
-            return `KH${seq.toString().padStart(3, '0')}`; // KH001, KH002...
-        } else if (code === 'transaction') {
-            return `GD${seq.toString().padStart(4, '0')}`; // GD0001, GD0002...
-        } else {
-            return `${code.toUpperCase()}${seq.toString().padStart(3, '0')}`;
+            return `KH${seq.toString().padStart(3, '0')}`;
         }
+        if (code === 'transaction') {
+            return `GD${seq.toString().padStart(4, '0')}`;
+        }
+        return `${code.toUpperCase()}${seq.toString().padStart(3, '0')}`;
     } catch (error) {
         if (isMongoWriteForbidden(error)) {
             const err = new Error('Hệ thống đang ở chế độ chỉ đọc (read-only). Không thể cấp mã mới.');

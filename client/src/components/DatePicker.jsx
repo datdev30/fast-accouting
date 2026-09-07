@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatDate } from '../utils/dateUtils';
 import { clsx } from 'clsx';
+import Popover from './Popover';
 
 const DatePicker = ({ value, onChange, placeholder = 'Chọn ngày', className, disabled, variant = 'field' }) => {
     const isEmbedded = variant === 'embedded';
@@ -26,18 +27,8 @@ const DatePicker = ({ value, onChange, placeholder = 'Chọn ngày', className, 
         }
     }, [value]);
 
-    useEffect(() => {
-        function handleClickOutside(event) {
-            if (containerRef.current && !containerRef.current.contains(event.target)) {
-                setIsOpen(false);
-            }
-        }
-
-        if (isOpen) {
-            document.addEventListener('mousedown', handleClickOutside);
-            return () => document.removeEventListener('mousedown', handleClickOutside);
-        }
-    }, [isOpen]);
+    // Đóng khi bấm ra ngoài / nhấn Escape do Popover đảm nhiệm — panel nằm
+    // trong portal nên containerRef không còn bao nó nữa.
 
     const getDaysInMonth = (date) => {
         return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
@@ -109,7 +100,7 @@ const DatePicker = ({ value, onChange, placeholder = 'Chọn ngày', className, 
                 onClick={() => !disabled && setIsOpen(!isOpen)}
                 disabled={disabled}
                 className={clsx(
-                    "w-full flex items-center gap-2 min-h-10 text-sm font-medium transition-colors rounded-lg",
+                    "w-full flex items-center gap-2 min-h-[var(--tap-min)] text-sm font-medium transition-colors rounded-lg",
                     isEmbedded
                         ? "border-0 bg-transparent px-2 pl-9 py-2 text-slate-700 shadow-none hover:bg-slate-50/90 focus:outline-none focus:ring-0"
                         : "border border-slate-200 bg-white px-3 pl-10 py-2 text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50/80 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500",
@@ -122,8 +113,14 @@ const DatePicker = ({ value, onChange, placeholder = 'Chọn ngày', className, 
                 </span>
             </button>
 
-            {isOpen && (
-                <div className="absolute z-50 mt-2 bg-white rounded-2xl border border-slate-200 shadow-2xl p-4 min-w-[320px] animate-in fade-in zoom-in-95 duration-200">
+            <Popover
+                anchorRef={containerRef}
+                open={isOpen}
+                onClose={() => setIsOpen(false)}
+                title="Chọn ngày"
+                minWidth={320}
+            >
+                <div>
                     {/* Header */}
                     <div className="flex items-center justify-between mb-4">
                         <button
@@ -198,7 +195,7 @@ const DatePicker = ({ value, onChange, placeholder = 'Chọn ngày', className, 
                         </button>
                     </div>
                 </div>
-            )}
+            </Popover>
         </div>
     );
 };

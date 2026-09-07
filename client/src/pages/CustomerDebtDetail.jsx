@@ -1,3 +1,4 @@
+import useScrollLock from '../hooks/useScrollLock';
 import React, { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, Link, useNavigate } from 'react-router-dom';
@@ -6,6 +7,8 @@ import api from '../services/api'; // Import default api instance
 import { useReactToPrint } from 'react-to-print';
 import PrintableReport from '../components/PrintableReport';
 import PrintableAllTransactions from '../components/PrintableAllTransactions';
+import PrintPreviewFrame from '../components/PrintPreviewFrame';
+import DataTable from '../components/DataTable';
 import { ArrowLeft, Printer, Calendar, X, ChevronRight, FileText, Wallet, Percent, PiggyBank, CheckCircle, AlertCircle, Check, Clock, Search, Download, Loader2, QrCode, Receipt } from 'lucide-react';
 import { clsx } from 'clsx';
 import DateInput from '../components/DateInput';
@@ -44,6 +47,7 @@ const CustomerDebtDetail = () => {
     // Payment Options Menu
     const [paymentMenuOpen, setPaymentMenuOpen] = useState(false);
     const [showQRModal, setShowQRModal] = useState(false);
+    useScrollLock(showPreview || showAllTransactionsPreview || bulkPayOpen || showQRModal);
     const [qrCodeUrl, setQrCodeUrl] = useState(null);
     const [isGeneratingQR, setIsGeneratingQR] = useState(false);
     const paymentMenuRef = useRef(null);
@@ -350,28 +354,28 @@ const CustomerDebtDetail = () => {
     return (
         <div className="space-y-4 lg:space-y-6">
             {/* Header */}
-            <div className="flex flex-row items-center justify-between gap-4 lg:gap-6">
-                <div>
-                    <div className="flex items-center gap-2 text-sm text-slate-500 mb-2">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between lg:gap-6">
+                <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500 mb-2 sm:text-sm">
                         <Link to="/customers" className="hover:text-blue-600 transition-colors uppercase tracking-wider font-semibold">Khách hàng</Link>
-                        <ChevronRight size={14} className="opacity-50" />
+                        <ChevronRight size={14} className="opacity-50 shrink-0" />
                         <span className="text-slate-900 font-bold uppercase tracking-wider">Chi tiết công nợ</span>
                     </div>
                     <h1 className="section-title">
                         {customer.name}
                     </h1>
-                    <p className="text-slate-500 mt-1.5 flex items-center gap-2 text-sm">
-                        <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-200"></span>
-                        {customer.contact_info || 'Không có thông tin liên hệ'}
+                    <p className="text-slate-500 mt-1.5 flex items-start gap-2 text-sm">
+                        <span className="mt-1.5 inline-block w-2.5 h-2.5 shrink-0 rounded-full bg-emerald-500 shadow-sm shadow-emerald-200"></span>
+                        <span className="min-w-0">{customer.contact_info || 'Không có thông tin liên hệ'}</span>
                     </p>
                 </div>
-                <div className="flex flex-row gap-3 flex-wrap">
+                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-row sm:flex-wrap sm:gap-3">
                     {/* Payment Menu Button */}
                     <div className="relative" ref={paymentMenuRef}>
                         <button
                             type="button"
                             onClick={() => setPaymentMenuOpen(!paymentMenuOpen)}
-                            className="btn-primary btn-md"
+                            className="btn-primary btn-md w-full sm:w-auto"
                         >
                             <Wallet size={18} />
                             Thanh toán
@@ -423,7 +427,7 @@ const CustomerDebtDetail = () => {
                     <button
                         type="button"
                         onClick={() => setShowPreview(true)}
-                        className="btn-secondary btn-md group"
+                        className="btn-secondary btn-md group w-full sm:w-auto"
                     >
                         <Printer size={18} className="text-slate-400 group-hover:text-blue-600 transition-colors" />
                         <span>In Phiếu Nợ</span>
@@ -432,7 +436,7 @@ const CustomerDebtDetail = () => {
                         type="button"
                         onClick={handleDownloadPdf}
                         disabled={downloadPdfLoading}
-                        className="btn-secondary btn-md group"
+                        className="btn-secondary btn-md group w-full sm:w-auto"
                     >
                         {downloadPdfLoading ? (
                             <Loader2 size={18} className="animate-spin text-slate-400" />
@@ -444,7 +448,7 @@ const CustomerDebtDetail = () => {
                     <button
                         type="button"
                         onClick={() => setShowAllTransactionsPreview(true)}
-                        className="btn-secondary btn-md group"
+                        className="btn-secondary btn-md group w-full sm:w-auto"
                     >
                         <FileText size={18} className="text-slate-400 group-hover:text-blue-600 transition-colors" />
                         <span>In tất cả GD</span>
@@ -541,39 +545,39 @@ const CustomerDebtDetail = () => {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200 print:hidden">
                     <div className="bg-slate-100 w-full max-w-5xl h-[90vh] rounded-2xl flex flex-col shadow-2xl relative overflow-hidden">
                         {/* Header */}
-                        <div className="bg-white px-4 py-3 border-b border-slate-200 flex justify-between items-center shadow-sm z-10">
-                            <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
-                                <Printer className="text-blue-600" /> Xem trước bản in
+                        <div className="bg-white px-3 py-3 sm:px-4 border-b border-slate-200 flex justify-between items-center gap-2 shadow-sm z-10">
+                            <h3 className="text-sm sm:text-base font-bold text-slate-800 flex items-center gap-2 min-w-0">
+                                <Printer size={20} className="text-blue-600 shrink-0" />
+                                <span className="truncate">Xem trước bản in</span>
                             </h3>
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                                 <button
                                     onClick={() => handlePrint()}
                                     className="btn-primary btn-md"
                                 >
-                                    <Printer size={18} /> In ngay
+                                    <Printer size={18} /> <span className="hidden sm:inline">In ngay</span>
                                 </button>
                                 <button
                                     onClick={() => setShowPreview(false)}
                                     className="icon-btn"
+                                    aria-label="Đóng xem trước"
                                 >
                                     <X size={24} />
                                 </button>
                             </div>
                         </div>
 
-                        {/* Scrollable Preview Area */}
-                        <div className="flex-1 overflow-y-auto p-8 bg-slate-200/50 flex justify-center">
-                            <div className="shadow-xl bg-white animate-in zoom-in-95 duration-300">
-                                <PrintableReport
-                                    ref={printRef}
-                                    customer={customer}
-                                    groupedTransactions={groupedTransactions}
-                                    transactions={transactions}
-                                    totalPrincipal={remainingPrincipal}
-                                    totalInterest={remainingInterest}
-                                />
-                            </div>
-                        </div>
+                        {/* Vùng xem trước — chỉ thu nhỏ hiển thị, PrintableReport giữ nguyên */}
+                        <PrintPreviewFrame>
+                            <PrintableReport
+                                ref={printRef}
+                                customer={customer}
+                                groupedTransactions={groupedTransactions}
+                                transactions={transactions}
+                                totalPrincipal={remainingPrincipal}
+                                totalInterest={remainingInterest}
+                            />
+                        </PrintPreviewFrame>
                     </div>
                 </div>
             )}
@@ -583,45 +587,45 @@ const CustomerDebtDetail = () => {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200 print:hidden">
                     <div className="bg-slate-100 w-full max-w-5xl h-[90vh] rounded-2xl flex flex-col shadow-2xl relative overflow-hidden">
                         {/* Header */}
-                        <div className="bg-white px-4 py-3 border-b border-slate-200 flex justify-between items-center shadow-sm z-10">
-                            <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
-                                <FileText className="text-blue-600" /> Xem trước tất cả giao dịch
+                        <div className="bg-white px-3 py-3 sm:px-4 border-b border-slate-200 flex justify-between items-center gap-2 shadow-sm z-10">
+                            <h3 className="text-sm sm:text-base font-bold text-slate-800 flex items-center gap-2 min-w-0">
+                                <FileText size={20} className="text-blue-600 shrink-0" />
+                                <span className="truncate">Xem trước tất cả giao dịch</span>
                             </h3>
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                                 <button
                                     onClick={handleDownloadAllTransactionsPdf}
                                     disabled={downloadAllTransactionsPdfLoading}
                                     className="btn-secondary btn-md"
                                 >
                                     {downloadAllTransactionsPdfLoading ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
-                                    Tải xuống
+                                    <span className="hidden sm:inline">Tải xuống</span>
                                 </button>
                                 <button
                                     onClick={() => handlePrintAllTransactions()}
                                     className="btn-primary btn-md"
                                 >
-                                    <Printer size={18} /> In ngay
+                                    <Printer size={18} /> <span className="hidden sm:inline">In ngay</span>
                                 </button>
                                 <button
                                     onClick={() => setShowAllTransactionsPreview(false)}
                                     className="icon-btn"
+                                    aria-label="Đóng xem trước"
                                 >
                                     <X size={24} />
                                 </button>
                             </div>
                         </div>
 
-                        {/* Scrollable Preview Area */}
-                        <div className="flex-1 overflow-y-auto p-8 bg-slate-200/50 flex justify-center">
-                            <div className="shadow-xl bg-white animate-in zoom-in-95 duration-300">
-                                <PrintableAllTransactions
-                                    ref={printAllTransactionsRef}
-                                    customer={customer}
-                                    groupedTransactions={groupedTransactions}
-                                    transactions={transactions}
-                                />
-                            </div>
-                        </div>
+                        {/* Vùng xem trước — chỉ thu nhỏ hiển thị, component in giữ nguyên */}
+                        <PrintPreviewFrame>
+                            <PrintableAllTransactions
+                                ref={printAllTransactionsRef}
+                                customer={customer}
+                                groupedTransactions={groupedTransactions}
+                                transactions={transactions}
+                            />
+                        </PrintPreviewFrame>
                     </div>
                 </div>
             )}
@@ -711,72 +715,100 @@ const CustomerDebtDetail = () => {
                                         </div>
                                     </div>
 
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full">
-                                            <thead className={clsx(
-                                                "border-b border-slate-100 text-xs font-bold text-slate-400 uppercase tracking-wider text-left",
-                                                isMonthFullyPaid ? "bg-emerald-50/50" : "bg-white"
-                                            )}>
-                                                <tr>
-                                                    <th className="px-4 py-2.5 whitespace-nowrap">Ngày</th>
-                                                    <th className="px-4 py-2.5 whitespace-nowrap">Loại dịch vụ</th>
-                                                    <th className="px-4 py-2.5 min-w-[240px]">Nội dung</th>
-                                                    <th className="px-4 py-2.5 text-right whitespace-nowrap">Tiền gốc</th>
-                                                    <th className="px-4 py-2.5 text-center whitespace-nowrap">Lãi suất</th>
-                                                    <th className="px-4 py-2.5 text-center whitespace-nowrap">Thời gian</th>
-                                                    <th className="px-4 py-2.5 text-right whitespace-nowrap">Tiền lãi</th>
-                                                    <th className="px-4 py-2.5 text-right whitespace-nowrap">Tổng cộng</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-slate-50 text-sm">
-                                                {sortedTxs.map(tx => {
+                                    <DataTable
+                                        rows={sortedTxs}
+                                        getRowKey={(tx) => tx._id}
+                                        caption={`Giao dịch tháng ${month}`}
+                                        tableMinWidth="min-w-[56rem]"
+                                        rowClassName={(tx) => (tx.status === 'PAID'
+                                            ? 'bg-emerald-50 hover:bg-emerald-100'
+                                            : 'hover:bg-blue-50/30')}
+                                        columns={[
+                                            {
+                                                id: 'content',
+                                                header: 'Nội dung',
+                                                priority: 1,
+                                                cellClassName: 'text-slate-700 font-medium leading-relaxed min-w-[15rem]',
+                                                // whitespace-pre-wrap đặt trong cell để giữ xuống dòng ở CẢ bảng lẫn thẻ
+                                                cell: (tx) => <span className="whitespace-pre-wrap">{tx.content}</span>,
+                                            },
+                                            {
+                                                id: 'date',
+                                                header: 'Ngày',
+                                                priority: 2,
+                                                cellClassName: 'whitespace-nowrap text-slate-500 font-medium',
+                                                cell: (tx) => formatDate(tx.transaction_date),
+                                            },
+                                            {
+                                                id: 'type',
+                                                header: 'Loại dịch vụ',
+                                                priority: 2,
+                                                cell: (tx) => {
                                                     const typeConfig = configs?.find(c => c.code === tx.type);
-                                                    const typeName = typeConfig ? typeConfig.name : tx.type;
-                                                    const calc = tx.interest_calculation;
-                                                    const total = (tx.amount || 0) + (calc?.rounded_interest || 0);
-                                                    const isCash = tx.type === 'TIEN_MAT';
-
                                                     return (
-                                                        <tr
-                                                            key={tx._id}
-                                                            className={clsx(
-                                                                "transition-colors group",
-                                                                tx.status === 'PAID' ? "bg-emerald-50 hover:bg-emerald-100" : "hover:bg-blue-50/30"
-                                                            )}
-                                                        >
-                                                            <td className="px-4 py-2.5 whitespace-nowrap text-slate-500 font-medium group-hover:text-blue-600 transition-colors">
-                                                                {formatDate(tx.transaction_date)}
-                                                            </td>
-                                                            <td className="px-4 py-2.5">
-                                                                <span className={clsx(
-                                                                    "px-2.5 py-1 rounded-lg text-xs font-bold border",
-                                                                    isCash
-                                                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
-                                                                        : 'bg-blue-50 text-blue-700 border-blue-100'
-                                                                )}>
-                                                                    {typeName}
-                                                                </span>
-                                                            </td>
-                                                            <td className="px-4 py-2.5 text-slate-700 font-medium whitespace-pre-wrap leading-relaxed">{tx.content}</td>
-                                                            <td className="px-4 py-2.5 text-right font-mono text-slate-600">{(tx.amount || 0).toLocaleString('vi-VN')}</td>
-                                                            <td className="px-4 py-2.5 text-center text-slate-400 whitespace-nowrap">{tx.interest_rate_snapshot}%</td>
-                                                            <td className="px-4 py-2.5 text-center whitespace-nowrap">
-                                                                <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded-md text-xs font-medium border border-slate-200">
-                                                                    {(calc?.months || 0).toFixed(1)} tháng
-                                                                </span>
-                                                            </td>
-                                                            <td className="px-4 py-2.5 text-right font-mono text-blue-600 font-medium">
-                                                                +{(calc?.rounded_interest || 0).toLocaleString('vi-VN')}
-                                                            </td>
-                                                            <td className="px-4 py-2.5 text-right font-mono font-semibold text-slate-900 text-sm">
-                                                                {(total || 0).toLocaleString('vi-VN')} <span className="text-xs font-sans font-normal text-slate-400">đ</span>
-                                                            </td>
-                                                        </tr>
+                                                        <span className={clsx(
+                                                            "inline-block px-2.5 py-1 rounded-lg text-xs font-bold border",
+                                                            tx.type === 'TIEN_MAT'
+                                                                ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                                                                : 'bg-blue-50 text-blue-700 border-blue-100'
+                                                        )}>
+                                                            {typeConfig ? typeConfig.name : tx.type}
+                                                        </span>
                                                     );
-                                                })}
-                                            </tbody>
-                                        </table>
-                                    </div>
+                                                },
+                                            },
+                                            {
+                                                id: 'principal',
+                                                header: 'Tiền gốc',
+                                                priority: 2,
+                                                align: 'right',
+                                                cellClassName: 'font-mono text-slate-600 whitespace-nowrap',
+                                                cell: (tx) => (tx.amount || 0).toLocaleString('vi-VN'),
+                                            },
+                                            {
+                                                id: 'rate',
+                                                header: 'Lãi suất',
+                                                priority: 3,
+                                                align: 'center',
+                                                cellClassName: 'text-slate-400 whitespace-nowrap',
+                                                cell: (tx) => `${tx.interest_rate_snapshot}%`,
+                                            },
+                                            {
+                                                id: 'months',
+                                                header: 'Thời gian',
+                                                priority: 3,
+                                                align: 'center',
+                                                cellClassName: 'whitespace-nowrap',
+                                                cell: (tx) => (
+                                                    <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded-md text-xs font-medium border border-slate-200">
+                                                        {(tx.interest_calculation?.months || 0).toFixed(1)} tháng
+                                                    </span>
+                                                ),
+                                            },
+                                            {
+                                                id: 'interest',
+                                                header: 'Tiền lãi',
+                                                priority: 2,
+                                                align: 'right',
+                                                cellClassName: 'font-mono text-blue-600 font-medium whitespace-nowrap',
+                                                cell: (tx) => `+${(tx.interest_calculation?.rounded_interest || 0).toLocaleString('vi-VN')}`,
+                                            },
+                                            {
+                                                id: 'total',
+                                                header: 'Tổng cộng',
+                                                priority: 1,
+                                                align: 'right',
+                                                cellClassName: 'font-mono font-semibold text-slate-900 whitespace-nowrap',
+                                                cell: (tx) => (
+                                                    <>
+                                                        {((tx.amount || 0) + (tx.interest_calculation?.rounded_interest || 0)).toLocaleString('vi-VN')}
+                                                        {' '}
+                                                        <span className="text-xs font-sans font-normal text-slate-400">đ</span>
+                                                    </>
+                                                ),
+                                            },
+                                        ]}
+                                    />
                                 </div>
                             );
                         })}
