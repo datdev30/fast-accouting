@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { AlertTriangle, Info, Siren, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { getActiveSystemNotifications } from '../services/api';
+import NotificationLevelIcon from './NotificationLevelIcon';
 
 const HIDE_AFTER_MS = 30_000;
 const EXIT_MS = 380;
@@ -10,9 +11,9 @@ const EXIT_MS = 380;
 const LEVEL_RANK = { critical: 3, warning: 2, info: 1 };
 
 const LEVEL_META = {
-    info: { label: 'Thông tin', Icon: Info },
-    warning: { label: 'Cảnh báo', Icon: AlertTriangle },
-    critical: { label: 'Khẩn', Icon: Siren },
+    info: { label: 'Thông tin' },
+    warning: { label: 'Cảnh báo' },
+    critical: { label: 'Khẩn' },
 };
 
 function pickLevel(items) {
@@ -47,7 +48,7 @@ export default function SystemNotificationBanner() {
     const current = activeItems[Math.min(index, Math.max(activeItems.length - 1, 0))];
     const level = current?.level && LEVEL_RANK[current.level] ? current.level : pickLevel(activeItems);
     const meta = LEVEL_META[level] || LEVEL_META.info;
-    const Icon = meta.Icon;
+
     const canDismiss = !current || current.dismissible !== false;
 
     useEffect(() => {
@@ -95,7 +96,7 @@ export default function SystemNotificationBanner() {
             >
                 <div className="sys-notice__leading">
                     <div className={clsx('sys-notice__icon', `sys-notice__icon--${level}`)}>
-                        <Icon size={26} strokeWidth={2.25} />
+                        <NotificationLevelIcon level={level} size={26} />
                     </div>
                 </div>
 

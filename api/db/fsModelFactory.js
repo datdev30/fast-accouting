@@ -49,12 +49,12 @@ function toPlain(doc) {
 function matchQuery(doc, query = {}) {
     if (!query || Object.keys(query).length === 0) return true;
 
-    if (query.$or) {
-        return query.$or.some((q) => matchQuery(doc, q));
-    }
-    if (query.$and) {
-        return query.$and.every((q) => matchQuery(doc, q));
-    }
+    /* $and/$or phải kết hợp VỚI các key anh em, không được return sớm.
+       Trước đây `{ is_active: true, $and: [...] }` chỉ xét phần $and rồi thoát,
+       nên `is_active` bị bỏ qua hoàn toàn — thông báo đã tắt vẫn hiển thị. */
+    if (query.$or && !query.$or.some((q) => matchQuery(doc, q))) return false;
+    if (query.$and && !query.$and.every((q) => matchQuery(doc, q))) return false;
+    if (query.$nor && query.$nor.some((q) => matchQuery(doc, q))) return false;
 
     for (const [key, cond] of Object.entries(query)) {
         if (key.startsWith('$')) continue;
