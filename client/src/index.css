@@ -8,8 +8,9 @@
    ============================================================ */
 
 @theme {
-  /* Typography - Modern Professional (Poppins + Open Sans) */
-  --font-heading: 'Poppins', system-ui, -apple-system, sans-serif;
+  /* Typography — Be Vietnam Pro (tiêu đề) + Open Sans (nội dung).
+     Cả hai đều có subset 'vietnamese'; Poppins thì không. */
+  --font-heading: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
   --font-body: 'Open Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
 
   /* Design System - Fintech Color Palette */
@@ -125,7 +126,7 @@ body {
 
 @layer components {
 
-  /* Typography - Desktop (Poppins for headings, Open Sans for body) */
+  /* Typography - Desktop (Be Vietnam Pro for headings, Open Sans for body) */
   .section-title {
     @apply text-xl lg:text-2xl font-bold tracking-tight text-slate-900;
     font-family: var(--font-heading);
@@ -1700,10 +1701,18 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 3.25rem;
-  height: 3.25rem;
-  border-radius: 1rem;
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: 1.25rem;
   flex-shrink: 0;
+}
+
+/* Icon co theo tile thay vì cố định px: chỉnh kích thước tile ở một chỗ là
+   icon tự theo, không phải sửa thêm prop size trong JSX ở từng breakpoint.
+   72% để chừa viền thở, không chạm mép tile. */
+.sys-notice__icon > svg {
+  width: 72%;
+  height: 72%;
 }
 
 .sys-notice__icon--info {
@@ -1734,31 +1743,6 @@ body {
   align-items: center;
   gap: 0.55rem;
   margin-bottom: 0.35rem;
-}
-
-.sys-notice__badge {
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  padding: 0.2rem 0.55rem;
-  border-radius: 0.4rem;
-  font-family: var(--font-heading);
-}
-
-.sys-notice__badge--info {
-  background: #dbeafe;
-  color: #1e40af;
-}
-
-.sys-notice__badge--warning {
-  background: #fef3c7;
-  color: #92400e;
-}
-
-.sys-notice__badge--critical {
-  background: #fee2e2;
-  color: #991b1b;
 }
 
 .sys-notice__count {
@@ -1885,9 +1869,9 @@ body {
   }
 
   .sys-notice__icon {
-    width: 2.85rem;
-    height: 2.85rem;
-    border-radius: 0.85rem;
+    width: 4rem;
+    height: 4rem;
+    border-radius: 1.1rem;
   }
 
   .sys-notice__title {

@@ -101,16 +101,17 @@ export default function SystemNotificationBanner() {
                 </div>
 
                 <div className="sys-notice__body">
-                    <div className="sys-notice__meta">
-                        <span className={clsx('sys-notice__badge', `sys-notice__badge--${level}`)}>
-                            {meta.label}
-                        </span>
-                        {activeItems.length > 1 && (
+                    {activeItems.length > 1 && (
+                        <div className="sys-notice__meta">
                             <span className="sys-notice__count">
                                 {index + 1}/{activeItems.length}
                             </span>
-                        )}
-                    </div>
+                        </div>
+                    )}
+                    {/* Nhãn mức độ đã bỏ khỏi giao diện — màu sắc và icon đã nói đủ.
+                        Vẫn giữ cho trình đọc màn hình, vì icon là aria-hidden nên
+                        nếu bỏ hẳn thì người dùng screen reader mất thông tin mức độ. */}
+                    <span className="sr-only">{meta.label}: </span>
                     <p className="sys-notice__title">{title}</p>
                     {message && (
                         <p className="sys-notice__message">{message}</p>
