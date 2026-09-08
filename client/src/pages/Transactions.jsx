@@ -1167,7 +1167,7 @@ export default function Transactions() {
                                         <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Nội dung chi tiết</label>
                                         <textarea
                                             required
-                                            className="w-full min-h-[120px] bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all text-sm font-medium text-slate-800 shadow-inner resize-none placeholder:text-slate-300 leading-relaxed"
+                                            className="w-full min-h-[88px] bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all text-sm font-medium text-slate-800 shadow-inner resize-none placeholder:text-slate-300 leading-relaxed sm:min-h-[120px]"
                                             value={formData.content}
                                             onChange={e => setFormData({ ...formData, content: e.target.value })}
                                             placeholder="Nhập nội dung vay/trả chi tiết..."
@@ -1414,7 +1414,7 @@ export default function Transactions() {
                 ) : (
                     <>
                         {totalFilteredCount > 0 && (
-                            <div className="flex flex-col gap-2 border-b border-slate-100 bg-slate-50/60 px-3 py-2.5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-3 sm:px-4">
+                            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-slate-100 bg-slate-50/60 px-3 py-2 sm:gap-3 sm:px-4">
                                 <p className="text-xs text-slate-600 tabular-nums sm:text-sm">
                                     <span className="font-medium text-slate-800">
                                         {txRangeFrom}–{txRangeTo}
@@ -1424,7 +1424,8 @@ export default function Transactions() {
                                 </p>
                                 <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                                     <label className="flex items-center gap-2 text-xs font-medium text-slate-600">
-                                        <span className="whitespace-nowrap">Số dòng/trang</span>
+                                        <span className="hidden whitespace-nowrap sm:inline">Số dòng/trang</span>
+                                        <span className="whitespace-nowrap sm:hidden">Dòng</span>
                                         <select
                                             className="select max-w-[6.5rem] py-2 text-xs sm:text-sm"
                                             value={txPageSize}
@@ -1448,7 +1449,7 @@ export default function Transactions() {
                                         >
                                             <ChevronLeft size={18} className="shrink-0" />
                                         </button>
-                                        <span className="min-w-[4.5rem] text-center text-xs font-semibold tabular-nums text-slate-700 sm:text-sm">
+                                        <span className="min-w-[3rem] text-center text-xs font-semibold tabular-nums text-slate-700 sm:min-w-[4.5rem] sm:text-sm">
                                             {txPage}/{totalTxPages}
                                         </span>
                                         <button

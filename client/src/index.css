@@ -76,18 +76,8 @@
 @media (pointer: coarse) {
   :root {
     --tap-min: 44px;
-    --field-h: 48px;
-    --field-fs: 1rem;
-  }
-}
-
-/* Tablet trở lên vẫn là cảm ứng, nhưng màn rộng gấp đôi điện thoại —
-   giữ 48px làm ô nhập cao lênh khênh mà chẳng đổi lại được gì. 44px là
-   ngưỡng vùng chạm của WCAG 2.5.8, vẫn đạt. Cỡ chữ 16px thì giữ, vì
-   iPadOS cũng tự phóng to khi focus ô nhập nhỏ hơn 16px. */
-@media (pointer: coarse) and (min-width: 48rem) {
-  :root {
     --field-h: 44px;
+    --field-fs: 1rem;
   }
 }
 
@@ -100,6 +90,32 @@
 @media (min-width: 1024px) {
   :root {
     --gutter: 1.5rem;
+  }
+}
+
+/* --- Thang khoảng cách theo bề rộng thiết bị ----------------
+   Tailwind v4 sinh MỌI utility khoảng cách — p-, m-, gap-, space-, và cả
+   w-/h- — từ calc(var(--spacing) * n). Đo thực tế: histogram padding ở
+   375px và 1440px gần như trùng nhau, tức điện thoại đang nhận nguyên
+   khoảng cách của desktop trên màn hẹp bằng một phần tư. 16px trên màn
+   1440 là 1,1% bề ngang, trên màn 375 là 4,3% — đó là thứ tạo cảm giác
+   bị phóng to, chứ không phải cỡ chữ (đo được 14/12/11px, không lớn).
+
+   Vùng chạm KHÔNG bị ảnh hưởng: .btn-*, .input, .icon-btn đều chốt bằng
+   min-height: var(--tap-min) / var(--field-h) tính bằng px.
+
+   'screen and' là bắt buộc: khổ A4 khi in rộng khoảng 794px, thiếu mệnh
+   đề này thì bản in khớp nhánh tablet và bị co khoảng cách theo — trong
+   khi bản in phải giữ nguyên. */
+@media screen and (max-width: 47.9375rem) {
+  :root {
+    --spacing: 0.2rem;
+  }
+}
+
+@media screen and (min-width: 48rem) and (max-width: 63.9375rem) {
+  :root {
+    --spacing: 0.225rem;
   }
 }
 
@@ -2008,5 +2024,15 @@ table .font-mono,
 
   select {
     min-height: var(--tap-min);
+  }
+
+  /* Ô nhập viết tay bằng chuỗi utility (`w-full h-12 …`) không đi qua
+     primitive .input nên không có min-height theo token. Sau khi thang
+     --spacing thu lại, h-12 rơi từ 48px xuống 38px — dưới ngưỡng chạm.
+     Bắt theo THẺ thay vì theo class, giống cách đã làm với nút icon, để
+     phủ cả những ô sẽ viết trong tương lai.
+     textarea đứng ngoài: nó có min-height riêng, ép token vào sẽ xoá mất. */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]) {
+    min-height: var(--field-h);
   }
 }

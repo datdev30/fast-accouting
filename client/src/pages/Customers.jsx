@@ -669,7 +669,7 @@ export default function Customers() {
                         <textarea
                             ref={txContentRef}
                             required
-                            className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all text-sm font-medium text-slate-800 placeholder:text-slate-300 shadow-inner min-h-[120px] resize-none underline-none"
+                            className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all text-sm font-medium text-slate-800 placeholder:text-slate-300 shadow-inner min-h-[88px] resize-none underline-none sm:min-h-[120px]"
                             value={txFormData.content}
                             onChange={e => setTxFormData({ ...txFormData, content: e.target.value })}
                         />
