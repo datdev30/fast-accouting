@@ -362,6 +362,95 @@ body {
     @apply w-full bg-white border border-slate-200 rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm transition-all text-sm font-medium text-slate-700 placeholder:text-slate-400 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed resize-none;
   }
 
+  /* --- Ô chọn tự dựng (SelectMenu) -------------------------
+     Nút thì giống hệt .select để hai loại đứng cạnh nhau không lệch;
+     phần khác biệt là danh sách bên dưới do trang vẽ chứ không phải
+     hệ điều hành, nên mới style được. */
+  .select-menu__button {
+    @apply flex w-full cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-700 shadow-sm outline-none transition-all;
+    min-height: var(--field-h);
+    font-size: var(--field-fs);
+  }
+
+  .select-menu__button:hover:not(:disabled) {
+    @apply border-slate-300;
+  }
+
+  .select-menu__button:focus-visible,
+  .select-menu__button[aria-expanded='true'] {
+    @apply border-blue-500 ring-2 ring-blue-500/20;
+  }
+
+  .select-menu__button:disabled {
+    @apply cursor-not-allowed bg-slate-100 text-slate-400;
+  }
+
+  .select-menu__panel {
+    @apply overflow-hidden p-1;
+  }
+
+  .select-menu__option {
+    @apply flex w-full items-center gap-2 rounded-lg px-3 text-sm font-medium text-slate-700 transition-colors;
+    min-height: var(--tap-min);
+  }
+
+  .select-menu__option--active {
+    @apply bg-slate-100 text-slate-900;
+  }
+
+  .select-menu__option--selected {
+    @apply text-blue-700;
+  }
+
+  /* --- Checkbox -------------------------------------------
+     Các ô đang dùng class của plugin @tailwindcss/forms
+     (`rounded border-slate-300 text-blue-600`) nhưng dự án không cài
+     plugin đó, nên text-blue-600 chỉ đặt color và trình duyệt vẫn vẽ ô
+     mặc định của hệ điều hành. Dựng lại bằng appearance-none. */
+  .checkbox {
+    @apply inline-grid shrink-0 cursor-pointer place-content-center rounded-md border-[1.5px] border-slate-300 bg-white transition-colors;
+    appearance: none;
+    -webkit-appearance: none;
+    width: 1.15rem;
+    height: 1.15rem;
+  }
+
+  .checkbox::before {
+    content: '';
+    width: 0.62rem;
+    height: 0.62rem;
+    transform: scale(0);
+    transition: transform 0.12s cubic-bezier(0.22, 1, 0.36, 1);
+    background-color: #fff;
+    clip-path: polygon(14% 45%, 0 60%, 39% 100%, 100% 22%, 84% 8%, 39% 70%);
+  }
+
+  .checkbox:checked {
+    @apply border-blue-600 bg-blue-600;
+  }
+
+  .checkbox:checked::before {
+    transform: scale(1);
+  }
+
+  .checkbox:hover:not(:disabled):not(:checked) {
+    @apply border-slate-400;
+  }
+
+  .checkbox:focus-visible {
+    @apply outline-none ring-2 ring-blue-500/30;
+  }
+
+  .checkbox:disabled {
+    @apply cursor-not-allowed border-slate-200 bg-slate-100;
+  }
+
+  /* Nhãn bọc checkbox: ô chỉ 18px nên vùng chạm phải lấy từ cả nhãn */
+  .checkbox-field {
+    @apply flex cursor-pointer items-center gap-2 text-sm text-slate-700;
+    min-height: var(--tap-min);
+  }
+
   /* Form Field Helpers */
   .field-label {
     @apply block text-xs font-semibold text-slate-700 mb-1;

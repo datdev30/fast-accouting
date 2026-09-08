@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { useWorkingYear } from '../context/WorkingYearContext';
 import { getAppInfo } from '../services/api';
 import AppBrandLogo from './AppBrandLogo';
+import SelectMenu from './SelectMenu';
 import useMediaQuery from '../hooks/useMediaQuery';
 import useScrollLock from '../hooks/useScrollLock';
 
@@ -239,27 +240,22 @@ export default function Layout() {
                             Năm làm việc
                         </label>
                         {yearAdmin ? (
-                            <div className="relative">
-                                <select
-                                    id="sidebar-working-year"
-                                    value={workingYear}
-                                    disabled={isChanging}
-                                    onChange={(e) => setYear(Number(e.target.value))}
-                                    className="select font-mono text-base font-bold tracking-wide text-slate-900"
-                                >
-                                    {availableYears.map((y) => (
-                                        <option key={y} value={y}>{y}</option>
-                                    ))}
-                                    {!availableYears.includes(workingYear + 1) && (
-                                        <option value={workingYear + 1}>{workingYear + 1} (mới)</option>
-                                    )}
-                                </select>
-                                {isChanging && (
-                                    <span className="pointer-events-none absolute inset-y-0 right-9 flex items-center text-blue-500">
-                                        <Loader2 size={15} className="animate-spin" />
-                                    </span>
-                                )}
-                            </div>
+                            <SelectMenu
+                                id="sidebar-working-year"
+                                value={workingYear}
+                                onChange={(y) => setYear(Number(y))}
+                                disabled={isChanging}
+                                ariaLabel="Chọn năm làm việc"
+                                sheetTitle="Năm làm việc"
+                                buttonClassName="font-mono text-base font-bold tracking-wide text-slate-900"
+                                trailing={isChanging ? <Loader2 size={15} className="animate-spin text-blue-500" /> : null}
+                                    options={[
+                                        ...availableYears.map((y) => ({ value: y, label: String(y) })),
+                                        ...(availableYears.includes(workingYear + 1)
+                                            ? []
+                                            : [{ value: workingYear + 1, label: String(workingYear + 1), hint: 'mới' }]),
+                                    ]}
+                            />
                         ) : (
                             /* Không phải admin thì vẫn giữ nguyên hình khối của ô chọn
                                để cột bên trái không bị hụt một khoảng khi đổi vai trò */

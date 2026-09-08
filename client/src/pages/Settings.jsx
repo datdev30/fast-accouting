@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Settings as SettingsIcon, Info, BookOpen, Calculator, Users, DatabaseBackup, LogOut, ChevronRight, CreditCard, Bell, Cloud, Eye, EyeOff, Copy, Check, ExternalLink, Loader2, AlertCircle, Save, CalendarRange } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useWorkingYear } from '../context/WorkingYearContext';
+import SelectMenu from '../components/SelectMenu';
 import { useToast } from '../context/ToastContext';
 import { getApiErrorMessage } from '../utils/errorMessage';
 import { getDriveOAuthRefreshToken, updateDriveOAuthRefreshToken, getDriveOAuthGenerateUrl, handleDriveOAuthCallback } from '../services/api';
@@ -134,28 +135,23 @@ export default function Settings() {
                         </div>
                     </div>
                     {yearAdmin ? (
-                        <div className="relative w-full sm:w-44">
-                            <label htmlFor="settings-working-year" className="sr-only">Chọn năm làm việc</label>
-                            <select
-                                id="settings-working-year"
-                                value={workingYear}
-                                disabled={isChanging}
-                                onChange={(e) => setYear(Number(e.target.value))}
-                                className="select font-mono text-base font-bold tracking-wide text-slate-900"
-                            >
-                                {availableYears.map((y) => (
-                                    <option key={y} value={y}>{y}</option>
-                                ))}
-                                {!availableYears.includes(workingYear + 1) && (
-                                    <option value={workingYear + 1}>{workingYear + 1} (mở năm mới)</option>
-                                )}
-                            </select>
-                            {isChanging && (
-                                <span className="pointer-events-none absolute inset-y-0 right-9 flex items-center text-blue-500">
-                                    <Loader2 size={15} className="animate-spin" />
-                                </span>
-                            )}
-                        </div>
+                        <SelectMenu
+                            className="w-full sm:w-48"
+                            id="settings-working-year"
+                            value={workingYear}
+                            onChange={(y) => setYear(Number(y))}
+                            disabled={isChanging}
+                            ariaLabel="Chọn năm làm việc"
+                            sheetTitle="Năm làm việc"
+                            buttonClassName="font-mono text-base font-bold tracking-wide text-slate-900"
+                            trailing={isChanging ? <Loader2 size={15} className="animate-spin text-blue-500" /> : null}
+                            options={[
+                                ...availableYears.map((y) => ({ value: y, label: String(y) })),
+                                ...(availableYears.includes(workingYear + 1)
+                                    ? []
+                                    : [{ value: workingYear + 1, label: String(workingYear + 1), hint: 'mở năm mới' }]),
+                            ]}
+                        />
                     ) : (
                         <span
                             className="flex items-center rounded-lg border border-slate-200 bg-slate-100 px-3 font-mono text-base font-bold tracking-wide text-slate-700"

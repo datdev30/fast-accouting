@@ -449,21 +449,21 @@ export default function SystemNotificationConfig() {
                     </div>
 
                     <div className="flex flex-wrap gap-4">
-                        <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+                        <label className="checkbox-field">
                             <input
                                 type="checkbox"
                                 checked={formData.is_active}
                                 onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                                className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                className="checkbox"
                             />
                             Đang bật
                         </label>
-                        <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+                        <label className="checkbox-field">
                             <input
                                 type="checkbox"
                                 checked={formData.dismissible}
                                 onChange={(e) => setFormData({ ...formData, dismissible: e.target.checked })}
-                                className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                className="checkbox"
                             />
                             Cho phép đóng sớm
                         </label>
