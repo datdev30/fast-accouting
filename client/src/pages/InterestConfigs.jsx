@@ -1,13 +1,13 @@
-import useScrollLock from '../hooks/useScrollLock';
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getInterestConfigs, createInterestConfig, updateInterestConfig, deleteInterestConfigSecure } from '../services/api';
-import { Plus, Edit2, Trash2, Percent, Tag, Pencil, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, Percent, Tag, Pencil } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useToast } from '../context/ToastContext';
 import { getApiErrorMessage } from '../utils/errorMessage';
 import { useAuth } from '../context/AuthContext';
 import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
+import AppModal from '../components/AppModal';
 import { getInterestConfigColorScheme } from '../utils/colorSchemes';
 import LoadingSkeleton from '../components/LoadingSkeleton';
 import { EmptyStates } from '../components/EmptyState';
@@ -19,7 +19,6 @@ export default function InterestConfigs() {
     const { user } = useAuth();
     const isAdmin = user?.role === 'ADMIN';
     const [isOpen, setIsOpen] = useState(false);
-    useScrollLock(isOpen);
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState({
         code: '',
@@ -146,131 +145,128 @@ export default function InterestConfigs() {
                 </div>
             </div>
 
-            {isOpen && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-all overflow-hidden">
-                    <div className="bg-white rounded-2xl w-full h-auto max-w-md shadow-xl overflow-hidden animate-in fade-in zoom-in duration-300 flex flex-col transition-all">
-                        <div className="px-5 py-4 border-b border-slate-100 bg-white flex justify-between items-center relative z-10">
-                            <div className="flex items-center gap-3">
-                                <div className={clsx(
-                                    "p-2 rounded-xl flex items-center justify-center",
-                                    isEditing ? "bg-blue-50 text-blue-600" : "bg-emerald-50 text-emerald-600"
-                                )}>
-                                    {isEditing ? <Edit2 size={22} /> : <Plus size={22} />}
-                                </div>
-                                <div>
-                                    <h3 className="text-lg font-bold text-slate-900 leading-tight">
-                                        {isEditing ? 'Cập Nhật Cấu Hình' : 'Thêm Quy Tắc Mới'}
-                                    </h3>
-                                    <p className="text-xs font-medium text-slate-400 uppercase tracking-widest mt-0.5">
-                                        {isEditing ? 'Chỉnh sửa chính sách lãi suất' : 'Khởi tạo quy chuẩn mới'}
-                                    </p>
-                                </div>
-                            </div>
-                            <button onClick={handleClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-all active:scale-90">
-                                <X size={20} />
+            <AppModal
+                isOpen={isOpen}
+                onClose={handleClose}
+                size="md"
+                title={isEditing ? 'Cập Nhật Cấu Hình' : 'Thêm Quy Tắc Mới'}
+                icon={(
+                    <div className={clsx(
+                        'flex items-center justify-center rounded-xl p-2',
+                        isEditing ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'
+                    )}>
+                        {isEditing ? <Edit2 size={22} /> : <Plus size={22} />}
+                    </div>
+                )}
+                footer={(
+                    <div className="flex w-full flex-col gap-2 sm:flex-row-reverse">
+                        <button
+                            type="submit"
+                            form="interest-config-form"
+                            disabled={createMutation.isPending || updateMutation.isPending}
+                            className="btn-primary btn-md flex-1"
+                        >
+                            {createMutation.isPending || updateMutation.isPending
+                                ? 'Đang xử lý…'
+                                : (isEditing ? 'Lưu thay đổi' : 'Tạo mới quy tắc')}
+                        </button>
+                        <button type="button" onClick={handleClose} className="btn-secondary btn-md flex-1">
+                            Hủy
+                        </button>
+                        {isEditing && isAdmin && (
+                            <button
+                                type="button"
+                                onClick={() => setIsDeleteModalOpen(true)}
+                                className="btn-ghost btn-md text-red-600 hover:text-red-700 sm:mr-auto"
+                            >
+                                <Trash2 size={16} />
+                                Xóa quy tắc
                             </button>
-                        </div>
-                        <form onSubmit={handleSubmit} className="p-5 space-y-4 overflow-y-auto flex-1">
-                            <div className="grid grid-cols-2 gap-5">
-                                <div className="space-y-2">
-                                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Mã (Duy nhất)</label>
-                                    <div className="relative group">
-                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors">
-                                            <Tag size={18} />
-                                        </div>
-                                        <input
-                                            type="text"
-                                            required
-                                            disabled={isEditing}
-                                            placeholder="TIEN_MAT"
-                                            className={clsx(
-                                                'input input-icon uppercase',
-                                                isEditing && 'cursor-not-allowed'
-                                            )}
-                                            value={formData.code}
-                                            onChange={e => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                                        />
-                                    </div>
+                        )}
+                    </div>
+                )}
+            >
+                <p className="mb-3 text-xs font-medium uppercase tracking-widest text-slate-400">
+                    {isEditing ? 'Chỉnh sửa chính sách lãi suất' : 'Khởi tạo quy chuẩn mới'}
+                </p>
+                <form id="interest-config-form" onSubmit={handleSubmit} className="space-y-4">
+                    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                        <div className="space-y-2">
+                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Mã (Duy nhất)</label>
+                            <div className="relative group">
+                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors">
+                                    <Tag size={18} />
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Lãi tháng (%)</label>
-                                    <div className="relative group">
-                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors">
-                                            <Percent size={18} />
-                                        </div>
-                                        <input
-                                            type="number"
-                                            required
-                                            step="0.1"
-                                            className="input input-icon"
-                                            value={formData.rate_per_month}
-                                            onChange={e => {
-                                                const value = e.target.value;
-                                                if (value === '' || value === '-') {
-                                                    setFormData({ ...formData, rate_per_month: '' });
-                                                    return;
-                                                }
-                                                const num = parseFloat(value);
-                                                if (!isNaN(num) && num >= 0 && num <= 100) {
-                                                    setFormData({ ...formData, rate_per_month: num });
-                                                }
-                                            }}
-                                            min="0"
-                                            max="100"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Tên hiển thị</label>
-                                <div className="relative group">
-                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors">
-                                        <Pencil size={18} />
-                                    </div>
-                                    <input
-                                        type="text"
-                                        required
-                                        placeholder="Tiền Mặt, Thanh Lý..."
-                                        className="input input-icon"
-                                        value={formData.name}
-                                        onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Mô tả quy tắc</label>
-                                <textarea
-                                    className="textarea min-h-[100px]"
-                                    placeholder="Ghi chú về mức lãi này..."
-                                    value={formData.description}
-                                    onChange={e => setFormData({ ...formData, description: e.target.value })}
+                                <input
+                                    type="text"
+                                    required
+                                    disabled={isEditing}
+                                    placeholder="TIEN_MAT"
+                                    className={clsx(
+                                        'input input-icon uppercase',
+                                        isEditing && 'cursor-not-allowed'
+                                    )}
+                                    value={formData.code}
+                                    onChange={e => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
                                 />
                             </div>
-                            <div className="flex flex-col gap-4 pt-6">
-                                <button
-                                    type="submit"
-                                    disabled={createMutation.isPending || updateMutation.isPending}
-                                    className="btn-primary btn-lg w-full"
-                                >
-                                    {createMutation.isPending || updateMutation.isPending ? 'Đang xử lý...' : (isEditing ? 'Lưu thay đổi' : 'Tạo mới quy tắc')}
-                                    <Plus size={18} />
-                                </button>
-
-                                {isEditing && isAdmin && (
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsDeleteModalOpen(true)}
-                                        className="btn-secondary btn-lg w-full text-red-600 hover:border-red-200 hover:text-red-700"
-                                    >
-                                        <Trash2 size={16} />
-                                        Xóa quy tắc này
-                                    </button>
-                                )}
+                        </div>
+                        <div className="space-y-2">
+                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Lãi tháng (%)</label>
+                            <div className="relative group">
+                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors">
+                                    <Percent size={18} />
+                                </div>
+                                <input
+                                    type="number"
+                                    required
+                                    step="0.1"
+                                    className="input input-icon"
+                                    value={formData.rate_per_month}
+                                    onChange={e => {
+                                        const value = e.target.value;
+                                        if (value === '' || value === '-') {
+                                            setFormData({ ...formData, rate_per_month: '' });
+                                            return;
+                                        }
+                                        const num = parseFloat(value);
+                                        if (!isNaN(num) && num >= 0 && num <= 100) {
+                                            setFormData({ ...formData, rate_per_month: num });
+                                        }
+                                    }}
+                                    min="0"
+                                    max="100"
+                                />
                             </div>
-                        </form>
+                        </div>
                     </div>
-                </div>
-            )}
+                    <div className="space-y-2">
+                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Tên hiển thị</label>
+                        <div className="relative group">
+                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors">
+                                <Pencil size={18} />
+                            </div>
+                            <input
+                                type="text"
+                                required
+                                placeholder="Tiền Mặt, Thanh Lý..."
+                                className="input input-icon"
+                                value={formData.name}
+                                onChange={e => setFormData({ ...formData, name: e.target.value })}
+                            />
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Mô tả quy tắc</label>
+                        <textarea
+                            className="textarea min-h-[100px]"
+                            placeholder="Ghi chú về mức lãi này..."
+                            value={formData.description}
+                            onChange={e => setFormData({ ...formData, description: e.target.value })}
+                        />
+                    </div>
+                </form>
+            </AppModal>
 
             <DeleteConfirmationModal
                 isOpen={isDeleteModalOpen}

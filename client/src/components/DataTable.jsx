@@ -12,11 +12,15 @@ import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
  *   priority 2 → cặp nhãn–giá trị trong thẻ; luôn là một cột trong bảng
  *   priority 3 → cặp nhãn–giá trị trong thẻ; trong bảng chỉ hiện từ lg
  *
+ * Muốn xếp lại bố cục thẻ mà không đụng tới thứ tự cột của bảng, dùng các cờ
+ * cardTitle / cardAside / cardFullWidth / cardEmphasis; cardHidden và
+ * tableHidden để một cột chỉ xuất hiện ở một trong hai hình thái.
+ *
  * Dưới md: danh sách thẻ. Từ md: <table>. Việc ẩn/hiện cột priority 3 do
  * CSS làm nên đổi bề rộng không remount hàng nào.
  *
  * @param {Array<object>} rows
- * @param {Array<{id,header,cell,priority?,align?,cellClassName?,headerClassName?,cardHidden?}>} columns
+ * @param {Array<{id,header,cell,priority?,align?,cellClassName?,headerClassName?,cardHidden?,tableHidden?,cardTitle?,cardAside?,cardFullWidth?,cardEmphasis?}>} columns
  * @param {(row:object, index:number)=>string} getRowKey
  * @param {(row:object)=>void} [onRowClick]
  * @param {(row:object)=>string} [rowClassName]
@@ -54,8 +58,24 @@ export default function DataTable({
     // Cột priority 3 chỉ xuất hiện trong bảng từ lg trở lên
     const colVisibility = (priority) => (priority === 3 ? 'hidden lg:table-cell' : '');
 
-    const titleColumn = columns.find((c) => (c.priority ?? 1) === 1) || columns[0];
-    const bodyColumns = columns.filter((c) => c !== titleColumn && !c.cardHidden);
+    /* Bố cục thẻ (dưới md), theo thứ tự từ trên xuống:
+         cardTitle  → dòng đầu, bên trái   (mặc định: cột priority 1 đầu tiên)
+         cardAside  → dòng đầu, bên phải   (badge trạng thái)
+         cardFullWidth → khối chạy hết bề ngang (nội dung dài)
+         còn lại    → cặp nhãn–giá trị; cardEmphasis là dòng tổng, in đậm */
+    const tableColumns = columns.filter((c) => !c.tableHidden);
+    const cardColumns = columns.filter((c) => !c.cardHidden);
+    const titleColumn =
+        cardColumns.find((c) => c.cardTitle) ||
+        cardColumns.find((c) => (c.priority ?? 1) === 1) ||
+        cardColumns[0];
+    const asideColumn = cardColumns.find((c) => c.cardAside && c !== titleColumn);
+    const fullWidthColumns = cardColumns.filter(
+        (c) => c.cardFullWidth && c !== titleColumn && c !== asideColumn
+    );
+    const pairColumns = cardColumns.filter(
+        (c) => c !== titleColumn && c !== asideColumn && !fullWidthColumns.includes(c)
+    );
 
     if (!rows.length) {
         return empty;
@@ -93,16 +113,16 @@ export default function DataTable({
             )}
 
             {/* Dưới md — thẻ */}
-            <ul className="divide-y divide-slate-100 md:hidden">
+            <ul className="divide-y-2 divide-slate-200 bg-white md:hidden">
                 {rows.map((row, index) => {
                     const key = getRowKey ? getRowKey(row, index) : index;
                     const interactive = Boolean(onRowClick);
                     return (
-                        <li key={key} className={clsx('bg-white', rowClassName?.(row))}>
+                        <li key={key} className={rowClassName?.(row)}>
                             <div
                                 className={clsx(
                                     'flex flex-col gap-2 px-4 py-3.5',
-                                    interactive && 'cursor-pointer active:bg-slate-50'
+                                    interactive && 'cursor-pointer active:bg-slate-900/5'
                                 )}
                                 role={interactive ? 'button' : undefined}
                                 tabIndex={interactive ? 0 : undefined}
@@ -118,24 +138,54 @@ export default function DataTable({
                                         : undefined
                                 }
                             >
-                                {titleColumn && (
-                                    <div className="text-[15px] font-semibold leading-snug text-slate-900">
-                                        {titleColumn.cell(row)}
+                                {(titleColumn || asideColumn) && (
+                                    <div className="flex items-start justify-between gap-3">
+                                        {titleColumn && (
+                                            <div className="min-w-0 flex-1 text-[15px] font-semibold leading-snug text-slate-900">
+                                                {titleColumn.cell(row)}
+                                            </div>
+                                        )}
+                                        {asideColumn && (
+                                            <div className="shrink-0">{asideColumn.cell(row)}</div>
+                                        )}
                                     </div>
                                 )}
 
-                                <dl className="grid grid-cols-[minmax(0,auto)_minmax(0,1fr)] gap-x-3 gap-y-1.5">
-                                    {bodyColumns.map((col) => (
-                                        <React.Fragment key={col.id}>
-                                            <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 self-center">
-                                                {col.header}
-                                            </dt>
-                                            <dd className="min-w-0 text-right text-sm text-slate-700">
-                                                {col.cell(row)}
-                                            </dd>
-                                        </React.Fragment>
-                                    ))}
-                                </dl>
+                                {/* Cột cardFullWidth: nội dung dài, cho chạy hết bề ngang thay vì
+                                    ép vào nửa phải của cặp nhãn–giá trị */}
+                                {fullWidthColumns.map((col) => (
+                                    <div key={col.id} className="text-sm leading-snug text-slate-700">
+                                        {col.cell(row)}
+                                    </div>
+                                ))}
+
+                                {pairColumns.length > 0 && (
+                                    <dl className="grid grid-cols-[minmax(0,auto)_minmax(0,1fr)] gap-x-3 gap-y-1.5">
+                                        {pairColumns.map((col) => (
+                                            <React.Fragment key={col.id}>
+                                                {/* Kẻ ngang riêng, chiếm cả hai cột — nếu đặt border-t lên
+                                                    dt và dd thì gap-x sẽ cắt đường kẻ làm đôi */}
+                                                {col.cardEmphasis && (
+                                                    <span aria-hidden className="col-span-2 mt-1 border-t border-slate-200" />
+                                                )}
+                                                <dt className={clsx(
+                                                    'self-center text-[11px] font-semibold uppercase tracking-wide',
+                                                    col.cardEmphasis ? 'text-slate-600' : 'text-slate-400'
+                                                )}>
+                                                    {col.header}
+                                                </dt>
+                                                <dd className={clsx(
+                                                    'min-w-0 text-right',
+                                                    col.cardEmphasis
+                                                        ? 'text-base font-bold text-slate-900'
+                                                        : 'text-sm text-slate-700'
+                                                )}>
+                                                    {col.cell(row)}
+                                                </dd>
+                                            </React.Fragment>
+                                        ))}
+                                    </dl>
+                                )}
                             </div>
                         </li>
                     );
@@ -148,7 +198,7 @@ export default function DataTable({
                     {caption && <caption className="sr-only">{caption}</caption>}
                     <thead className="table-head">
                         <tr>
-                            {columns.map((col) => {
+                            {tableColumns.map((col) => {
                                 const isSortable = Boolean(onSort && col.sortable);
                                 return (
                                     <th
@@ -190,7 +240,7 @@ export default function DataTable({
                                 )}
                                 onClick={onRowClick ? () => onRowClick(row) : undefined}
                             >
-                                {columns.map((col) => (
+                                {tableColumns.map((col) => (
                                     <td
                                         key={col.id}
                                         className={clsx(

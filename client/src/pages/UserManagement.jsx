@@ -1,15 +1,15 @@
-import useScrollLock from '../hooks/useScrollLock';
 import React, { useMemo, useState } from 'react';
 import { clsx } from 'clsx';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createUser, deleteUserSecure, getUsers, updateUser } from '../services/api';
-import { Plus, Pencil, Trash2, User as UserIcon, Shield, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, User as UserIcon, Shield } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
 import { useToast } from '../context/ToastContext';
 import { getApiErrorMessage } from '../utils/errorMessage';
 import { useAuth } from '../context/AuthContext';
 import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
 import DataTable from '../components/DataTable';
+import AppModal from '../components/AppModal';
 
 const ROLE_OPTIONS = [
     { value: 'ADMIN', label: 'ADMIN' },
@@ -33,7 +33,6 @@ export default function UserManagement() {
     const [isEditing, setIsEditing] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
-    useScrollLock(isOpen);
 
     const [formData, setFormData] = useState({
         _id: '',
@@ -316,101 +315,103 @@ export default function UserManagement() {
                 />
             </div>
 
-            {isOpen && (
-                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-50 p-4 overflow-hidden">
-                    <div className="bg-white rounded-2xl w-full h-auto max-w-lg shadow-xl overflow-hidden flex flex-col">
-                        <div className="px-5 py-4 border-b border-slate-100 bg-white flex justify-between items-center">
-                            <div>
-                                <h3 className="text-base font-bold text-slate-900">{isEditing ? 'Cập nhật user' : 'Thêm user'}</h3>
-                                <p className="text-xs text-slate-500">{selectedUserTitle}</p>
-                            </div>
-                            <button type="button" className="btn-ghost btn-sm" onClick={handleClose} aria-label="Đóng">
-                                <X size={18} />
+            <AppModal
+                isOpen={isOpen}
+                onClose={handleClose}
+                size="lg"
+                title={isEditing ? 'Cập nhật user' : 'Thêm user'}
+                footer={(
+                    <div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        {isEditing ? (
+                            <button
+                                type="button"
+                                className="btn-ghost btn-md text-red-600 hover:text-red-700"
+                                onClick={() => setIsDeleteModalOpen(true)}
+                            >
+                                <Trash2 size={18} />
+                                Xóa user
+                            </button>
+                        ) : <span />}
+                        <div className="flex gap-2">
+                            <button type="button" className="btn-secondary btn-md flex-1 sm:flex-none" onClick={handleClose}>
+                                Huỷ
+                            </button>
+                            {/* Nút submit nằm NGOÀI <form> nhưng vẫn gửi được nhờ thuộc tính form=,
+                                nhờ vậy chân modal dính đáy trong khi thân vẫn cuộn. */}
+                            <button
+                                type="submit"
+                                form="user-form"
+                                className="btn-primary btn-md flex-1 sm:flex-none"
+                                disabled={createMutation.isPending || updateMutation.isPending}
+                            >
+                                {isEditing ? 'Lưu thay đổi' : 'Tạo user'}
                             </button>
                         </div>
-
-                        <form onSubmit={handleSubmit} className="p-5 space-y-3 overflow-auto">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="label">Username</label>
-                                    <input
-                                        className="input"
-                                        value={formData.username}
-                                        onChange={(e) => setFormData((s) => ({ ...s, username: e.target.value }))}
-                                        disabled={isEditing}
-                                        placeholder="vd: admin2"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="label">Role</label>
-                                    <select
-                                        className="input"
-                                        value={formData.role}
-                                        onChange={(e) => setFormData((s) => ({ ...s, role: e.target.value }))}
-                                    >
-                                        {ROLE_OPTIONS.map((r) => (
-                                            <option key={r.value} value={r.value}>{r.label}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="label">Display name</label>
-                                <input
-                                    className="input"
-                                    value={formData.display_name}
-                                    onChange={(e) => setFormData((s) => ({ ...s, display_name: e.target.value }))}
-                                    placeholder="vd: Thành Công"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="label">{isEditing ? 'Đặt lại mật khẩu (tuỳ chọn)' : 'Mật khẩu'}</label>
-                                <input
-                                    type="password"
-                                    className="input"
-                                    value={formData.password}
-                                    onChange={(e) => setFormData((s) => ({ ...s, password: e.target.value }))}
-                                    placeholder={isEditing ? 'Để trống nếu không đổi' : 'Nhập mật khẩu'}
-                                />
-                            </div>
-
-                            <div>
-                                <label className="label">{isEditing ? 'Đặt lại mã PIN (tuỳ chọn)' : 'Mã PIN (để xóa/xác thực)'}</label>
-                                <input
-                                    type="password"
-                                    className="input"
-                                    value={formData.pin}
-                                    onChange={(e) => setFormData((s) => ({ ...s, pin: e.target.value }))}
-                                    placeholder={isEditing ? 'Để trống nếu không đổi' : 'Nhập mã PIN'}
-                                    maxLength={6}
-                                    inputMode="numeric"
-                                />
-                            </div>
-
-                            <div className="flex flex-row gap-3 pt-2">
-                                <button type="submit" className="btn-primary btn-md" disabled={createMutation.isPending || updateMutation.isPending}>
-                                    {isEditing ? 'Lưu thay đổi' : 'Tạo user'}
-                                </button>
-                                <button type="button" className="btn-secondary btn-md" onClick={handleClose}>
-                                    Huỷ
-                                </button>
-                                {isEditing && (
-                                    <button
-                                        type="button"
-                                        className="btn-ghost btn-md text-red-600 hover:text-red-700"
-                                        onClick={() => setIsDeleteModalOpen(true)}
-                                    >
-                                        <Trash2 size={18} />
-                                        Xóa user
-                                    </button>
-                                )}
-                            </div>
-                        </form>
                     </div>
-                </div>
-            )}
+                )}
+            >
+                <p className="mb-3 text-xs text-slate-500">{selectedUserTitle}</p>
+                <form id="user-form" onSubmit={handleSubmit} className="space-y-3">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div>
+                            <label className="label">Username</label>
+                            <input
+                                className="input"
+                                value={formData.username}
+                                onChange={(e) => setFormData((s) => ({ ...s, username: e.target.value }))}
+                                disabled={isEditing}
+                                placeholder="vd: admin2"
+                            />
+                        </div>
+                        <div>
+                            <label className="label">Role</label>
+                            <select
+                                className="input"
+                                value={formData.role}
+                                onChange={(e) => setFormData((s) => ({ ...s, role: e.target.value }))}
+                            >
+                                {ROLE_OPTIONS.map((r) => (
+                                    <option key={r.value} value={r.value}>{r.label}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="label">Display name</label>
+                        <input
+                            className="input"
+                            value={formData.display_name}
+                            onChange={(e) => setFormData((s) => ({ ...s, display_name: e.target.value }))}
+                            placeholder="vd: Thành Công"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="label">{isEditing ? 'Đặt lại mật khẩu (tuỳ chọn)' : 'Mật khẩu'}</label>
+                        <input
+                            type="password"
+                            className="input"
+                            value={formData.password}
+                            onChange={(e) => setFormData((s) => ({ ...s, password: e.target.value }))}
+                            placeholder={isEditing ? 'Để trống nếu không đổi' : 'Nhập mật khẩu'}
+                        />
+                    </div>
+
+                    <div>
+                        <label className="label">{isEditing ? 'Đặt lại mã PIN (tuỳ chọn)' : 'Mã PIN (để xóa/xác thực)'}</label>
+                        <input
+                            type="password"
+                            className="input"
+                            value={formData.pin}
+                            onChange={(e) => setFormData((s) => ({ ...s, pin: e.target.value }))}
+                            placeholder={isEditing ? 'Để trống nếu không đổi' : 'Nhập mã PIN'}
+                            maxLength={6}
+                            inputMode="numeric"
+                        />
+                    </div>
+                </form>
+            </AppModal>
 
             <DeleteConfirmationModal
                 isOpen={isDeleteModalOpen}

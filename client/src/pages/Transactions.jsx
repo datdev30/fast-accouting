@@ -88,7 +88,7 @@ export default function Transactions() {
     const isAdmin = user?.role === 'ADMIN';
     const [isOpen, setIsOpen] = useState(false);
     const [editingId, setEditingId] = useState(null);
-    const [editingHasImage, setEditingHasImage] = useState(true);
+    const [editingHasImage, setEditingHasImage] = useState(false);
     const [txImageUrl, setTxImageUrl] = useState(null);
     const [txImageLoading, setTxImageLoading] = useState(false);
     const [txImageError, setTxImageError] = useState('');
@@ -265,7 +265,7 @@ export default function Transactions() {
     const handleClose = useCallback(() => {
         setIsOpen(false);
         setEditingId(null);
-        setEditingHasImage(true);
+        setEditingHasImage(false);
         setTxImageLoading(false);
         setTxImageError('');
         setTxImageUrl(prev => {
@@ -561,7 +561,10 @@ export default function Transactions() {
 
     const handleEdit = useCallback((tx) => {
         setEditingId(tx._id);
-        setEditingHasImage(tx.image_drive_file_id !== undefined ? Boolean(tx.image_drive_file_id) : true);
+        // Thiếu field → coi như KHÔNG có ảnh. Adapter Firestore không áp default
+        // của schema Mongoose, nên giao dịch vừa tạo không có image_drive_file_id;
+        // mặc định "có ảnh" làm icon sáng rồi bấm vào thì lỗi tải ảnh.
+        setEditingHasImage(Boolean(tx.image_drive_file_id));
         // Do not auto-load image when opening edit modal. Only load when user clicks view.
         setTxImageLoading(false);
         setTxImageError('');
@@ -1006,13 +1009,13 @@ export default function Transactions() {
                         aria-modal="true"
                         aria-labelledby="tx-modal-title"
                     >
-                        <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between gap-3">
+                        <div className="flex items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/50 p-4 sm:p-5">
                             <div className="flex items-center gap-3 min-w-0">
-                                <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-200/50 shrink-0">
+                                <div className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-md shadow-blue-200/50 sm:flex">
                                     {editingId ? <Edit2 size={18} /> : <Plus size={20} />}
                                 </div>
                                 <div className="min-w-0">
-                                    <h2 id="tx-modal-title" className="text-lg font-bold text-slate-900 tracking-tight">
+                                    <h2 id="tx-modal-title" className="text-base font-bold tracking-tight text-slate-900 sm:text-lg">
                                         {editingId ? 'Chỉnh sửa giao dịch' : 'Tạo giao dịch mới'}
                                     </h2>
                                     <p className="text-xs text-slate-500 mt-0.5 font-medium line-clamp-2">
@@ -1351,41 +1354,38 @@ export default function Transactions() {
                                 </div>
                             )}
 
-                            <div className="p-5 bg-slate-50/50 border-t border-slate-100 flex flex-row items-center justify-between gap-0">
-                                {/* Left Side: Delete (or empty if not eligible) */}
-                                <div className="w-auto mt-0">
-                                    {editingId && isAdmin && (
-                                        <button
-                                            type="button"
-                                            onClick={() => setIsDeleteModalOpen(true)}
-                                            className="btn-danger btn-md w-auto flex items-center justify-center gap-2"
-                                        >
-                                            <Trash2 size={16} />
-                                            Xóa giao dịch
-                                        </button>
-                                    )}
-                                </div>
-
-                                {/* Right Side: Actions */}
-                                <div className="flex flex-row items-center justify-end gap-3 w-auto">
+                            {/* Xếp dọc dưới sm: ba nút trên một hàng ở 375px sẽ bị bóp
+                                đến mức nhãn xuống dòng. Cùng khuôn với footer modal ở
+                                Customers.jsx — nút chính đứng đầu trên mobile, nằm ngoài
+                                cùng bên phải trên desktop; nút xóa tách hẳn sang trái. */}
+                            <div className="flex w-full flex-col gap-2 border-t border-slate-100 bg-slate-50/50 p-5 sm:flex-row-reverse sm:items-center sm:gap-3">
+                                <button
+                                    type="submit"
+                                    disabled={createMutation.isPending || updateMutation.isPending}
+                                    className="btn-primary btn-lg w-full disabled:cursor-wait sm:w-auto"
+                                >
+                                    {createMutation.isPending || updateMutation.isPending
+                                        ? 'Đang xử lý...'
+                                        : (editingId ? 'Lưu thay đổi' : 'Tạo giao dịch mới')}
+                                    <ChevronRight size={18} />
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleClose}
+                                    className="btn-secondary btn-lg w-full sm:w-auto"
+                                >
+                                    Hủy
+                                </button>
+                                {editingId && isAdmin && (
                                     <button
                                         type="button"
-                                        onClick={handleClose}
-                                        className="btn-secondary btn-lg w-auto"
+                                        onClick={() => setIsDeleteModalOpen(true)}
+                                        className="btn-danger btn-md flex w-full items-center justify-center gap-2 sm:mr-auto sm:w-auto"
                                     >
-                                        Hủy
+                                        <Trash2 size={16} />
+                                        Xóa giao dịch
                                     </button>
-                                    <button
-                                        type="submit"
-                                        disabled={createMutation.isPending || updateMutation.isPending}
-                                        className="btn-primary btn-lg w-auto disabled:cursor-wait"
-                                    >
-                                        {createMutation.isPending || updateMutation.isPending
-                                            ? 'Đang xử lý...'
-                                            : (editingId ? 'Lưu thay đổi' : 'Tạo giao dịch mới')}
-                                        <ChevronRight size={18} />
-                                    </button>
-                                </div>
+                                )}
                             </div>
                         </form>
                     </div>
@@ -1466,78 +1466,88 @@ export default function Transactions() {
                         )}
 
                         {/* Mobile: thẻ — dễ đọc, thao tác bằng cảm ứng */}
-                        <div className="md:hidden divide-y divide-slate-100">
+                        {/* Mobile: danh sách — mỗi giao dịch là một dòng, ngăn nhau bằng
+                            đường kẻ hết bề ngang. Trước đây thẻ có một hộp xám lồng bên
+                            trong, viền của nó đậm hơn cả đường ngăn giữa hai dòng nên mắt
+                            đọc nhầm ranh giới; giờ làm phẳng để đường ngăn là nét mạnh nhất. */}
+                        <div className="md:hidden">
                             {paginatedTransactions.map((tx) => {
                                 const customerName = resolveCustomerName(customers, tx);
                                 const typeConfig = configs?.find(c => c.code === tx.type);
                                 const typeName = typeConfig ? typeConfig.name : tx.type;
                                 const typeColors = getInterestConfigColorScheme(tx.type);
                                 const { principal, interest, total, calc } = parseTxAmounts(tx);
+                                const isPaid = tx.status === 'PAID';
 
                                 return (
                                     <div
                                         key={tx._id}
                                         onClick={() => handleEdit(tx)}
                                         className={clsx(
-                                            'p-4 active:bg-slate-50/80 transition-colors border-l-[3px]',
-                                            tx.status === 'PAID' ? 'border-l-emerald-500 bg-emerald-50/40' : 'border-l-amber-400 bg-white'
+                                            'relative border-b-2 border-slate-200 px-4 py-3.5 transition-colors last:border-b-0 active:bg-slate-100',
+                                            isPaid ? 'bg-emerald-50/40' : 'bg-white'
                                         )}
                                     >
+                                        {/* Sọc trạng thái dừng trước đường kẻ, để hai dòng cùng
+                                            trạng thái không dính thành một vệt dài liền mạch */}
+                                        <span
+                                            aria-hidden
+                                            className={clsx(
+                                                'absolute inset-y-0 left-0 w-1',
+                                                isPaid ? 'bg-emerald-500' : 'bg-amber-400'
+                                            )}
+                                        />
+
                                         <div className="flex items-start justify-between gap-3">
                                             <div className="min-w-0 flex-1">
-                                                <div className="text-xs font-semibold text-slate-600 tabular-nums">
+                                                <div className="font-mono text-xs font-semibold tabular-nums text-slate-500">
                                                     {formatDate(tx.transaction_date)}
                                                 </div>
-                                                <p className="mt-1 font-semibold text-slate-900 leading-snug">{customerName}</p>
-                                                <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                                                    <span className={clsx('px-2 py-0.5 rounded-md text-[11px] font-bold border border-transparent', typeColors.badge)}>
-                                                        {typeName}
-                                                    </span>
-                                                    {calc != null && (
-                                                        <span className="text-[11px] text-slate-500 tabular-nums">
-                                                            {tx.interest_rate_snapshot}% · {calc?.months?.toFixed(1) ?? 0} tháng
-                                                        </span>
-                                                    )}
-                                                </div>
+                                                <p className="mt-0.5 font-semibold leading-snug text-slate-900">{customerName}</p>
                                             </div>
                                             <button
                                                 type="button"
                                                 onClick={(e) => handleStatusToggle(e, tx)}
+                                                aria-label={`Đổi trạng thái: hiện đang ${isPaid ? 'đã thu' : 'chưa thu'}`}
                                                 className={clsx(
-                                                    'tap-expand shrink-0 rounded-lg px-2 py-1 text-[10px] font-bold uppercase tracking-wide border',
-                                                    tx.status === 'PAID'
+                                                    'tap-expand shrink-0 rounded-lg border px-2 py-1 text-[10px] font-bold uppercase tracking-wide',
+                                                    isPaid
                                                         ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
                                                         : 'border-amber-200 bg-amber-50 text-amber-900'
                                                 )}
                                             >
-                                                {tx.status === 'PAID' ? 'Đã thu' : 'Chưa thu'}
+                                                {isPaid ? 'Đã thu' : 'Chưa thu'}
                                             </button>
                                         </div>
 
-                                        <div className="mt-3 rounded-lg border border-slate-100 bg-slate-50/80 p-3 space-y-2">
-                                            <div className="flex items-baseline justify-between gap-2">
-                                                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tổng</span>
-                                                <span className="font-mono text-base font-bold text-slate-900 tabular-nums">
-                                                    {(calc ? total : principal).toLocaleString('vi-VN')}
-                                                    <span className="text-xs font-sans font-normal text-slate-400 ml-0.5">đ</span>
+                                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                                            <span className={clsx('rounded-md border border-transparent px-2 py-0.5 text-[11px] font-bold', typeColors.badge)}>
+                                                {typeName}
+                                            </span>
+                                            {calc != null && (
+                                                <span className="font-mono text-[11px] tabular-nums text-slate-500">
+                                                    {tx.interest_rate_snapshot}% · {calc?.months?.toFixed(1) ?? 0} tháng
                                                 </span>
-                                            </div>
-                                            <div className="flex justify-between gap-3 text-xs tabular-nums text-slate-600">
-                                                <span className="font-mono">Gốc {principal.toLocaleString('vi-VN')}</span>
-                                                <span className="font-mono text-blue-600">
-                                                    {calc && interest > 0
-                                                        ? `+${interest.toLocaleString('vi-VN')} lãi`
-                                                        : '—'}
-                                                </span>
-                                            </div>
-                                            <div className="pt-2 border-t border-slate-200/80">
-                                                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Nội dung</p>
-                                                <div className="text-sm text-slate-700 leading-snug">
-                                                    {formatTransactionContentPreview(tx.content, { lineClampClass: 'line-clamp-3' })}
-                                                </div>
-                                            </div>
+                                            )}
                                         </div>
-                                        <p className="mt-2 text-center text-[10px] text-slate-400">Chạm để chỉnh sửa · Nút trạng thái đổi đã thu / chưa thu</p>
+
+                                        <div className="mt-2 text-sm leading-snug text-slate-700">
+                                            {formatTransactionContentPreview(tx.content, { lineClampClass: 'line-clamp-3' })}
+                                        </div>
+
+                                        {/* Hàng tiền: gốc + lãi bên trái, tổng nổi bật bên phải */}
+                                        <div className="mt-2.5 flex items-baseline justify-between gap-3 border-t border-slate-100 pt-2">
+                                            <span className="font-mono text-xs tabular-nums text-slate-500">
+                                                {principal.toLocaleString('vi-VN')}
+                                                {calc && interest > 0 && (
+                                                    <span className="text-blue-600"> +{interest.toLocaleString('vi-VN')}</span>
+                                                )}
+                                            </span>
+                                            <span className="font-mono text-base font-bold tabular-nums text-slate-900">
+                                                {(calc ? total : principal).toLocaleString('vi-VN')}
+                                                <span className="ml-0.5 font-sans text-xs font-normal text-slate-400">đ</span>
+                                            </span>
+                                        </div>
                                     </div>
                                 );
                             })}

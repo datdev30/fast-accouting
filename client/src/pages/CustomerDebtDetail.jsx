@@ -725,19 +725,35 @@ const CustomerDebtDetail = () => {
                                             : 'hover:bg-blue-50/30')}
                                         columns={[
                                             {
-                                                id: 'content',
-                                                header: 'Nội dung',
-                                                priority: 1,
-                                                cellClassName: 'text-slate-700 font-medium leading-relaxed min-w-[15rem]',
-                                                // whitespace-pre-wrap đặt trong cell để giữ xuống dòng ở CẢ bảng lẫn thẻ
-                                                cell: (tx) => <span className="whitespace-pre-wrap">{tx.content}</span>,
-                                            },
-                                            {
                                                 id: 'date',
                                                 header: 'Ngày',
                                                 priority: 2,
+                                                cardTitle: true,
                                                 cellClassName: 'whitespace-nowrap text-slate-500 font-medium',
                                                 cell: (tx) => formatDate(tx.transaction_date),
+                                            },
+                                            {
+                                                /* Chỉ có trong thẻ: bảng đã phân biệt bằng màu nền dòng,
+                                                   còn thẻ trên mobile cần nhãn nói rõ giao dịch đã thanh toán */
+                                                id: 'status',
+                                                header: 'Trạng thái',
+                                                tableHidden: true,
+                                                cardAside: true,
+                                                cell: (tx) => (tx.status === 'PAID' ? (
+                                                    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-700">
+                                                        <CheckCircle size={13} />
+                                                        Đã thanh toán
+                                                    </span>
+                                                ) : null),
+                                            },
+                                            {
+                                                id: 'content',
+                                                header: 'Nội dung',
+                                                priority: 1,
+                                                cardFullWidth: true,
+                                                cellClassName: 'text-slate-700 font-medium leading-relaxed min-w-[15rem]',
+                                                // whitespace-pre-wrap đặt trong cell để giữ xuống dòng ở CẢ bảng lẫn thẻ
+                                                cell: (tx) => <span className="whitespace-pre-wrap">{tx.content}</span>,
                                             },
                                             {
                                                 id: 'type',
@@ -797,6 +813,7 @@ const CustomerDebtDetail = () => {
                                                 id: 'total',
                                                 header: 'Tổng cộng',
                                                 priority: 1,
+                                                cardEmphasis: true,
                                                 align: 'right',
                                                 cellClassName: 'font-mono font-semibold text-slate-900 whitespace-nowrap',
                                                 cell: (tx) => (

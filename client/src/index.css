@@ -13,6 +13,13 @@
   --font-heading: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
   --font-body: 'Open Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
 
+  /* Số tiền trong bảng dùng Consolas: chữ số rộng bằng nhau nên cột thẳng
+     hàng, và số 0 có gạch chéo nên không lẫn với chữ O.
+     Stack mặc định của Tailwind đặt ui-monospace trước, trên Windows nó có
+     thể rơi vào font khác chứ không chắc ra Consolas — nên chỉ định thẳng.
+     Các tên sau dành cho macOS/iOS và Linux, nơi không có Consolas. */
+  --font-mono: 'Consolas', 'Cascadia Mono', ui-monospace, 'SF Mono', 'Menlo', 'DejaVu Sans Mono', monospace;
+
   /* Design System - Fintech Color Palette */
   --color-primary: #2563EB;
   --color-primary-hover: #1D4ED8;
@@ -481,25 +488,57 @@ body {
     @apply bg-blue-50 border-blue-200 text-blue-800;
   }
 
-  /* Modal Utilities - Design Spec */
+  /* ==========================================================
+     MODAL — bộ primitive dùng chung cho <AppModal>
+     ----------------------------------------------------------
+     Trước đây mỗi modal tự viết chuỗi `fixed inset-0 …`: 16 biến
+     thể khác nhau về z-index, độ mờ nền, blur và padding. Mỗi lần
+     viết tay là một cơ hội quên dvh, quên safe-area, quên khóa
+     scroll. Gom về đây để sửa một chỗ là đúng tất cả.
+     ========================================================== */
   .modal-overlay {
-    @apply fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4;
+    @apply fixed inset-0 flex items-center justify-center bg-slate-900/60 backdrop-blur-md;
+    z-index: var(--modal-z, 50);
+    padding: 1rem;
+    padding-top: max(1rem, var(--safe-t));
+    padding-bottom: max(1rem, var(--safe-b));
   }
 
   .modal-content {
-    @apply bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col;
+    @apply flex w-full flex-col overflow-hidden rounded-2xl bg-white shadow-xl;
+    /* dvh co lại khi bàn phím ảo bật; vh thì không */
+    max-height: min(90dvh, 100dvh - 2rem);
   }
 
   .modal-header {
-    @apply px-5 py-4 border-b border-slate-100 bg-white flex items-center justify-between;
+    @apply flex shrink-0 items-center justify-between gap-3 border-b border-slate-100 bg-white px-5 py-4;
   }
 
   .modal-body {
-    @apply px-5 py-4 overflow-y-auto flex-1;
+    @apply min-h-0 flex-1 overflow-y-auto px-5 py-4;
   }
 
+  /* sticky: nút submit không bị bàn phím ảo đẩy khuất */
   .modal-footer {
-    @apply px-5 py-4 border-t border-slate-100 bg-slate-50 flex items-center justify-end gap-2;
+    @apply sticky bottom-0 z-[1] flex shrink-0 items-center justify-end gap-2 border-t border-slate-100 bg-slate-50 px-5 py-4;
+  }
+
+  /* Dưới 640px: dán đáy màn hình, bo góc trên — dễ với ngón cái hơn */
+  @media (max-width: 39.9375rem) {
+    .modal-overlay--sheet {
+      align-items: flex-end;
+      padding: 0;
+    }
+
+    .modal-overlay--sheet .modal-content {
+      max-height: 92dvh;
+      border-bottom-left-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+
+    .modal-overlay--sheet .modal-footer {
+      padding-bottom: max(1rem, var(--safe-b));
+    }
   }
 
   /* Focus States - Enhanced for Accessibility */
@@ -1428,7 +1467,9 @@ body {
     transform: translate(-50%, -50%);
   }
 
-  /* --- Modal: panel & bottom sheet (F7, F13) --------------- */
+  /* --- Modal: lối thoát cho các modal chưa di trú sang AppModal --------
+     .modal-panel áp cho panel viết tay để ít nhất có dvh + cột co giãn.
+     Định nghĩa đầy đủ của bộ modal nằm ở khối "MODAL — primitive" phía trên. */
   .modal-panel {
     max-height: min(var(--modal-max-h), 100dvh - 1.5rem);
     display: flex;
@@ -1439,7 +1480,6 @@ body {
     min-height: 0;
   }
 
-  .modal-footer,
   .modal-panel__footer {
     position: sticky;
     bottom: 0;
@@ -1892,5 +1932,38 @@ body {
 
   .sys-notice__progress {
     display: none;
+  }
+}
+
+/* --- Số trong bảng: canh cột theo chữ số ---------------------
+   Ô nào trong bảng dùng font-mono đều là số tiền/ngày. tabular-nums
+   ép mọi chữ số rộng bằng nhau, nên các cột tiền thẳng hàng khi cuộn
+   mắt theo chiều dọc — thứ quan trọng nhất khi đọc sổ. */
+table .font-mono,
+.table .font-mono,
+.reports-page__kpi-value {
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Lưới an toàn vùng chạm trên thiết bị cảm ứng ------------
+   Token --tap-min chỉ tới được các phần tử dùng .icon-btn/.btn-*.
+   Nhưng code mới liên tục viết tay nút icon bằng chuỗi utility
+   (`rounded-lg p-2 ...`) nên lọt lưới — lần rà này bắt được 6 nút
+   như vậy ở trang thông báo, cùng ô <select> năm làm việc.
+
+   Thay vì đuổi theo từng chỗ, bắt theo HÌNH DẠNG: nút mà con duy
+   nhất là một icon thì chắc chắn là nút biểu tượng. Cách này phủ
+   cả những nút sẽ viết trong tương lai. */
+@media (pointer: coarse) {
+
+  button:has(> svg:only-child),
+  a[href]:has(> svg:only-child),
+  [role="button"]:has(> svg:only-child) {
+    min-width: var(--tap-min);
+    min-height: var(--tap-min);
+  }
+
+  select {
+    min-height: var(--tap-min);
   }
 }
