@@ -718,10 +718,13 @@ router.post('/bulk-pay', authMiddleware, requireAdminOrSale, async (req, res, ne
  * POST /api/transactions/delete-secure
  * Delete transaction with PIN verification
  */
-router.post('/delete-secure', authMiddleware, requireAdmin, async (req, res) => {
-    try {
-        const { id, pin } = req.body;
+router.post('/delete-secure', authMiddleware, requireAdmin, async (req, res, next) => {
+    // Khai báo NGOÀI try: khối catch bên dưới có ghi log kèm id, mà `const`
+    // khai báo trong try thì catch không nhìn thấy — trước đây điều này biến
+    // mọi lỗi xoá thành ReferenceError, che mất nguyên nhân thật.
+    const { id, pin } = req.body;
 
+    try {
         // Verify admin PIN
         await verifyAdminPin(pin, req.currentUser);
 
