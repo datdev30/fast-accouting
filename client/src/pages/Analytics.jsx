@@ -40,8 +40,8 @@ export default function Analytics() {
                 <div className="reports-page__masthead-accent" aria-hidden />
                 <div className="relative z-[1] min-w-0 flex-1">
                     <p className="reports-page__kicker">Menu Báo cáo</p>
-                    <h1 className="section-title text-xl lg:text-2xl">Phân tích &amp; báo cáo</h1>
-                    <p className="section-subtitle mt-1 max-w-2xl">
+                    <h1 className="section-title">Phân tích &amp; báo cáo</h1>
+                    <p className="section-subtitle mt-1 line-clamp-1 max-w-2xl sm:line-clamp-none">
                         Biểu đồ phân bổ nợ, top công nợ và mức độ hoạt động giao dịch — cùng nguồn dữ liệu với Tổng quan.
                     </p>
                 </div>

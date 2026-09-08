@@ -71,7 +71,7 @@ export default function AnalyticsDashboard({ report }) {
         <div className="reports-charts-root space-y-6 lg:space-y-8">
             <section className="reports-page__kpi-grid reports-page__kpi-grid--3" aria-label="Chỉ số phân tích">
                 <div className="reports-page__kpi-card reports-page__kpi-card--recovery">
-                    <div className="relative z-[1] flex items-start gap-3">
+                    <div className="relative z-[1] flex flex-col gap-1.5 sm:flex-row sm:items-start sm:gap-3">
                         <div
                             className="reports-page__kpi-icon reports-page__kpi-icon--collected"
                             aria-hidden
@@ -94,7 +94,7 @@ export default function AnalyticsDashboard({ report }) {
                 </div>
 
                 <div className="reports-page__kpi-card reports-page__kpi-card--principal">
-                    <div className="relative z-[1] flex items-start gap-3">
+                    <div className="relative z-[1] flex flex-col gap-1.5 sm:flex-row sm:items-start sm:gap-3">
                         <div
                             className="reports-page__kpi-icon reports-page__kpi-icon--principal"
                             aria-hidden
@@ -113,7 +113,7 @@ export default function AnalyticsDashboard({ report }) {
                 </div>
 
                 <div className="reports-page__kpi-card reports-page__kpi-card--avg-debt">
-                    <div className="relative z-[1] flex items-start gap-3">
+                    <div className="relative z-[1] flex flex-col gap-1.5 sm:flex-row sm:items-start sm:gap-3">
                         <div
                             className="reports-page__kpi-icon reports-page__kpi-icon--avg-debt"
                             aria-hidden

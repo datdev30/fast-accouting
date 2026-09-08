@@ -792,7 +792,7 @@ export default function Customers() {
                     showDetails={true}
                 />
             ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
             {isLoadingCustomers ? (
                 // Show skeleton loaders while loading
                 Array.from({ length: 8 }).map((_, i) => (
@@ -820,44 +820,56 @@ export default function Customers() {
                         <div
                             key={customer._id}
                             onClick={() => handleEdit(customer)}
-                            className="group relative bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md hover:shadow-blue-500/10 hover:border-blue-200 transition-all duration-300 cursor-pointer overflow-hidden flex flex-col card-hover"
+                            className="group relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1 overflow-hidden rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition-all duration-300 cursor-pointer card-hover hover:border-blue-200 hover:shadow-md hover:shadow-blue-500/10 sm:flex sm:flex-col sm:items-stretch sm:p-4"
                         >
                             {/* Decorative Background Element */}
                             <div className="absolute -top-12 -right-12 w-32 h-32 bg-gradient-to-br from-blue-50 to-indigo-50/30 rounded-full group-hover:scale-150 transition-transform duration-500 ease-out z-0 opacity-60"></div>
 
                             {/* Paid in Full Ribbon */}
-                            {customer.is_paid_in_full && <PaidRibbon />}
+                            {customer.is_paid_in_full && (
+                                <span className="hidden sm:block"><PaidRibbon /></span>
+                            )}
 
-                            <div className="flex items-center gap-3 mb-4 relative z-10">
+                            <div className="relative z-10 flex min-w-0 items-center gap-2.5 sm:mb-4 sm:gap-3">
                                 {/* Avatar Circle */}
-                                <div className="w-11 h-11 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center border border-slate-200 group-hover:bg-blue-50 group-hover:text-blue-500 group-hover:border-blue-100 transition-colors duration-300 shrink-0">
-                                    <User size={22} />
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-slate-400 transition-colors duration-300 group-hover:border-blue-100 group-hover:bg-blue-50 group-hover:text-blue-500 sm:h-11 sm:w-11">
+                                    <User size={18} className="sm:hidden" />
+                                    <User size={22} className="hidden sm:block" />
                                 </div>
-                                <div className="flex-1 min-w-0 text-left">
+                                <div className="min-w-0 flex-1 text-left">
                                     {/* Chừa chỗ cho dải băng ở góc phải — nếu không, tên dài sẽ
-                                        chạy xuống dưới băng và không đọc được. */}
+                                        chạy xuống dưới băng và không đọc được. Dưới sm không có
+                                        dải băng (nó đè lên cụm nút ở bố cục compact) nên không chừa. */}
                                     <h3 className={clsx(
-                                        "text-lg font-bold text-slate-900 truncate group-hover:text-blue-600 transition-colors",
-                                        customer.is_paid_in_full && "pr-16"
+                                        "truncate text-[15px] font-bold text-slate-900 transition-colors group-hover:text-blue-600 sm:text-lg",
+                                        customer.is_paid_in_full && "sm:pr-16"
                                     )}>
                                         {customer.name}
                                     </h3>
                                 </div>
+                                {customer.is_paid_in_full && (
+                                    <span
+                                        title="Đã tất toán"
+                                        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 sm:hidden"
+                                    >
+                                        <Check size={13} strokeWidth={3} />
+                                    </span>
+                                )}
                             </div>
 
-                            <div className="space-y-2 mb-4 relative z-10">
-                                <div className="flex items-start gap-2.5 text-slate-500 text-sm">
-                                    <div className="p-1.5 bg-slate-50 text-slate-400 rounded-lg group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors">
+                            <div className="relative z-10 col-span-2 col-start-1 row-start-2 space-y-2 sm:col-span-1 sm:mb-4 sm:row-auto">
+                                <div className="flex items-start gap-1.5 text-xs text-slate-500 sm:gap-2.5 sm:text-sm">
+                                    <div className="rounded-lg bg-slate-50 p-0.5 text-slate-400 transition-colors group-hover:bg-blue-50 group-hover:text-blue-500 sm:p-1.5">
                                         <MapPin size={14} />
                                     </div>
-                                    <span className="leading-tight pt-0.5 line-clamp-2 italic font-medium text-slate-500">
+                                    <span className="line-clamp-1 pt-0.5 font-medium italic leading-tight text-slate-500 sm:line-clamp-2">
                                         {customer.contact_info || 'Chưa cập nhật địa chỉ'}
                                     </span>
                                 </div>
                             </div>
 
                             {/* Nút lịch sử chuyển xuống đây: góc phải trên đã dành cho dải băng */}
-                            <div className="mt-auto pt-3 border-t border-slate-50 flex items-center gap-2 relative z-10">
+                            <div className="relative z-10 col-start-2 row-start-1 flex shrink-0 items-center gap-1 sm:col-auto sm:row-auto sm:mt-auto sm:gap-2 sm:border-t sm:border-slate-50 sm:pt-3">
                                 <button
                                     type="button"
                                     onClick={(e) => { e.stopPropagation(); handleOpenHistory(customer); }}
@@ -870,9 +882,10 @@ export default function Customers() {
                                 <Link
                                     to={`/customers/${customer.id}/debt`}
                                     onClick={(e) => e.stopPropagation()}
-                                    className="flex-1 flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-wider text-blue-600 hover:text-white hover:bg-blue-600 border border-blue-100 hover:border-blue-600 transition-all px-3 py-2.5 min-h-[var(--tap-min)] rounded-xl shadow-sm group/btn"
+                                    className="group/btn flex min-h-[var(--tap-min)] min-w-[var(--tap-min)] items-center justify-center gap-2 rounded-xl border border-blue-100 text-[10px] font-bold uppercase tracking-wider text-blue-600 shadow-sm transition-all hover:border-blue-600 hover:bg-blue-600 hover:text-white sm:flex-1 sm:px-3 sm:py-2.5"
                                 >
-                                    Xem chi tiết nợ <ChevronRight size={14} className="group-hover/btn:translate-x-1 transition-transform" />
+                                    <span className="hidden sm:inline">Xem chi tiết nợ</span>
+                                    <ChevronRight size={16} className="transition-transform group-hover/btn:translate-x-1" />
                                 </Link>
                             </div>
                         </div>

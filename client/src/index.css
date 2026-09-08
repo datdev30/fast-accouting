@@ -81,6 +81,16 @@
   }
 }
 
+/* Tablet trở lên vẫn là cảm ứng, nhưng màn rộng gấp đôi điện thoại —
+   giữ 48px làm ô nhập cao lênh khênh mà chẳng đổi lại được gì. 44px là
+   ngưỡng vùng chạm của WCAG 2.5.8, vẫn đạt. Cỡ chữ 16px thì giữ, vì
+   iPadOS cũng tự phóng to khi focus ô nhập nhỏ hơn 16px. */
+@media (pointer: coarse) and (min-width: 48rem) {
+  :root {
+    --field-h: 44px;
+  }
+}
+
 @media (min-width: 640px) {
   :root {
     --gutter: 1rem;
@@ -135,7 +145,7 @@ body {
 
   /* Typography - Desktop (Be Vietnam Pro for headings, Open Sans for body) */
   .section-title {
-    @apply text-xl lg:text-2xl font-bold tracking-tight text-slate-900;
+    @apply text-lg font-bold tracking-tight text-slate-900 sm:text-xl lg:text-2xl;
     font-family: var(--font-heading);
   }
 
@@ -817,7 +827,7 @@ body {
   }
 
   .reports-page__masthead {
-    @apply relative flex flex-col gap-4 overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between lg:p-6;
+    @apply relative flex flex-col gap-3 overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:p-5 lg:p-6;
     background-image: linear-gradient(135deg, #fff 0%, rgba(248, 250, 252, 0.95) 45%, rgba(239, 246, 255, 0.35) 100%);
   }
 
@@ -835,12 +845,16 @@ body {
   }
 
   .reports-page__kpi-grid {
-    @apply grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4;
+    @apply grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4;
   }
 
   /* Hàng 3 KPI trên trang Phân tích (/reports) */
   .reports-page__kpi-grid--3 {
-    @apply grid grid-cols-1 gap-4 md:grid-cols-3;
+    @apply grid grid-cols-2 gap-2.5 sm:gap-4 md:grid-cols-3;
+  }
+
+  .reports-page__kpi-grid--3 > :last-child {
+    @apply col-span-2 md:col-span-1;
   }
 
   .reports-page__kpi-card--recovery {
@@ -864,12 +878,12 @@ body {
   }
 
   .reports-page__kpi-card {
-    @apply relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white py-5 pl-6 pr-5 shadow-sm transition-all duration-300 hover:border-slate-300/90 hover:shadow-md;
+    @apply relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white py-3 pl-5 pr-3 shadow-sm transition-all duration-300 hover:border-slate-300/90 hover:shadow-md sm:py-5 sm:pl-6 sm:pr-5;
   }
 
   .reports-page__kpi-card::before {
     content: '';
-    @apply absolute bottom-4 left-3 top-4 w-1 rounded-full;
+    @apply absolute bottom-3 left-2 top-3 w-1 rounded-full sm:bottom-4 sm:left-3 sm:top-4;
   }
 
   .reports-page__kpi-card--principal::before {
@@ -893,7 +907,11 @@ body {
   }
 
   .reports-page__kpi-icon {
-    @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-100 bg-slate-50 text-slate-600 shadow-sm;
+    @apply flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-slate-100 bg-slate-50 text-slate-600 shadow-sm sm:h-10 sm:w-10;
+  }
+
+  .reports-page__kpi-icon > svg {
+    @apply h-4 w-4 sm:h-5 sm:w-5;
   }
 
   .reports-page__kpi-icon--principal {
@@ -917,7 +935,7 @@ body {
   }
 
   .reports-page__kpi-value {
-    @apply font-mono text-xl font-bold tabular-nums tracking-tight text-slate-900 lg:text-2xl;
+    @apply font-mono text-base font-bold tabular-nums tracking-tight text-slate-900 sm:text-xl lg:text-2xl;
   }
 
   .reports-page__kpi-suffix {
@@ -925,6 +943,7 @@ body {
   }
 
   .reports-page__kpi-foot {
+    @apply hidden sm:block;
     @apply mt-3 text-[11px] leading-snug text-slate-500;
   }
 
@@ -1715,9 +1734,9 @@ body {
   position: relative;
   display: grid;
   grid-template-columns: auto 1fr auto;
-  gap: 1rem;
+  gap: 0.7rem;
   align-items: start;
-  padding: 1.15rem 1.25rem 1.35rem;
+  padding: 0.85rem 0.9rem 1rem;
   overflow: hidden;
   border-radius: 1.25rem;
   border: 1px solid rgb(255 255 255 / 0.6);
@@ -1730,6 +1749,14 @@ body {
     0 6px 16px -6px rgb(15 23 42 / 0.14),
     inset 0 1px 0 0 rgb(255 255 255 / 0.85);
   animation: sys-notice-enter 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (min-width: 40rem) {
+
+  .sys-notice__card {
+    padding: 1.15rem 1.25rem 1.35rem;
+    gap: 1rem;
+  }
 }
 
 .sys-notice__card--exit {
@@ -1748,9 +1775,9 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 4.5rem;
-  height: 4.5rem;
-  border-radius: 1.25rem;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 1rem;
   flex-shrink: 0;
 }
 
@@ -1760,6 +1787,15 @@ body {
 .sys-notice__icon > svg {
   width: 72%;
   height: 72%;
+}
+
+@media (min-width: 40rem) {
+
+  .sys-notice__icon {
+    width: 4.5rem;
+    height: 4.5rem;
+    border-radius: 1.25rem;
+  }
 }
 
 .sys-notice__icon--info {

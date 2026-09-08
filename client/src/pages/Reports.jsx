@@ -88,8 +88,8 @@ export default function Reports() {
                 <div className="reports-page__masthead-accent" aria-hidden />
                 <div className="relative z-[1] min-w-0 flex-1">
                     <p className="reports-page__kicker">Báo cáo &amp; tổng hợp</p>
-                    <h1 className="section-title text-xl lg:text-2xl">Tổng quan tài chính</h1>
-                    <p className="section-subtitle mt-1 max-w-2xl">
+                    <h1 className="section-title">Tổng quan tài chính</h1>
+                    <p className="section-subtitle mt-1 line-clamp-1 max-w-2xl sm:line-clamp-none">
                         Công nợ theo khách hàng, chỉ số tổng và biểu đồ trực quan — dữ liệu từ sổ giao dịch hiện tại.
                     </p>
                 </div>
@@ -122,7 +122,7 @@ export default function Reports() {
 
             <section className="reports-page__kpi-grid" aria-label="Chỉ số tổng hợp">
                 <div className="reports-page__kpi-card reports-page__kpi-card--principal">
-                    <div className="relative z-[1] flex items-start gap-3">
+                    <div className="relative z-[1] flex flex-col gap-1.5 sm:flex-row sm:items-start sm:gap-3">
                         <div className="reports-page__kpi-icon reports-page__kpi-icon--principal" aria-hidden>
                             <Wallet size={20} />
                         </div>
@@ -137,7 +137,7 @@ export default function Reports() {
                 </div>
 
                 <div className="reports-page__kpi-card reports-page__kpi-card--interest">
-                    <div className="relative z-[1] flex items-start gap-3">
+                    <div className="relative z-[1] flex flex-col gap-1.5 sm:flex-row sm:items-start sm:gap-3">
                         <div className="reports-page__kpi-icon reports-page__kpi-icon--interest" aria-hidden>
                             <TrendingUp size={20} />
                         </div>
@@ -158,7 +158,7 @@ export default function Reports() {
                 </div>
 
                 <div className="reports-page__kpi-card reports-page__kpi-card--debt">
-                    <div className="relative z-[1] flex items-start gap-3">
+                    <div className="relative z-[1] flex flex-col gap-1.5 sm:flex-row sm:items-start sm:gap-3">
                         <div className="reports-page__kpi-icon reports-page__kpi-icon--debt" aria-hidden>
                             <PieChart size={20} />
                         </div>
@@ -177,7 +177,7 @@ export default function Reports() {
                 </div>
 
                 <div className="reports-page__kpi-card reports-page__kpi-card--collected">
-                    <div className="relative z-[1] flex items-start gap-3">
+                    <div className="relative z-[1] flex flex-col gap-1.5 sm:flex-row sm:items-start sm:gap-3">
                         <div className="reports-page__kpi-icon reports-page__kpi-icon--collected" aria-hidden>
                             <Download size={20} />
                         </div>
