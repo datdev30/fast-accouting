@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Calculator, FileText, ChevronLeft, ChevronRight, LogOut, BarChart3, Info, BookOpen, DatabaseBackup, Settings as SettingsIcon, Menu, X, CalendarRange } from 'lucide-react';
+import { LayoutDashboard, Users, Calculator, FileText, ChevronLeft, ChevronRight, LogOut, BarChart3, Info, BookOpen, DatabaseBackup, Settings as SettingsIcon, Menu, X, CalendarRange, Loader2 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
@@ -225,29 +225,47 @@ export default function Layout() {
                     <div className="h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
                 </div>
 
+                {/* Một ô chọn, không phải hộp lồng hộp: trước đây nhãn và select
+                    nằm trong một khung viền riêng nên chồng hai lớp viền cho cùng
+                    một điều khiển. Select dùng primitive .select để ăn theo token
+                    --field-h / --field-fs như mọi ô nhập khác trong app. */}
                 {isExpanded && (
-                    <div className="mx-2.5 mb-3 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-2">
-                        <div className="mb-1 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                            <CalendarRange size={12} />
+                    <div className="mx-2.5 mb-3">
+                        <label
+                            htmlFor="sidebar-working-year"
+                            className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-500"
+                        >
+                            <CalendarRange size={13} />
                             Năm làm việc
-                        </div>
+                        </label>
                         {yearAdmin ? (
-                            <select
-                                value={workingYear}
-                                disabled={isChanging}
-                                onChange={(e) => setYear(Number(e.target.value))}
-                                className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-sm font-semibold text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                                aria-label="Chọn năm làm việc"
-                            >
-                                {availableYears.map((y) => (
-                                    <option key={y} value={y}>{y}</option>
-                                ))}
-                                {!availableYears.includes(workingYear + 1) && (
-                                    <option value={workingYear + 1}>{workingYear + 1} (mới)</option>
+                            <div className="relative">
+                                <select
+                                    id="sidebar-working-year"
+                                    value={workingYear}
+                                    disabled={isChanging}
+                                    onChange={(e) => setYear(Number(e.target.value))}
+                                    className="select font-mono text-base font-bold tracking-wide text-slate-900"
+                                >
+                                    {availableYears.map((y) => (
+                                        <option key={y} value={y}>{y}</option>
+                                    ))}
+                                    {!availableYears.includes(workingYear + 1) && (
+                                        <option value={workingYear + 1}>{workingYear + 1} (mới)</option>
+                                    )}
+                                </select>
+                                {isChanging && (
+                                    <span className="pointer-events-none absolute inset-y-0 right-9 flex items-center text-blue-500">
+                                        <Loader2 size={15} className="animate-spin" />
+                                    </span>
                                 )}
-                            </select>
+                            </div>
                         ) : (
-                            <p className="text-sm font-bold text-slate-800">{workingYear}</p>
+                            /* Không phải admin thì vẫn giữ nguyên hình khối của ô chọn
+                               để cột bên trái không bị hụt một khoảng khi đổi vai trò */
+                            <div className="flex items-center rounded-lg border border-slate-200 bg-slate-100 px-3 font-mono text-base font-bold tracking-wide text-slate-700" style={{ minHeight: 'var(--field-h)' }}>
+                                {workingYear}
+                            </div>
                         )}
                     </div>
                 )}
@@ -257,8 +275,9 @@ export default function Layout() {
                         className="mx-1.5 mb-2 flex justify-center"
                         title={`Năm làm việc ${workingYear}`}
                     >
-                        <span className="rounded-md bg-blue-50 px-1.5 py-1 text-[10px] font-bold text-blue-700">
-                            {String(workingYear).slice(-2)}
+                        {/* Rail hẹp: hiện đủ bốn chữ số, '25' dễ đọc nhầm thành thứ khác */}
+                        <span className="rounded-md bg-blue-50 px-1.5 py-1 font-mono text-[11px] font-bold leading-none tracking-tight text-blue-700">
+                            {workingYear}
                         </span>
                     </div>
                 )}

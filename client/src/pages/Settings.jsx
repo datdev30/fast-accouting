@@ -134,21 +134,33 @@ export default function Settings() {
                         </div>
                     </div>
                     {yearAdmin ? (
-                        <select
-                            value={workingYear}
-                            disabled={isChanging}
-                            onChange={(e) => setYear(Number(e.target.value))}
-                            className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
-                        >
-                            {availableYears.map((y) => (
-                                <option key={y} value={y}>{y}</option>
-                            ))}
-                            {!availableYears.includes(workingYear + 1) && (
-                                <option value={workingYear + 1}>{workingYear + 1} (mở năm mới)</option>
+                        <div className="relative w-full sm:w-44">
+                            <label htmlFor="settings-working-year" className="sr-only">Chọn năm làm việc</label>
+                            <select
+                                id="settings-working-year"
+                                value={workingYear}
+                                disabled={isChanging}
+                                onChange={(e) => setYear(Number(e.target.value))}
+                                className="select font-mono text-base font-bold tracking-wide text-slate-900"
+                            >
+                                {availableYears.map((y) => (
+                                    <option key={y} value={y}>{y}</option>
+                                ))}
+                                {!availableYears.includes(workingYear + 1) && (
+                                    <option value={workingYear + 1}>{workingYear + 1} (mở năm mới)</option>
+                                )}
+                            </select>
+                            {isChanging && (
+                                <span className="pointer-events-none absolute inset-y-0 right-9 flex items-center text-blue-500">
+                                    <Loader2 size={15} className="animate-spin" />
+                                </span>
                             )}
-                        </select>
+                        </div>
                     ) : (
-                        <span className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-bold text-slate-800">
+                        <span
+                            className="flex items-center rounded-lg border border-slate-200 bg-slate-100 px-3 font-mono text-base font-bold tracking-wide text-slate-700"
+                            style={{ minHeight: 'var(--field-h)' }}
+                        >
                             {workingYear}
                         </span>
                     )}

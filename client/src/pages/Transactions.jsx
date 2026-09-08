@@ -1426,7 +1426,7 @@ export default function Transactions() {
                                     <label className="flex items-center gap-2 text-xs font-medium text-slate-600">
                                         <span className="whitespace-nowrap">Số dòng/trang</span>
                                         <select
-                                            className="select max-w-[5.5rem] py-2 text-xs sm:text-sm"
+                                            className="select max-w-[6.5rem] py-2 text-xs sm:text-sm"
                                             value={txPageSize}
                                             onChange={(e) => setTxPageSizeAndPersist(Number(e.target.value))}
                                             aria-label="Số giao dịch mỗi trang"
