@@ -15,7 +15,7 @@ import { readMoney } from '../utils/numberToWords';
 import { isNativeApp, saveFile } from '../utils/saveFile';
 import { clsx } from 'clsx';
 import DateInput from '../components/DateInput';
-import DatePicker from '../components/DatePicker';
+import DateRangeFilter from '../components/DateRangeFilter';
 import { useToast } from '../context/ToastContext';
 import { getApiErrorMessage } from '../utils/errorMessage';
 import LoadingSkeleton from '../components/LoadingSkeleton';
@@ -530,39 +530,15 @@ const CustomerDebtDetail = () => {
                 </div>
             )}
 
-            <div className="filter-row max-w-3xl">
-                <div className="date-range-inline min-w-0 flex-1">
-                    <div className="min-w-0 flex-1">
-                        <DatePicker
-                            variant="embedded"
-                            value={startDate}
-                            onChange={(e) => setStartDate(e.target.value)}
-                            placeholder="Từ ngày"
-                        />
-                    </div>
-                    <span className="shrink-0 text-sm font-medium text-slate-300">-</span>
-                    <div className="min-w-0 flex-1">
-                        <DatePicker
-                            variant="embedded"
-                            value={endDate}
-                            onChange={(e) => setEndDate(e.target.value)}
-                            placeholder="Đến ngày"
-                        />
-                    </div>
-                    {(startDate || endDate) && (
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setStartDate('');
-                                setEndDate('');
-                            }}
-                            className="filter-clear-btn"
-                            title="Xóa lọc"
-                        >
-                            <X size={16} />
-                        </button>
-                    )}
-                </div>
+            <div className="flex">
+                <DateRangeFilter
+                    startDate={startDate}
+                    endDate={endDate}
+                    onChange={(start, end) => {
+                        setStartDate(start);
+                        setEndDate(end);
+                    }}
+                />
             </div>
 
             {/* Transactions List */}

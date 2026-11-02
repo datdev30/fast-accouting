@@ -7,7 +7,7 @@ import { getTransactions, createTransaction, updateTransaction, getCustomers, ge
 import { Plus, Edit2, Search, Calendar, Tag, Filter, X, ChevronLeft, ChevronRight, Check, Clock, User, UserPlus, ArrowUpDown, ArrowUp, ArrowDown, Trash2, Camera, Image as ImageIcon, Loader2, ZoomIn, ZoomOut, RotateCw, Download, FileDown } from 'lucide-react';
 import { clsx } from 'clsx';
 import DateInput from '../components/DateInput';
-import DatePicker from '../components/DatePicker';
+import DateRangeFilter from '../components/DateRangeFilter';
 import { formatDate } from '../utils/dateUtils';
 import { readMoney } from '../utils/numberToWords';
 import { isNativeApp, saveFile } from '../utils/saveFile';
@@ -872,41 +872,8 @@ export default function Transactions() {
                         </button>
                     </div>
 
-                    {/* Row 2: Date Filter & Customer Search */}
+                    {/* Row 2: Customer Search */}
                     <div className="filter-row">
-                        <div className="date-range-inline min-w-0 flex-1 sm:max-w-xl lg:max-w-2xl">
-                            <div className="min-w-0 flex-1">
-                                <DatePicker
-                                    variant="embedded"
-                                    value={startDate}
-                                    onChange={(e) => setStartDate(e.target.value)}
-                                    placeholder="Từ ngày"
-                                />
-                            </div>
-                            <span className="shrink-0 text-sm font-medium text-slate-300">-</span>
-                            <div className="min-w-0 flex-1">
-                                <DatePicker
-                                    variant="embedded"
-                                    value={endDate}
-                                    onChange={(e) => setEndDate(e.target.value)}
-                                    placeholder="Đến ngày"
-                                />
-                            </div>
-                            {(startDate || endDate) && (
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setStartDate('');
-                                        setEndDate('');
-                                    }}
-                                    className="filter-clear-btn"
-                                    aria-label="Xóa bộ lọc ngày"
-                                >
-                                    <X size={16} />
-                                </button>
-                            )}
-                        </div>
-
                         <div className="relative min-w-0 flex-1 group" ref={filterComboboxRef}>
                             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 transition-colors group-focus-within:text-blue-500">
                                 <Search size={18} className="h-[18px] w-[18px] shrink-0" />
@@ -986,7 +953,15 @@ export default function Transactions() {
                         </div>
                     </div>
 
-                    <div className="-mx-3 flex gap-2 overflow-x-auto px-3 sm:mx-0 sm:px-0" role="group" aria-label="Lọc theo trạng thái" style={{ scrollbarWidth: 'none' }}>
+                    <div className="-mx-3 flex gap-2 overflow-x-auto px-3 sm:mx-0 sm:px-0" role="group" aria-label="Bộ lọc" style={{ scrollbarWidth: 'none' }}>
+                        <DateRangeFilter
+                            startDate={startDate}
+                            endDate={endDate}
+                            onChange={(start, end) => {
+                                setStartDate(start);
+                                setEndDate(end);
+                            }}
+                        />
                         {[['ALL', 'Tất cả'], ['OPEN', 'Đang mở'], ['PAID', 'Đã trả']].map(([key, label]) => (
                             <button
                                 key={key}
