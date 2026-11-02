@@ -5,7 +5,7 @@ import { formatDate } from '../utils/dateUtils';
 
 const money = (n) => n.toLocaleString('vi-VN');
 
-export default function DebtHistoryEntry({ transaction: tx, typeName }) {
+export default function DebtHistoryEntry({ transaction: tx, typeName, onClick }) {
     const paid = tx.status === 'PAID';
     const principal = tx.amount || 0;
     const interest = tx.interest_calculation?.rounded_interest || 0;
@@ -13,7 +13,10 @@ export default function DebtHistoryEntry({ transaction: tx, typeName }) {
     const date = new Date(tx.transaction_date);
 
     return (
-        <li className="flex gap-3 py-3">
+        <li
+            onClick={onClick}
+            className={clsx('flex gap-3 py-3', onClick && '-mx-2 cursor-pointer rounded-xl px-2 transition-colors hover:bg-slate-50')}
+        >
             <div
                 className={clsx(
                     'flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl',

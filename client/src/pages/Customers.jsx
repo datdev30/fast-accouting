@@ -10,7 +10,8 @@ import { getApiErrorMessage } from '../utils/errorMessage';
 import { useAuth } from '../context/AuthContext';
 import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
 import { clsx } from 'clsx';
-import { formatDate } from '../utils/dateUtils';
+import Avatar from '../components/Avatar';
+import DebtHistoryEntry from '../components/DebtHistoryEntry';
 import { getInterestConfigColorScheme } from '../utils/colorSchemes';
 import DateInput from '../components/DateInput';
 import StatusDropdown from '../components/StatusDropdown';
@@ -491,15 +492,13 @@ export default function Customers() {
                 {isHistoryView && (
                     <div className="flex flex-col w-full bg-slate-50/30 overflow-hidden border-slate-100">
                         <div className="px-5 py-3 border-b border-slate-100 bg-white/50 flex items-center justify-between">
-                            <div className="flex items-center gap-3 text-slate-800">
-                                <History size={24} className="text-blue-600" />
-                                <div className="flex flex-col">
-                                    <span className="font-bold text-base text-slate-900">
-                                        {customers?.find(x => (x.id || x._id) === currentId)?.name || '—'}
-                                    </span>
-                                </div>
+                            <div className="flex min-w-0 items-center gap-3 text-slate-800">
+                                <Avatar name={customers?.find(x => (x.id || x._id) === currentId)?.name || ''} />
+                                <span className="truncate font-bold text-base text-slate-900">
+                                    {customers?.find(x => (x.id || x._id) === currentId)?.name || '—'}
+                                </span>
                             </div>
-                            <span className="bg-blue-100 text-blue-600 px-5 py-2 rounded-full text-xs font-bold uppercase">
+                            <span className="shrink-0 rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
                                 {customerTransactions?.length || 0} GD
                             </span>
                         </div>
@@ -510,66 +509,18 @@ export default function Customers() {
                                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
                                 </div>
                             ) : customerTransactions?.length > 0 ? (
-                                <div className="space-y-3">
+                                <ol className="divide-y divide-slate-100 rounded-2xl border border-slate-200 bg-white px-4">
                                     {[...customerTransactions]
                                         .sort((a, b) => new Date(b.transaction_date) - new Date(a.transaction_date))
-                                        .map(tx => {
-                                            const typeConfig = configs?.find(c => c.code === tx.type);
-                                            return (
-                                                <div
-                                                    key={tx._id}
-                                                    onClick={() => handleTxEdit(tx)}
-                                                    className={clsx(
-                                                        "rounded-xl p-3 border shadow-sm hover:shadow-md cursor-pointer transition-all group",
-                                                        tx.status === 'PAID'
-                                                            ? "bg-emerald-50/50 border-emerald-100 hover:border-emerald-200"
-                                                            : "bg-white border-slate-100 hover:border-blue-200"
-                                                    )}
-                                                >
-                                                    <div className="flex flex-row items-center justify-between gap-3">
-                                                        <div className="flex items-center gap-3 min-w-0">
-                                                            <div className={clsx(
-                                                                "w-12 h-12 rounded-xl flex items-center justify-center flex-none",
-                                                                tx.status === 'PAID' ? "bg-emerald-50 text-emerald-700" : "bg-blue-50 text-blue-600"
-                                                            )}>
-                                                                {tx.status === 'PAID' ? <Check size={22} /> : <Clock size={22} />}
-                                                            </div>
-                                                            <div className="min-w-0">
-                                                                <div className="flex items-center gap-3 mb-1">
-                                                                    <span className="text-sm font-bold  text-slate-400">
-                                                                        {formatDate(tx.transaction_date)}
-                                                                    </span>
-                                                                    <span className="w-1 h-1 rounded-full bg-slate-200"></span>
-                                                                    <span className={clsx(
-                                                                        "text-xs font-bold ",
-                                                                        tx.status === 'PAID' ? "text-emerald-500" : "text-amber-500"
-                                                                    )}>
-                                                                        {tx.status === 'PAID' ? 'ĐÃ THANH TOÁN' : 'CHƯA THU'}
-                                                                    </span>
-                                                                </div>
-                                                                <div className="text-sm font-medium text-slate-800 leading-tight space-y-1">
-                                                                    {String(tx.content ?? '')
-                                                                        .split(/\r?\n/)
-                                                                        .filter(line => line.trim() !== '')
-                                                                        .map((line, idx) => (
-                                                                            <div key={idx} className="break-words">{line}</div>
-                                                                        ))}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex flex-col items-end justify-center">
-                                                            <p className="text-base font-semibold text-slate-900 tracking-tight tabular-nums">
-                                                                {formatMoneyComma(tx.amount || 0)} <span className="text-xs font-normal">đ</span>
-                                                            </p>
-                                                            <span className="text-xs font-bold  text-blue-500 mt-1">
-                                                                {typeConfig?.name || tx.type}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                </div>
+                                        .map(tx => (
+                                            <DebtHistoryEntry
+                                                key={tx._id}
+                                                transaction={tx}
+                                                typeName={configs?.find(c => c.code === tx.type)?.name || tx.type}
+                                                onClick={() => handleTxEdit(tx)}
+                                            />
+                                        ))}
+                                </ol>
                             ) : (
                                 <div className="h-48 flex flex-col items-center justify-center text-slate-400 opacity-60">
                                     <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-3">
