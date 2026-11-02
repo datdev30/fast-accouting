@@ -7,14 +7,9 @@
 - Giao diện **responsive**: dùng tốt từ màn hình nhỏ (~360px) đến tablet lớn (~1280px+), cả dọc lẫn ngang.
 - Cập nhật web → app tự có bản mới, **không cần build lại APK**.
 
-## 2. Khác gì so với `client-tablet/android` hiện có?
+## 2. Thay cho `client-tablet` (đã xoá)
 
-| | `client-tablet/android` (đã có) | `webview-mobile` (mới) |
-|---|---|---|
-| Nguồn giao diện | Bundle `dist-tablet` vào APK | Load URL web đã deploy |
-| Cập nhật UI | Build + cài lại APK | Deploy web là xong |
-| Offline | Có giao diện, không có dữ liệu | Cần mạng (app cũng cần API nên tương đương) |
-| appId | `com.fastaccounting.app` | `com.fastaccounting.webview` (cài song song được) |
+`client-tablet` cũ bundle giao diện riêng vào APK, phải build lại APK mỗi lần sửa UI. `webview-mobile` load đúng bản web production nên web và APK luôn là **một giao diện**; appId mới `com.fastaccounting.webview`.
 
 ## 3. Kiến trúc
 
@@ -29,7 +24,7 @@ webview-mobile/
 
 **Lựa chọn: Capacitor + `server.url`** (không viết Kotlin WebView tay).
 
-- Toolchain giống `client-tablet` (Capacitor 8, minSdk 24, targetSdk 36) → không phải học/cài thêm.
+- Capacitor 8, minSdk 24, targetSdk 36.
 - Capacitor đã xử lý sẵn: chọn file/camera cho `<input type="file">`, back button, cookie, HTTPS scheme, splash, status bar.
 - Viết WebView native tay chỉ khi Capacitor không đáp ứng được (hiện chưa thấy lý do).
 
@@ -70,7 +65,7 @@ Prototype giao diện: [`prototype/index.html`](prototype/index.html) (5 màn ph
 - `<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">`.
 - Mobile-first: viết class cho phone trước, thêm `md:` / `lg:` cho màn lớn.
 - Không dùng width cố định (px) cho container; dùng `w-full`, `max-w-*`, grid/flex.
-- Bảng dữ liệu: phone → Card list; tablet ngang → Table (tái dùng Hybrid UI đã có trong `client-tablet`).
+- Bảng dữ liệu: phone → Card list; tablet ngang / PC → bảng + khung chi tiết (cùng một giao diện).
 - Vùng chạm tối thiểu 44×44px; font input ≥ 16px để tránh Android tự zoom.
 - Safe area: `padding: env(safe-area-inset-*)` cho tai thỏ / thanh điều hướng.
 - Modal/form: full-screen trên phone, dialog giữa màn hình trên tablet.

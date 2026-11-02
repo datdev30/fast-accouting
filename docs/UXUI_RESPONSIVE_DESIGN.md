@@ -1,6 +1,6 @@
 # Thiết kế kỹ thuật — Responsive UX/UI cho `client/`
 
-**Phạm vi:** chỉ `FastAccounting/client` (web app). Không đụng `client-tablet/` (bản đóng gói APK riêng).
+**Phạm vi:** chỉ `FastAccounting/client` (web app). APK Android (`webview-mobile/`) load chính bản web này.
 **Ngày:** 2026-09-07 · **Trạng thái:** đã triển khai — xem §7 để biết phần nào đi lệch thiết kế và vì sao.
 
 ---
