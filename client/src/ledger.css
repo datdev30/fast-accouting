@@ -5,12 +5,11 @@
     --font-body: var(--font-sans);
     --color-text: #0f172a;
     --color-text-muted: #475569;
-    --field-fs: 1rem;
   }
 
   .accounting-app {
-    font-size: 0.9375rem;
-    line-height: 1.6;
+    font-size: 0.875rem;
+    line-height: 1.5;
     color: var(--color-text);
   }
 
@@ -24,18 +23,18 @@
   .accounting-app .section-kicker,
   .accounting-app .field-label,
   .accounting-app .table-head {
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     font-weight: 600;
     letter-spacing: normal;
     text-transform: none;
     color: #475569;
   }
 
-  .accounting-app .table-td { padding-block: 0.875rem; }
-  .accounting-app .table-th { padding-block: 0.75rem; }
+  .accounting-app .table-td { padding-block: 0.625rem; }
+  .accounting-app .table-th { padding-block: 0.5rem; }
   .accounting-app .btn-primary { box-shadow: none; }
   .accounting-app :focus-visible { outline: 2px solid #2563eb; outline-offset: 3px; }
-  .accounting-app label { font-size: 0.875rem; letter-spacing: normal; text-transform: none; color: #475569; }
+  .accounting-app label { font-size: 0.8125rem; letter-spacing: normal; text-transform: none; color: #475569; }
   .accounting-app .badge-warning { color: #92400e; }
   .accounting-app .badge-success { color: #047857; }
   .accounting-app .tabbar__item { font-size: 0.75rem; }
@@ -47,13 +46,13 @@
     border-top: 3px solid #2563eb;
     border-radius: 0.75rem;
     background: #fff;
-    padding: 1.25rem;
+    padding: 1rem;
   }
-  .ledger-caption { color: #475569; font-size: 0.875rem; font-weight: 500; }
+  .ledger-caption { color: #475569; font-size: 0.8125rem; font-weight: 500; }
   .ledger-total {
-    font-size: clamp(1.5rem, 3vw, 2.25rem);
+    font-size: clamp(1.375rem, 2.5vw, 1.75rem);
     font-weight: 700;
-    line-height: 1.4;
+    line-height: 1.3;
     font-variant-numeric: tabular-nums;
     color: #0f172a;
     overflow-wrap: anywhere;
@@ -73,19 +72,10 @@
   .ledger-entry-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; }
   .ledger-entry-title { min-width: 0; overflow-wrap: anywhere; }
   .ledger-entry .ledger-breakdown { border: 0; padding-top: 0; }
-  .transaction-amounts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .transaction-amounts > div { min-width: 0; overflow-wrap: anywhere; }
-  .transaction-amounts > div:last-child { grid-column: 1 / -1; border-top: 1px solid #e2e8f0; padding-top: 0.5rem; }
-  .transaction-amounts > div:last-child p:last-child { font-size: 1.125rem; }
+  .transaction-amounts > div { min-width: 0; }
   @media (pointer: coarse) {
-    html:root { --tap-min: 48px; --field-h: 48px; }
-    .accounting-app .table-td { padding-block: 1rem; }
-    .accounting-app button,
-    .accounting-app [role='button'],
-    .accounting-app a.min-h-11 {
-      min-height: var(--tap-min);
-      min-width: var(--tap-min);
-    }
+    html:root { --tap-min: 44px; --field-h: 44px; }
+    .accounting-app .table-td { padding-block: 0.75rem; }
     .accounting-app input:not([type='checkbox']):not([type='radio']):not([type='range']),
     .accounting-app select { min-height: var(--field-h); }
   }

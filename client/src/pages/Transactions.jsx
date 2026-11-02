@@ -959,7 +959,7 @@ export default function Transactions() {
                                 setEndDate(end);
                             }}
                         />
-                        {[['ALL', 'Tất cả'], ['OPEN', 'Đang mở'], ['PAID', 'Đã trả']].map(([key, label]) => (
+                        {[['ALL', 'Tất cả'], ['OPEN', 'Chưa trả'], ['PAID', 'Đã trả']].map(([key, label]) => (
                             <button
                                 key={key}
                                 type="button"
@@ -1280,7 +1280,7 @@ export default function Transactions() {
                                         <div className="space-y-2">
                                             <label className="block text-xs font-semibold text-slate-600  ml-1">Trạng thái</label>
                                             <div className="grid grid-cols-2 rounded-xl bg-slate-100 p-1 text-sm font-semibold" role="radiogroup" aria-label="Trạng thái">
-                                            {[['OPEN', 'Đang mở', 'text-amber-700'], ['PAID', 'Đã trả', 'text-emerald-700']].map(([nextStatus, label, tone]) => (
+                                            {[['OPEN', 'Chưa trả', 'text-amber-700'], ['PAID', 'Đã trả', 'text-emerald-700']].map(([nextStatus, label, tone]) => (
                                             <button
                                                 key={nextStatus}
                                                 type="button"
@@ -1517,7 +1517,7 @@ export default function Transactions() {
                                                         <TxStatusBadge paid={isPaid} />
                                                     </button>
                                                 </div>
-                                                <div className={'transaction-amounts mt-3 grid gap-3 border-t border-slate-200 pt-3 text-[13px]'}>
+                                                <div className={'transaction-amounts mt-2.5 grid grid-cols-3 gap-2 border-t border-dashed border-slate-200 pt-2.5 text-xs'}>
                                                     <div><p className="text-slate-500">Gốc</p><p className="font-mono text-sm font-bold tabular-nums">{principal.toLocaleString('vi-VN')}</p></div>
                                                     <div><p className="text-slate-500">Lãi</p><p className={clsx('font-mono text-sm font-bold tabular-nums', !isPaid && 'text-amber-800')}>{interest.toLocaleString('vi-VN')}</p></div>
                                                     <div className="text-right"><p className="text-slate-500">Tổng</p><p className={clsx('font-mono text-sm font-bold tabular-nums', !isPaid && 'text-blue-700')}>{total.toLocaleString('vi-VN')}</p></div>

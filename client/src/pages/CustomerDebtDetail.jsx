@@ -328,7 +328,7 @@ const CustomerDebtDetail = () => {
                             </a>
                         </div>
                     )}
-                    <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    <div className="mt-3 grid grid-cols-4 gap-2">
                         {[
                             { label: 'Mã QR', icon: QrCode, tone: 'text-teal-600', onClick: handleGenerateQR, disabled: isGeneratingQR || totalDebtAmount === 0 || isLoadingBankConfig },
                             { label: 'Phiếu nợ', icon: Printer, tone: 'text-blue-600', onClick: () => setShowPreview(true) },
@@ -340,7 +340,7 @@ const CustomerDebtDetail = () => {
                                 type="button"
                                 onClick={action.onClick}
                                 disabled={action.disabled}
-                                className="flex flex-col items-center gap-1 rounded-xl border border-slate-200 bg-white py-3 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 lg:text-xs"
+                                className="flex min-w-0 flex-col items-center gap-1 rounded-xl border border-slate-200 bg-white px-1 py-2.5 text-xs font-semibold whitespace-nowrap text-slate-700 hover:bg-slate-50 disabled:opacity-50"
                             >
                                 <action.icon size={20} className={clsx(action.tone, action.icon === Loader2 && 'animate-spin')} />
                                 {action.label}
