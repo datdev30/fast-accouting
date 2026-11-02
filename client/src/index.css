@@ -1,6 +1,9 @@
 @import "tailwindcss";
 @import "./ledger.css";
 
+/* Sidebar chỉ dành cho máy có chuột; tablet cảm ứng dù rộng ≥1024 vẫn dùng tab bar. */
+@custom-variant desk (@media (min-width: 64rem) and (hover: hover) and (pointer: fine));
+
 /* ============================================================
    TẦNG 1 — TOKEN
    Nguồn sự thật duy nhất cho typography, màu thương hiệu, và
@@ -1283,9 +1286,9 @@ body {
   }
 
   /* --- Bottom tab bar cho mobile (F14) --------------------- */
-  /* lg:hidden — tablet dùng chung kiến trúc điều hướng với điện thoại */
+  /* desk:hidden — tablet (kể cả ≥1024) dùng chung điều hướng với điện thoại */
   .tabbar {
-    @apply fixed inset-x-0 bottom-0 z-40 flex border-t border-slate-200 bg-white/95 backdrop-blur-md lg:hidden;
+    @apply fixed inset-x-0 bottom-0 z-40 flex border-t border-slate-200 bg-white/95 backdrop-blur-md desk:hidden;
     padding-bottom: var(--safe-b);
     box-shadow: 0 -4px 16px -8px rgb(15 23 42 / 0.18);
   }
@@ -1445,7 +1448,7 @@ body {
   --tabbar-h: 0px;
 }
 
-@media (max-width: 63.9375rem) {
+@media not ((min-width: 64rem) and (hover: hover) and (pointer: fine)) {
   :root {
     --tabbar-h: calc(3.5rem + var(--safe-b));
   }

@@ -10,7 +10,7 @@ import AppBrandLogo from './AppBrandLogo';
 import { initialsOf } from '../utils/initials';
 import SelectMenu from './SelectMenu';
 
-/* Bottom tab bar — hiện ở MỌI thiết bị dưới lg (điện thoại + tablet).
+/* Bottom tab bar — mọi thiết bị cảm ứng (điện thoại + tablet mọi cỡ) và màn < lg.
    Tab Cài đặt gom mọi trang còn lại (danh sách nằm trong trang /settings). */
 const TAB_ITEMS = [
     { to: '/overview', icon: LayoutDashboard, label: 'Tổng quan', end: true },
@@ -127,7 +127,7 @@ export default function Layout() {
             <aside
                 id="app-sidebar"
                 className={clsx(
-                    'relative hidden lg:flex flex-col bg-white border-r border-slate-200 shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)] transition-all duration-300 ease-in-out',
+                    'relative hidden desk:flex flex-col bg-white border-r border-slate-200 shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)] transition-all duration-300 ease-in-out',
                     isSidebarOpen ? 'lg:w-56 xl:w-60' : 'lg:w-[4.5rem]'
                 )}
                 aria-label="Điều hướng chính"
@@ -292,7 +292,7 @@ export default function Layout() {
             {/* Main column */}
             <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
                 {location.pathname === '/overview' && <header
-                    className="lg:hidden shrink-0 flex items-center gap-3 px-4 py-2.5 border-b border-slate-200 bg-white z-30"
+                    className="desk:hidden shrink-0 flex items-center gap-3 px-4 py-2.5 border-b border-slate-200 bg-white z-30"
                     style={{ paddingTop: 'max(0.625rem, var(--safe-t))' }}
                 >
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-700">
