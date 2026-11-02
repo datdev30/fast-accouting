@@ -2,6 +2,7 @@ import React, { createContext, useState, useEffect, useContext } from 'react';
 import api from '../services/api';
 import { useToast } from './ToastContext';
 import { getApiErrorMessage } from '../utils/errorMessage';
+import { saveFile } from '../utils/saveFile';
 
 const AuthContext = createContext();
 
@@ -76,14 +77,7 @@ export const AuthProvider = ({ children }) => {
             const fileName = match?.[1] || 'reports.zip';
 
             const blob = res.data instanceof Blob ? res.data : new Blob([res.data], { type: 'application/zip' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = fileName;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            window.URL.revokeObjectURL(url);
+            await saveFile(blob, fileName);
             return true;
         } catch (e) {
             console.error("Backup failed", e);

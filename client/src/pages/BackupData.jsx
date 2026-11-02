@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { getApiErrorMessage } from '../utils/errorMessage';
 import { exportBackupBundle, importBackupBundle } from '../services/api';
+import { saveFile } from '../utils/saveFile';
 
 function parseFilenameFromContentDisposition(value) {
   if (!value) return null;
@@ -57,14 +58,7 @@ export default function BackupData() {
       const blob = res.blob;
       const filename = res.filename || `fastaccounting-backup.ejson.json`;
 
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
+      await saveFile(blob, filename);
 
       showToast('Thành công', 'Đã tải xuống file backup', 'success');
     } catch (err) {

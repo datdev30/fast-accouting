@@ -1,8 +1,8 @@
 import PaidRibbon from '../components/PaidRibbon';
 import AppModal from '../components/AppModal';
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { getCustomers, createCustomer, updateCustomer, deleteCustomerSecure, getTransactions, getInterestConfigs, updateTransaction, deleteTransactionSecure, fetchTransactionImageBlob } from '../services/api';
 import { Plus, Search, Edit2, Trash2, User, MapPin, ChevronRight, Users, Check, Award, X, History, Clock, FileText, Calendar, Tag, Image as ImageIcon, AlertCircle } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
@@ -29,7 +29,13 @@ export default function Customers() {
         if (!Number.isFinite(n)) return '';
         return n.toLocaleString('en-US');
     };
-    const [isOpen, setIsOpen] = useState(false);
+    const location = useLocation();
+    const navigate = useNavigate();
+    // Lối tắt "Khách mới" ở trang Tổng quan mở thẳng form tạo mới
+    const [isOpen, setIsOpen] = useState(() => Boolean(location.state?.create));
+    useEffect(() => {
+        if (location.state?.create) navigate('.', { replace: true, state: null });
+    }, [location.state, navigate]);
     const [isEdit, setIsEdit] = useState(false);
     const [isHistoryView, setIsHistoryView] = useState(false);
     const [currentId, setCurrentId] = useState(null);

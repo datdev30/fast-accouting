@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getDebtReport } from '../services/api';
-import { Download, TrendingUp, Wallet, ArrowUpRight, ArrowDownRight, PieChart, Search } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Download, TrendingUp, Wallet, ArrowUpRight, ArrowDownRight, PieChart, Search, Plus, UserPlus, QrCode, FileDown } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import ReportsAdminCharts from '../components/ReportsAdminCharts';
 import LoadingSkeleton from '../components/LoadingSkeleton';
@@ -81,9 +81,69 @@ export default function Reports() {
     const totalInterest = report?.reduce((sum, item) => sum + item.total_interest, 0) || 0;
     const totalDebt = report?.reduce((sum, item) => sum + item.total_debt, 0) || 0;
     const totalCollected = report?.reduce((sum, item) => sum + (item.total_collected || 0), 0) || 0;
+    const debtorCount = report?.filter((i) => i.total_debt > 0).length || 0;
+
+    const handleExport = async () => {
+        let selectedPath = null;
+        if (window.pywebview && window.pywebview.api && window.pywebview.api.select_folder) {
+            try {
+                selectedPath = await window.pywebview.api.select_folder();
+                if (!selectedPath) return;
+            } catch (err) {
+                console.error("Error selecting folder:", err);
+            }
+        }
+        await triggerBatchExport(selectedPath);
+    };
+
+    const quickActions = [
+        { to: '/transactions', state: { create: true }, icon: Plus, label: 'Giao dịch', tone: 'bg-orange-50 text-orange-600' },
+        { to: '/customers', state: { create: true }, icon: UserPlus, label: 'Khách mới', tone: 'bg-blue-50 text-blue-600' },
+        { to: '/bank-account-config', icon: QrCode, label: 'Mã QR', tone: 'bg-emerald-50 text-emerald-600' },
+    ];
 
     return (
         <div className="reports-page space-y-6 pb-10 animate-in fade-in duration-300 lg:space-y-8">
+            {/* Dưới lg: một thẻ tổng nổi bật + lối tắt, thay cho masthead và lưới 4 KPI */}
+            <section className="space-y-4 lg:hidden" aria-label="Tổng hợp nhanh">
+                <div className="rounded-2xl bg-gradient-to-br from-blue-600 to-blue-700 p-4 text-white shadow-lg shadow-blue-200">
+                    <p className="text-xs font-semibold text-blue-100">Tổng nợ phải thu</p>
+                    <p className="mt-1 font-mono text-[1.625rem] font-bold leading-tight tabular-nums">
+                        {totalDebt.toLocaleString('vi-VN')} <span className="text-base font-normal text-blue-200">đ</span>
+                    </p>
+                    <p className="mt-0.5 text-xs text-blue-100">{debtorCount} khách hàng còn dư nợ</p>
+                    <dl className="mt-3 grid grid-cols-3 gap-2 text-xs">
+                        <div className="min-w-0 rounded-xl bg-white/10 p-2.5">
+                            <dt className="text-blue-100">Tiền gốc</dt>
+                            <dd className="mt-0.5 truncate font-mono text-sm font-bold tabular-nums">{totalPrincipal.toLocaleString('vi-VN')}</dd>
+                        </div>
+                        <div className="min-w-0 rounded-xl bg-white/10 p-2.5">
+                            <dt className="text-blue-100">Lãi dự kiến</dt>
+                            <dd className="mt-0.5 truncate font-mono text-sm font-bold tabular-nums">{totalInterest.toLocaleString('vi-VN')}</dd>
+                        </div>
+                        <div className="min-w-0 rounded-xl bg-white/10 p-2.5">
+                            <dt className="text-blue-100">Đã thu</dt>
+                            <dd className="mt-0.5 truncate font-mono text-sm font-bold tabular-nums">{totalCollected.toLocaleString('vi-VN')}</dd>
+                        </div>
+                    </dl>
+                </div>
+                <nav className="grid grid-cols-4 gap-2 text-center" aria-label="Lối tắt">
+                    {quickActions.map((action) => (
+                        <Link key={action.label} to={action.to} state={action.state} className="flex flex-col items-center gap-1.5 rounded-xl py-1 active:bg-slate-100">
+                            <span className={`flex h-12 w-12 items-center justify-center rounded-2xl ${action.tone}`}><action.icon size={20} /></span>
+                            <span className="text-[11px] font-semibold text-slate-700">{action.label}</span>
+                        </Link>
+                    ))}
+                    <button type="button" onClick={handleExport} disabled={isBackingUp} className="flex flex-col items-center gap-1.5 rounded-xl py-1 active:bg-slate-100 disabled:opacity-60">
+                        <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-50 text-violet-600">
+                            <FileDown size={20} className={isBackingUp ? 'animate-bounce' : ''} />
+                        </span>
+                        <span className="text-[11px] font-semibold text-slate-700">Xuất PDF</span>
+                    </button>
+                </nav>
+            </section>
+
+            <div className="hidden lg:block">
             <header className="reports-page__masthead">
                 <div className="reports-page__masthead-accent" aria-hidden />
                 <div className="relative z-[1] min-w-0 flex-1">
@@ -96,18 +156,7 @@ export default function Reports() {
                 <div className="relative z-[1] flex w-full shrink-0 flex-col gap-1 sm:w-auto sm:items-end">
                     <button
                         type="button"
-                        onClick={async () => {
-                            let selectedPath = null;
-                            if (window.pywebview && window.pywebview.api && window.pywebview.api.select_folder) {
-                                try {
-                                    selectedPath = await window.pywebview.api.select_folder();
-                                    if (!selectedPath) return;
-                                } catch (err) {
-                                    console.error("Error selecting folder:", err);
-                                }
-                            }
-                            await triggerBatchExport(selectedPath);
-                        }}
+                        onClick={handleExport}
                         disabled={isBackingUp}
                         className="btn-primary btn-md w-full whitespace-nowrap sm:w-auto disabled:cursor-wait"
                     >
@@ -119,8 +168,9 @@ export default function Reports() {
                     </p>
                 </div>
             </header>
+            </div>
 
-            <section className="reports-page__kpi-grid" aria-label="Chỉ số tổng hợp">
+            <section className="reports-page__kpi-grid hidden lg:grid" aria-label="Chỉ số tổng hợp">
                 <div className="reports-page__kpi-card reports-page__kpi-card--principal">
                     <div className="relative z-[1] flex flex-col gap-1.5 sm:flex-row sm:items-start sm:gap-3">
                         <div className="reports-page__kpi-icon reports-page__kpi-icon--principal" aria-hidden>
@@ -169,7 +219,7 @@ export default function Reports() {
                                 <span className="reports-page__kpi-suffix">đ</span>
                             </div>
                             <p className="reports-page__kpi-foot">
-                                <span className="font-semibold text-slate-700">{report?.filter((i) => i.total_debt > 0).length || 0}</span>{' '}
+                                <span className="font-semibold text-slate-700">{debtorCount}</span>{' '}
                                 khách hàng còn dư nợ
                             </p>
                         </div>

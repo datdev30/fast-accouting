@@ -9,7 +9,9 @@ import PrintableReport from '../components/PrintableReport';
 import PrintableAllTransactions from '../components/PrintableAllTransactions';
 import PrintPreviewFrame from '../components/PrintPreviewFrame';
 import DataTable from '../components/DataTable';
-import { ArrowLeft, Printer, Calendar, X, ChevronRight, FileText, Wallet, Percent, PiggyBank, CheckCircle, AlertCircle, Check, Clock, Search, Download, Loader2, QrCode, Receipt } from 'lucide-react';
+import { ArrowLeft, Printer, Calendar, X, ChevronRight, FileText, Wallet, Percent, PiggyBank, CheckCircle, AlertCircle, Check, Clock, Search, Download, Loader2, QrCode, Receipt, Phone, MessageCircle } from 'lucide-react';
+import { readMoney } from '../utils/numberToWords';
+import { isNativeApp, saveFile } from '../utils/saveFile';
 import { clsx } from 'clsx';
 import DateInput from '../components/DateInput';
 import DatePicker from '../components/DatePicker';
@@ -80,15 +82,7 @@ const CustomerDebtDetail = () => {
                 throw new Error('File PDF rỗng');
             }
             
-            // Create download link
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = filename;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
+            await saveFile(blob, filename);
             
             showToast('Thành công', 'File PDF đã được tải xuống', 'success');
         } catch (e) {
@@ -212,14 +206,7 @@ const CustomerDebtDetail = () => {
                 throw new Error('File PDF rỗng');
             }
             
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = filename;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
+            await saveFile(blob, filename);
             
             showToast('Thành công', 'File PDF đã được tải xuống', 'success');
         } catch (e) {
@@ -351,8 +338,15 @@ const CustomerDebtDetail = () => {
 
     if (!customer) return <div className="p-4 text-center text-sm text-slate-500">Đang tải dữ liệu khách hàng...</div>;
 
+    // contact_info là chữ tự do ("SĐT, địa chỉ…") — lấy số điện thoại đầu tiên nếu có
+    const phone = (customer.contact_info || '')
+        .replace(/[\s.-]/g, '')
+        .match(/(?:\+84|0)\d{9,10}/)?.[0]
+        ?.replace(/^\+84/, '0');
+    const hasOpenTx = transactions?.some((tx) => tx.status === 'OPEN');
+
     return (
-        <div className="space-y-4 lg:space-y-6">
+        <div className="space-y-4 pb-20 lg:space-y-6 lg:pb-0">
             {/* Header */}
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between lg:gap-6">
                 <div className="min-w-0">
@@ -369,7 +363,7 @@ const CustomerDebtDetail = () => {
                         <span className="min-w-0">{customer.contact_info || 'Không có thông tin liên hệ'}</span>
                     </p>
                 </div>
-                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-row sm:flex-wrap sm:gap-3">
+                <div className="hidden lg:flex lg:flex-row lg:flex-wrap lg:gap-3">
                     {/* Payment Menu Button */}
                     <div className="relative" ref={paymentMenuRef}>
                         <button
@@ -455,6 +449,60 @@ const CustomerDebtDetail = () => {
                     </button>
                 </div>
             </div>
+
+            {/* Dưới lg: liên hệ nhanh, thẻ còn nợ, lối tắt; nút tất toán dán đáy */}
+            <section className="space-y-3 lg:hidden" aria-label="Tóm tắt công nợ">
+                {phone && (
+                    <div className="grid grid-cols-2 gap-2">
+                        <a href={`tel:${phone}`} className="flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-emerald-50 text-sm font-semibold text-emerald-700 active:bg-emerald-100">
+                            <Phone size={18} /> Gọi
+                        </a>
+                        <a href={`https://zalo.me/${phone}`} target="_blank" rel="noreferrer" className="flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-blue-50 text-sm font-semibold text-blue-700 active:bg-blue-100">
+                            <MessageCircle size={18} /> Zalo
+                        </a>
+                    </div>
+                )}
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                    <p className="text-xs font-bold uppercase tracking-wide text-amber-800">Còn nợ lại</p>
+                    <p className="mt-1 font-mono text-2xl font-bold tabular-nums text-amber-900">
+                        {totalRemaining.toLocaleString('vi-VN')} <span className="font-sans text-base font-normal">đ</span>
+                    </p>
+                    {totalRemaining > 0 && <p className="mt-1 text-xs italic text-amber-700">{readMoney(totalRemaining)}</p>}
+                    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-amber-900">
+                        <span>Gốc <b className="font-mono tabular-nums">{remainingPrincipal.toLocaleString('vi-VN')}</b></span>
+                        <span>Lãi <b className="font-mono tabular-nums">{remainingInterest.toLocaleString('vi-VN')}</b></span>
+                    </div>
+                </div>
+                <div className="grid grid-cols-4 gap-2">
+                    {[
+                        { label: 'Mã QR', icon: QrCode, tone: 'text-teal-600', onClick: handleGenerateQR, disabled: isGeneratingQR || totalDebtAmount === 0 || isLoadingBankConfig },
+                        { label: 'Phiếu nợ', icon: Printer, tone: 'text-blue-600', onClick: () => setShowPreview(true) },
+                        { label: 'Tải PDF', icon: downloadPdfLoading ? Loader2 : Download, tone: 'text-violet-600', onClick: handleDownloadPdf, disabled: downloadPdfLoading },
+                        { label: 'Tất cả GD', icon: FileText, tone: 'text-slate-600', onClick: () => setShowAllTransactionsPreview(true) },
+                    ].map((action) => (
+                        <button
+                            key={action.label}
+                            type="button"
+                            onClick={action.onClick}
+                            disabled={action.disabled}
+                            className="flex flex-col items-center gap-1 rounded-xl border border-slate-200 bg-white py-3 text-[11px] font-semibold text-slate-700 active:bg-slate-50 disabled:opacity-50"
+                        >
+                            <action.icon size={20} className={clsx(action.tone, action.icon === Loader2 && 'animate-spin')} />
+                            {action.label}
+                        </button>
+                    ))}
+                </div>
+            </section>
+            {hasOpenTx && (
+                <div
+                    className="fixed inset-x-0 z-30 border-t border-slate-200 bg-white/95 p-3 backdrop-blur-md lg:hidden"
+                    style={{ bottom: 'var(--tabbar-h)' }}
+                >
+                    <button type="button" onClick={() => setBulkPayOpen(true)} className="btn-primary btn-md w-full">
+                        <CheckCircle size={18} /> Tất toán công nợ
+                    </button>
+                </div>
+            )}
 
             {/* Bulk Pay Modal */}
             {bulkPayOpen && (
@@ -552,7 +600,8 @@ const CustomerDebtDetail = () => {
                             </h3>
                             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                                 <button
-                                    onClick={() => handlePrint()}
+                                    onClick={() => (isNativeApp() ? handleDownloadPdf() : handlePrint())}
+                                    disabled={downloadPdfLoading}
                                     className="btn-primary btn-md"
                                 >
                                     <Printer size={18} /> <span className="hidden sm:inline">In ngay</span>
@@ -602,7 +651,8 @@ const CustomerDebtDetail = () => {
                                     <span className="hidden sm:inline">Tải xuống</span>
                                 </button>
                                 <button
-                                    onClick={() => handlePrintAllTransactions()}
+                                    onClick={() => (isNativeApp() ? handleDownloadAllTransactionsPdf() : handlePrintAllTransactions())}
+                                    disabled={downloadAllTransactionsPdfLoading}
                                     className="btn-primary btn-md"
                                 >
                                     <Printer size={18} /> <span className="hidden sm:inline">In ngay</span>

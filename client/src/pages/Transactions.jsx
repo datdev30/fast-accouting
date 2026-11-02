@@ -1,12 +1,16 @@
 import useScrollLock from '../hooks/useScrollLock';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import useMediaQuery from '../hooks/useMediaQuery';
 import { getTransactions, createTransaction, updateTransaction, getCustomers, getInterestConfigs, createCustomer, uploadTransactionImage, fetchTransactionImageBlob, deleteTransactionImage } from '../services/api';
 import { Plus, Edit2, Search, Calendar, Tag, Filter, X, ChevronLeft, ChevronRight, Check, Clock, User, UserPlus, ArrowUpDown, ArrowUp, ArrowDown, Trash2, Camera, Image as ImageIcon, Loader2, ZoomIn, ZoomOut, RotateCw, Download } from 'lucide-react';
 import { clsx } from 'clsx';
 import DateInput from '../components/DateInput';
 import DatePicker from '../components/DatePicker';
 import { formatDate } from '../utils/dateUtils';
+import { readMoney } from '../utils/numberToWords';
+import { isNativeApp, saveFile } from '../utils/saveFile';
 import AlertModal from '../components/AlertModal';
 import { useToast } from '../context/ToastContext';
 import { getApiErrorMessage } from '../utils/errorMessage';
@@ -86,7 +90,13 @@ export default function Transactions() {
     const { showToast } = useToast();
     const { user } = useAuth();
     const isAdmin = user?.role === 'ADMIN';
-    const [isOpen, setIsOpen] = useState(false);
+    const location = useLocation();
+    const navigate = useNavigate();
+    // Lối tắt "Giao dịch" ở trang Tổng quan mở thẳng form tạo mới
+    const [isOpen, setIsOpen] = useState(() => Boolean(location.state?.create));
+    useEffect(() => {
+        if (location.state?.create) navigate('.', { replace: true, state: null });
+    }, [location.state, navigate]);
     const [editingId, setEditingId] = useState(null);
     const [editingHasImage, setEditingHasImage] = useState(false);
     const [txImageUrl, setTxImageUrl] = useState(null);
@@ -247,6 +257,14 @@ export default function Transactions() {
         const start = (txPage - 1) * txPageSize;
         return filteredTransactions.slice(start, start + txPageSize);
     }, [filteredTransactions, txPage, txPageSize]);
+
+    /* Tablet ngang (cảm ứng, ≥1024): chạm dòng để xem chi tiết ở panel phải.
+       PC có chuột giữ nguyên click = sửa, double-click = đổi trạng thái. */
+    const isTouchWide = useMediaQuery('(min-width: 1024px) and (pointer: coarse)');
+    const [selectedTxId, setSelectedTxId] = useState(null);
+    const selectedTx = isTouchWide
+        ? paginatedTransactions.find((t) => t._id === selectedTxId) ?? paginatedTransactions[0]
+        : null;
 
     const txRangeFrom = totalFilteredCount === 0 ? 0 : (txPage - 1) * txPageSize + 1;
     const txRangeTo = Math.min(txPage * txPageSize, totalFilteredCount);
@@ -803,8 +821,31 @@ export default function Transactions() {
         });
     };
 
+    const openCreate = () => {
+        if (selectedCustomerId) {
+            const selected = findCustomerById(customers, selectedCustomerId);
+            if (selected) {
+                setFormData((prev) => ({ ...prev, customer_id: getCustomerKey(selected) }));
+                setCustomerSearch(selected.name ?? '');
+            }
+        }
+        setIsOpen(true);
+    };
+
     return (
         <div className="space-y-4 lg:space-y-6">
+            {/* Điện thoại: nút nổi thay cho nút "Tạo giao dịch" ở header, nằm trên bottom tab */}
+            {!isOpen && (
+                <button
+                    type="button"
+                    onClick={openCreate}
+                    aria-label="Tạo giao dịch"
+                    className="fixed right-4 z-30 flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-500 text-white shadow-lg shadow-orange-300/60 active:bg-orange-600 md:hidden"
+                    style={{ bottom: 'calc(var(--tabbar-h) + 1rem)' }}
+                >
+                    <Plus size={24} />
+                </button>
+            )}
             <AlertModal
                 isOpen={alertState.isOpen}
                 onClose={() => setAlertState({ ...alertState, isOpen: false })}
@@ -822,17 +863,8 @@ export default function Transactions() {
                             <p className="section-subtitle mt-1">Quản lý các giao dịch vay và nợ</p>
                         </div>
                         <button
-                            onClick={() => {
-                                if (selectedCustomerId) {
-                                    const selected = findCustomerById(customers, selectedCustomerId);
-                                    if (selected) {
-                                        setFormData((prev) => ({ ...prev, customer_id: getCustomerKey(selected) }));
-                                        setCustomerSearch(selected.name ?? '');
-                                    }
-                                }
-                                setIsOpen(true);
-                            }}
-                            className="btn-primary btn-md whitespace-nowrap shrink-0"
+                            onClick={openCreate}
+                            className="btn-primary btn-md hidden whitespace-nowrap shrink-0 md:inline-flex"
                         >
                             <Plus size={18} className="shrink-0" />
                             <span>Tạo giao dịch</span>
@@ -1001,14 +1033,15 @@ export default function Transactions() {
             )}
 
             {isOpen && (
-                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-all">
+                <div className="modal-overlay modal-overlay--sheet">
                     <div
                         ref={txModalRef}
-                        className="bg-white w-full max-w-2xl rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-300"
+                        className="modal-content max-w-2xl animate-in fade-in zoom-in duration-300"
                         role="dialog"
                         aria-modal="true"
                         aria-labelledby="tx-modal-title"
                     >
+                        <div aria-hidden className="mx-auto mt-2 h-1.5 w-10 shrink-0 rounded-full bg-slate-300 sm:hidden" />
                         <div className="flex items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/50 p-4 sm:p-5">
                             <div className="flex items-center gap-3 min-w-0">
                                 <div className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-md shadow-blue-200/50 sm:flex">
@@ -1239,6 +1272,7 @@ export default function Transactions() {
                                         </div>
                                         <input
                                             type="text"
+                                            inputMode="numeric"
                                             required
                                             className="w-full h-14 bg-slate-50 border border-slate-100 rounded-xl pl-10 pr-4 outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all font-semibold text-xl text-slate-800 shadow-inner tracking-tight placeholder:text-slate-300"
                                             value={formData.amount ? Number(formData.amount).toLocaleString('en-US') : ''}
@@ -1250,6 +1284,29 @@ export default function Transactions() {
                                             }}
                                             placeholder="0"
                                         />
+                                    </div>
+                                    {Number(formData.amount) > 0 && (
+                                        <p className="ml-1 text-xs italic text-slate-500">{readMoney(Number(formData.amount))}</p>
+                                    )}
+                                    <div className="flex flex-wrap gap-2">
+                                        {[['+1tr', 1_000_000], ['+5tr', 5_000_000], ['+10tr', 10_000_000]].map(([label, step]) => (
+                                            <button
+                                                key={label}
+                                                type="button"
+                                                className="min-h-[var(--tap-min)] rounded-full border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-600 active:bg-slate-100"
+                                                onClick={() => setFormData((prev) => ({ ...prev, amount: String((Number(prev.amount) || 0) + step) }))}
+                                            >
+                                                {label}
+                                            </button>
+                                        ))}
+                                        <button
+                                            type="button"
+                                            className="min-h-[var(--tap-min)] rounded-full border border-slate-200 bg-white px-3.5 font-mono text-xs font-semibold text-slate-600 active:bg-slate-100"
+                                            onClick={() => setFormData((prev) => ({ ...prev, amount: String((Number(prev.amount) || 0) * 1000) }))}
+                                            aria-label="Nhân 1000"
+                                        >
+                                            000
+                                        </button>
                                     </div>
                                 </div>
 
@@ -1358,7 +1415,7 @@ export default function Transactions() {
                                 đến mức nhãn xuống dòng. Cùng khuôn với footer modal ở
                                 Customers.jsx — nút chính đứng đầu trên mobile, nằm ngoài
                                 cùng bên phải trên desktop; nút xóa tách hẳn sang trái. */}
-                            <div className="flex w-full flex-col gap-2 border-t border-slate-100 bg-slate-50/50 p-5 sm:flex-row-reverse sm:items-center sm:gap-3">
+                            <div className="flex w-full flex-col gap-2 border-t border-slate-100 bg-slate-50/50 p-5 pb-[max(1.25rem,var(--safe-b))] sm:flex-row-reverse sm:items-center sm:gap-3">
                                 <button
                                     type="submit"
                                     disabled={createMutation.isPending || updateMutation.isPending}
@@ -1471,7 +1528,8 @@ export default function Transactions() {
                             đường kẻ hết bề ngang. Trước đây thẻ có một hộp xám lồng bên
                             trong, viền của nó đậm hơn cả đường ngăn giữa hai dòng nên mắt
                             đọc nhầm ranh giới; giờ làm phẳng để đường ngăn là nét mạnh nhất. */}
-                        <div className="md:hidden">
+                        {/* Tablet dọc (md): cùng thẻ đó, xếp 2 cột; bảng chỉ từ lg */}
+                        <div className="md:grid md:grid-cols-2 md:gap-3 md:p-3 lg:hidden">
                             {paginatedTransactions.map((tx) => {
                                 const customerName = resolveCustomerName(customers, tx);
                                 const typeConfig = configs?.find(c => c.code === tx.type);
@@ -1486,6 +1544,7 @@ export default function Transactions() {
                                         onClick={() => handleEdit(tx)}
                                         className={clsx(
                                             'relative border-b-2 border-slate-200 px-4 py-3.5 transition-colors last:border-b-0 active:bg-slate-100',
+                                            'md:overflow-hidden md:rounded-xl md:border md:last:border-b',
                                             isPaid ? 'bg-emerald-50/40' : 'bg-white'
                                         )}
                                     >
@@ -1554,7 +1613,7 @@ export default function Transactions() {
                             })}
 
                             {totalFilteredCount === 0 && (
-                                <div className="py-12 px-4 text-center">
+                                <div className="py-12 px-4 text-center md:col-span-2">
                                     <div className="flex flex-col items-center justify-center text-slate-400">
                                         <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-3 border border-dashed border-slate-200">
                                             <Search size={22} className="opacity-40" />
@@ -1567,7 +1626,8 @@ export default function Transactions() {
                         </div>
 
                         {/* Desktop: bảng — gốc / lãi / tổng tách cột */}
-                        <div className="hidden md:block overflow-x-auto">
+                        <div className="hidden lg:flex">
+                        <div className="min-w-0 flex-1 overflow-x-auto">
                             <table className="table w-full text-sm">
                                 <caption className="sr-only">Danh sách giao dịch, nhấp để sửa, nhấp đúp để đổi trạng thái thanh toán</caption>
                                 <thead className="table-head sticky top-0 z-10 shadow-sm">
@@ -1578,9 +1638,9 @@ export default function Transactions() {
                                         <th scope="col" className="table-th whitespace-nowrap">Ngày</th>
                                         <th scope="col" className="table-th min-w-[7rem] max-w-[11rem]">Khách hàng</th>
                                         <th scope="col" className="table-th min-w-[8.5rem]">Loại & lãi</th>
-                                        <th scope="col" className="table-th min-w-[12rem] max-w-[20rem]">Nội dung</th>
+                                        {!isTouchWide && <th scope="col" className="table-th min-w-[12rem] max-w-[20rem]">Nội dung</th>}
                                         <th scope="col" className="table-th text-right whitespace-nowrap">Tiền gốc</th>
-                                        <th scope="col" className="table-th text-right whitespace-nowrap">Tiền lãi</th>
+                                        {!isTouchWide && <th scope="col" className="table-th text-right whitespace-nowrap">Tiền lãi</th>}
                                         <th scope="col" className="table-th text-right whitespace-nowrap">Tổng cộng</th>
                                     </tr>
                                 </thead>
@@ -1599,14 +1659,16 @@ export default function Transactions() {
                                                     'table-row group relative cursor-pointer transition-colors',
                                                     tx.status === 'PAID'
                                                         ? 'bg-emerald-50/70 hover:bg-emerald-50'
-                                                        : 'hover:bg-slate-50/90'
+                                                        : 'hover:bg-slate-50/90',
+                                                    selectedTx?._id === tx._id && '!bg-blue-50 outline outline-2 -outline-offset-2 outline-blue-500'
                                                 )}
-                                                onClick={() => handleEdit(tx)}
-                                                onDoubleClick={(e) => {
+                                                onClick={() => (isTouchWide ? setSelectedTxId(tx._id) : handleEdit(tx))}
+                                                onDoubleClick={isTouchWide ? undefined : (e) => {
                                                     e.stopPropagation();
                                                     handleStatusToggle(e, tx);
                                                 }}
-                                                title="Click để chỉnh sửa · Double-click để đổi trạng thái thanh toán"
+                                                aria-selected={isTouchWide ? selectedTx?._id === tx._id : undefined}
+                                                title={isTouchWide ? undefined : 'Click để chỉnh sửa · Double-click để đổi trạng thái thanh toán'}
                                             >
                                                 <td className="table-td align-middle pl-3 pr-0 w-[1%]">
                                                     <span
@@ -1640,23 +1702,27 @@ export default function Transactions() {
                                                         </p>
                                                     )}
                                                 </td>
-                                                <td className="table-td align-top text-slate-600 max-w-[20rem]">
-                                                    <div className="rounded-md bg-slate-50/90 px-2 py-1.5 border border-slate-100/80">
-                                                        {formatTransactionContentPreview(tx.content, { lineClampClass: 'line-clamp-4' })}
-                                                    </div>
-                                                </td>
+                                                {!isTouchWide && (
+                                                    <td className="table-td align-top text-slate-600 max-w-[20rem]">
+                                                        <div className="rounded-md bg-slate-50/90 px-2 py-1.5 border border-slate-100/80">
+                                                            {formatTransactionContentPreview(tx.content, { lineClampClass: 'line-clamp-4' })}
+                                                        </div>
+                                                    </td>
+                                                )}
                                                 <td className="table-td text-right align-top whitespace-nowrap font-mono text-slate-700 tabular-nums">
                                                     {principal.toLocaleString('vi-VN')}
                                                 </td>
-                                                <td className="table-td text-right align-top whitespace-nowrap font-mono tabular-nums">
-                                                    {calc && interest > 0 ? (
-                                                        <span className="font-mono font-medium text-blue-600 tabular-nums">
-                                                            +{interest.toLocaleString('vi-VN')}
-                                                        </span>
-                                                    ) : (
-                                                        <span className="font-mono text-slate-400 tabular-nums">—</span>
-                                                    )}
-                                                </td>
+                                                {!isTouchWide && (
+                                                    <td className="table-td text-right align-top whitespace-nowrap font-mono tabular-nums">
+                                                        {calc && interest > 0 ? (
+                                                            <span className="font-mono font-medium text-blue-600 tabular-nums">
+                                                                +{interest.toLocaleString('vi-VN')}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="font-mono text-slate-400 tabular-nums">—</span>
+                                                        )}
+                                                    </td>
+                                                )}
                                                 <td className="table-td text-right align-top whitespace-nowrap font-mono font-semibold text-slate-900 tabular-nums">
                                                     {(calc ? total : principal).toLocaleString('vi-VN')}
                                                 </td>
@@ -1665,7 +1731,7 @@ export default function Transactions() {
                                     })}
                                     {totalFilteredCount === 0 && (
                                         <tr>
-                                            <td colSpan={8} className="table-td py-12 text-center">
+                                            <td colSpan={isTouchWide ? 6 : 8} className="table-td py-12 text-center">
                                                 <div className="flex flex-col items-center justify-center text-slate-400">
                                                     <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-3 border border-dashed border-slate-200">
                                                         <Search size={22} className="opacity-40" />
@@ -1678,6 +1744,48 @@ export default function Transactions() {
                                     )}
                                 </tbody>
                             </table>
+                        </div>
+                        {selectedTx && (() => {
+                            const { principal, interest, total, calc } = parseTxAmounts(selectedTx);
+                            const typeConfig = configs?.find(c => c.code === selectedTx.type);
+                            const isPaid = selectedTx.status === 'PAID';
+                            const customerId = selectedTx.customer_id ?? selectedTx.customer?.id ?? selectedTx.customer;
+                            return (
+                                <aside className="w-72 shrink-0 space-y-4 border-l border-slate-200 bg-slate-50 p-4" aria-label="Chi tiết giao dịch">
+                                    <div>
+                                        <p className="font-semibold leading-snug text-slate-900">{resolveCustomerName(customers, selectedTx)}</p>
+                                        <p className="mt-0.5 text-xs text-slate-500">
+                                            {formatDate(selectedTx.transaction_date)} · {typeConfig ? typeConfig.name : selectedTx.type}
+                                            {calc != null && ` · ${selectedTx.interest_rate_snapshot}% · ${calc?.months?.toFixed(1) ?? 0} tháng`}
+                                        </p>
+                                    </div>
+                                    <dl className="space-y-1.5 rounded-xl border border-slate-200 bg-white p-3 text-sm">
+                                        <div className="flex justify-between gap-3"><dt className="text-slate-500">Gốc</dt><dd className="font-mono tabular-nums">{principal.toLocaleString('vi-VN')}</dd></div>
+                                        <div className="flex justify-between gap-3"><dt className="text-slate-500">Lãi</dt><dd className="font-mono tabular-nums text-blue-600">{calc && interest > 0 ? `+${interest.toLocaleString('vi-VN')}` : '—'}</dd></div>
+                                        <div className="flex justify-between gap-3 border-t border-slate-100 pt-1.5"><dt className="font-semibold text-slate-700">Tổng</dt><dd className="font-mono font-bold tabular-nums text-slate-900">{(calc ? total : principal).toLocaleString('vi-VN')}</dd></div>
+                                    </dl>
+                                    <div className="max-h-48 overflow-y-auto whitespace-pre-wrap rounded-xl border border-slate-200 bg-white p-3 text-sm leading-relaxed text-slate-700">
+                                        {selectedTx.content || '—'}
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <button type="button" onClick={() => handleEdit(selectedTx)} className="btn-secondary btn-md">
+                                            <Edit2 size={16} /> Sửa
+                                        </button>
+                                        {customerId ? (
+                                            <Link to={`/customers/${customerId}/debt`} className="btn-secondary btn-md">Công nợ</Link>
+                                        ) : <span />}
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={(e) => handleStatusToggle(e, selectedTx)}
+                                        disabled={updateMutation.isPending}
+                                        className={clsx('btn-md w-full', isPaid ? 'btn-secondary' : 'btn-primary')}
+                                    >
+                                        {isPaid ? <><Clock size={16} /> Chuyển về chưa thu</> : <><Check size={16} /> Đánh dấu đã thu</>}
+                                    </button>
+                                </aside>
+                            );
+                        })()}
                         </div>
                     </>
                 )}
@@ -1918,6 +2026,14 @@ function ImageDetailModal({ isOpen, imageUrl, onClose, onDelete, onUpdate, isDel
                         <a
                             href={imageUrl}
                             download="transaction-image"
+                            onClick={(e) => {
+                                if (!isNativeApp()) return;
+                                e.preventDefault();
+                                fetch(imageUrl)
+                                    .then((r) => r.blob())
+                                    .then((b) => saveFile(b, `chung-tu.${(b.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg')}`))
+                                    .catch((err) => console.error('Save image failed', err));
+                            }}
                             className="p-2.5 hover:bg-white/10 rounded-full transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
                             title="Tải xuống"
                         >
