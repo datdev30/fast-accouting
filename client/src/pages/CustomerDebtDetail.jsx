@@ -30,6 +30,7 @@ const CustomerDebtDetail = () => {
 
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
+    const [historyStatus, setHistoryStatus] = useState('ALL');
     const [showPreview, setShowPreview] = useState(false);
     const [showAllTransactionsPreview, setShowAllTransactionsPreview] = useState(false);
 
@@ -274,6 +275,24 @@ const CustomerDebtDetail = () => {
         remainingInterest += tx.interest_calculation?.rounded_interest || 0;
     }
     const totalRemaining = remainingPrincipal + remainingInterest;
+
+    const txList = transactions ?? [];
+    const historyCounts = {
+        ALL: txList.length,
+        OPEN: txList.filter((t) => t.status !== 'PAID').length,
+        PAID: txList.filter((t) => t.status === 'PAID').length,
+    };
+    const historyGroups = [];
+    for (const tx of [...txList].sort((a, b) => new Date(b.transaction_date) - new Date(a.transaction_date))) {
+        if (historyStatus === 'OPEN' && tx.status === 'PAID') continue;
+        if (historyStatus === 'PAID' && tx.status !== 'PAID') continue;
+        const d = new Date(tx.transaction_date);
+        const key = isNaN(d) ? 'khác' : `${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+        let g = historyGroups.at(-1);
+        if (g?.key !== key) historyGroups.push((g = { key, items: [], total: 0 }));
+        g.items.push(tx);
+        g.total += (tx.amount || 0) + (tx.interest_calculation?.rounded_interest || 0);
+    }
 
     if (!customer) return <div className="p-4 text-center text-sm text-slate-500">Đang tải dữ liệu khách hàng...</div>;
 
@@ -530,51 +549,67 @@ const CustomerDebtDetail = () => {
                 </div>
             )}
 
-            <div className="flex">
-                <DateRangeFilter
-                    startDate={startDate}
-                    endDate={endDate}
-                    onChange={(start, end) => {
-                        setStartDate(start);
-                        setEndDate(end);
-                    }}
-                />
-            </div>
-
-            {/* Transactions List */}
-            {transactionsError ? (
-                <ErrorStates.Network
-                    error={transactionsError}
-                    onRetry={refetchTransactions}
-                    showDetails={true}
-                />
-            ) : isLoading ? (
-                <div className="space-y-4">
-                    <LoadingSkeleton.Table rows={5} columns={8} />
-                    <LoadingSkeleton.Table rows={4} columns={8} />
-                </div>
-            ) : Object.keys(groupedTransactions).length === 0 ? (
-                (startDate || endDate) ? (
-                    <EmptyStates.NoResults
-                        action={() => { setStartDate(''); setEndDate(''); }}
-                        actionLabel="Xóa bộ lọc"
+            <section className="rounded-2xl border border-slate-200 bg-white" aria-label="Lịch sử giao dịch">
+                <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 p-4 lg:px-5">
+                    <h2 className="mr-auto font-heading font-bold text-slate-900">Lịch sử giao dịch</h2>
+                    <DateRangeFilter
+                        startDate={startDate}
+                        endDate={endDate}
+                        onChange={(start, end) => {
+                            setStartDate(start);
+                            setEndDate(end);
+                        }}
                     />
+                    <div className="flex w-full gap-1.5" role="group" aria-label="Lọc theo trạng thái">
+                        {[['ALL', 'Tất cả'], ['OPEN', 'Chưa trả'], ['PAID', 'Đã trả']].map(([key, label]) => (
+                            <button
+                                key={key}
+                                type="button"
+                                aria-pressed={historyStatus === key}
+                                onClick={() => setHistoryStatus(key)}
+                                className={clsx(
+                                    'min-h-9 rounded-full px-3 text-xs font-semibold transition-colors',
+                                    historyStatus === key ? 'bg-blue-600 text-white' : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                                )}
+                            >
+                                {label} · {historyCounts[key]}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {transactionsError ? (
+                    <div className="p-4">
+                        <ErrorStates.Network error={transactionsError} onRetry={refetchTransactions} showDetails={true} />
+                    </div>
+                ) : isLoading ? (
+                    <div className="p-4"><LoadingSkeleton.Table rows={5} columns={4} /></div>
+                ) : !transactions?.length ? (
+                    (startDate || endDate) ? (
+                        <EmptyStates.NoResults action={() => { setStartDate(''); setEndDate(''); }} actionLabel="Xóa bộ lọc" />
+                    ) : (
+                        <EmptyStates.NoTransactions />
+                    )
+                ) : historyGroups.length === 0 ? (
+                    <p className="p-8 text-center text-sm text-slate-500">Không có giao dịch {historyStatus === 'PAID' ? 'đã trả' : 'chưa trả'}.</p>
                 ) : (
-                    <EmptyStates.NoTransactions />
-                )
-            ) : (
-                <section className="rounded-xl border border-slate-200 bg-white p-4 lg:p-5" aria-label="Lịch sử giao dịch">
-                    <h2 className="mb-3 font-bold text-slate-900">Lịch sử <span className="font-normal text-slate-400">· {transactions.length} giao dịch</span></h2>
-                    <ol>
-                        {[...transactions]
-                            .sort((a, b) => new Date(b.transaction_date) - new Date(a.transaction_date))
-                            .map((tx) => (
-                                <DebtHistoryEntry key={tx._id} transaction={tx} typeName={configs?.find((c) => c.code === tx.type)?.name || tx.type} />
-                            ))}
-                    </ol>
-                </section>
-            )
-            }
+                    <div className="px-4 pb-2 lg:px-5">
+                        {historyGroups.map((g) => (
+                            <div key={g.key}>
+                                <p className="sticky top-0 z-[1] -mx-4 flex justify-between bg-slate-50/95 px-4 py-1.5 text-xs font-semibold text-slate-500 backdrop-blur lg:-mx-5 lg:px-5">
+                                    <span>Tháng {g.key}</span>
+                                    <span className="font-mono tabular-nums">{g.total.toLocaleString('vi-VN')} ₫</span>
+                                </p>
+                                <ol className="divide-y divide-slate-100">
+                                    {g.items.map((tx) => (
+                                        <DebtHistoryEntry key={tx._id} transaction={tx} typeName={configs?.find((c) => c.code === tx.type)?.name || tx.type} />
+                                    ))}
+                                </ol>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </section>
 
             {/* QR Code Payment Modal */}
             {showQRModal && (
