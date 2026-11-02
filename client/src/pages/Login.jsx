@@ -54,7 +54,7 @@ export default function Login() {
                     <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/90 p-1.5 shadow-sm">
                         <AppBrandLogo variant="mark" alt="FastAccounting" className="h-full w-full object-contain" />
                     </div>
-                    <h1 className="mt-5 font-heading text-2xl font-extrabold">Xin chào 👋</h1>
+                    <h1 className="mt-5 font-heading text-2xl font-bold">Xin chào 👋</h1>
                     <p className="mt-1 text-sm text-blue-100">Đăng nhập để quản lý khoản vay</p>
                 </div>
             </div>

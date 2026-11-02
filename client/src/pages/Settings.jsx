@@ -198,7 +198,7 @@ export default function Settings() {
                     ) : tokenData?.has_token ? (
                         <div className="space-y-3 p-4 bg-slate-50 rounded-xl border border-slate-200">
                             <div className="flex items-center justify-between">
-                                <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">
+                                <label className="text-xs font-bold text-slate-600 ">
                                     Refresh Token hiện tại
                                 </label>
                                 <button
@@ -247,7 +247,7 @@ export default function Settings() {
 
                     {/* Manual Token Input */}
                     <div className="space-y-3">
-                        <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider">
+                        <label className="block text-xs font-bold text-slate-600 ">
                             Nhập refresh token thủ công
                         </label>
                         <div className="flex gap-2">
@@ -275,7 +275,7 @@ export default function Settings() {
 
                     {/* Generate Token via OAuth */}
                     <div className="space-y-3 pt-4 border-t border-slate-200">
-                        <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider">
+                        <label className="block text-xs font-bold text-slate-600 ">
                             Tạo refresh token mới (OAuth)
                         </label>
                         

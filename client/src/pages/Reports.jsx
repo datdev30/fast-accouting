@@ -12,7 +12,7 @@ import DataTable from '../components/DataTable';
 import Avatar from '../components/Avatar';
 import { formatDate } from '../utils/dateUtils';
 
-const money = (n) => Number(n || 0).toLocaleString('vi-VN');
+const money = (n) => n == null ? '—' : Number(n).toLocaleString('vi-VN');
 
 export default function Reports() {
     const navigate = useNavigate();
@@ -25,7 +25,7 @@ export default function Reports() {
         queryFn: getDebtReport,
         retry: 1
     });
-    const { data: summary } = useQuery({ queryKey: ['overview-summary'], queryFn: getOverviewSummary });
+    const { data: summary, isPending: summaryLoading, isError: summaryError, refetch: retrySummary } = useQuery({ queryKey: ['overview-summary'], queryFn: getOverviewSummary });
     const { data: configs } = useQuery({ queryKey: ['interest-configs'], queryFn: getInterestConfigs });
 
     const processedData = useMemo(() => {
@@ -84,42 +84,44 @@ export default function Reports() {
     const typeName = (code) => configs?.find((c) => c.code === code)?.name ?? code;
 
     const quickActions = [
-        { to: '/transactions', state: { create: true }, icon: Plus, label: 'Giao dịch', tone: 'bg-orange-50 text-orange-600' },
+        { to: '/transactions', state: { create: true }, icon: Plus, label: 'Giao dịch', tone: 'bg-orange-50 text-amber-800' },
         { to: '/customers', state: { create: true }, icon: UserPlus, label: 'Khách mới', tone: 'bg-blue-50 text-blue-600' },
-        { to: '/bank-account-config', icon: QrCode, label: 'Mã QR', tone: 'bg-emerald-50 text-emerald-600' },
+        { to: '/bank-account-config', icon: QrCode, label: 'Mã QR', tone: 'bg-emerald-50 text-emerald-700' },
     ];
 
     return (
         <div className="space-y-4 pb-10 animate-in fade-in duration-300 lg:space-y-6">
             <header className="hidden items-center gap-3 lg:flex">
-                <h1 className="flex-1 font-heading text-2xl font-extrabold text-slate-900">Tổng quan</h1>
+                <h1 className="flex-1 font-heading text-2xl font-bold text-slate-900">Tổng quan</h1>
                 <button type="button" onClick={() => triggerBatchExport()} disabled={isBackingUp} className="btn-secondary btn-md">
                     <FileDown size={18} className={isBackingUp ? 'animate-bounce' : ''} />
                     {isBackingUp ? 'Đang xử lý…' : 'Xuất PDF'}
                 </button>
-                <Link to="/transactions" state={{ create: true }} className="btn-md inline-flex items-center gap-1.5 rounded-xl bg-orange-500 px-4 font-bold text-white hover:bg-orange-600">
+                <Link to="/transactions" state={{ create: true }} className="btn-md inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 font-bold text-white hover:bg-blue-700">
                     <Plus size={18} /> Thêm giao dịch
                 </Link>
             </header>
 
             <section className="grid gap-3 lg:grid-cols-3 lg:gap-4" aria-label="Tổng hợp">
-                <div className="rounded-2xl bg-gradient-to-br from-blue-600 to-blue-700 p-4 text-white shadow-lg shadow-blue-200 lg:col-span-2 lg:p-6">
-                    <p className="text-xs font-semibold text-blue-100 lg:text-sm">Tổng nợ phải thu</p>
-                    <p className="mt-1 font-mono text-[1.625rem] font-bold leading-tight tabular-nums lg:text-4xl">
-                        {money(summary?.total_debt)} <span className="text-base font-normal text-blue-200">₫</span>
+                <div className="ledger-summary lg:col-span-2">
+                    <p className="ledger-caption">Tổng nợ phải thu</p>
+                    {summaryLoading && <p role="status" className="mt-2 text-sm text-slate-600">Đang tải số liệu…</p>}
+                    {summaryError && <p role="alert" className="mt-2 text-sm text-red-700">Không tải được số liệu tổng hợp. <button type="button" className="underline min-h-12" onClick={() => retrySummary()}>Thử lại</button></p>}
+                    <p className="ledger-total mt-1">
+                        {money(summary?.total_debt)} <span className="text-base font-normal text-slate-600">₫</span>
                     </p>
-                    <dl className="mt-3 grid grid-cols-2 gap-2 text-xs lg:mt-5 lg:grid-cols-3 lg:gap-3">
-                        <div className="min-w-0 rounded-xl bg-white/10 p-2.5 lg:p-3">
-                            <dt className="text-blue-100">Tiền gốc</dt>
-                            <dd className="mt-0.5 truncate font-mono text-sm font-bold tabular-nums lg:text-base">{money(summary?.open_principal)}</dd>
+                    <dl className="ledger-breakdown">
+                        <div className="min-w-0">
+                            <dt className="text-slate-600">Tiền gốc</dt>
+                            <dd className="mt-0.5 font-mono text-sm font-bold tabular-nums lg:text-base">{money(summary?.open_principal)}</dd>
                         </div>
-                        <div className="min-w-0 rounded-xl bg-white/10 p-2.5 lg:p-3">
-                            <dt className="text-blue-100">Lãi dự kiến</dt>
-                            <dd className="mt-0.5 truncate font-mono text-sm font-bold tabular-nums lg:text-base">{money(summary?.open_interest)}</dd>
+                        <div className="min-w-0">
+                            <dt className="text-slate-600">Lãi dự kiến</dt>
+                            <dd className="mt-0.5 font-mono text-sm font-bold tabular-nums lg:text-base">{money(summary?.open_interest)}</dd>
                         </div>
-                        <div className="col-span-2 min-w-0 rounded-xl bg-white/10 p-2.5 lg:col-span-1 lg:p-3">
-                            <dt className="text-blue-100">Đã thu</dt>
-                            <dd className="mt-0.5 truncate font-mono text-sm font-bold tabular-nums lg:text-base">{money(summary?.total_collected)}</dd>
+                        <div className="min-w-0">
+                            <dt className="text-slate-600">Đã thu</dt>
+                            <dd className="mt-0.5 font-mono text-sm font-bold tabular-nums lg:text-base">{money(summary?.total_collected)}</dd>
                         </div>
                     </dl>
                 </div>
@@ -128,12 +130,12 @@ export default function Reports() {
                     <Link to="/customers" className="rounded-xl border border-slate-200 bg-white p-3 lg:p-5">
                         <p className="text-xs text-slate-500">Khách hàng</p>
                         <p className="font-mono text-xl font-bold text-slate-900 lg:text-2xl">{summary?.customer_count ?? '—'}</p>
-                        <p className="text-[11px] font-semibold text-emerald-600">+{summary?.new_customers_this_month ?? 0} tháng này</p>
+                        <p className="text-[13px] font-semibold text-emerald-700">+{summary?.new_customers_this_month ?? 0} tháng này</p>
                     </Link>
                     <Link to="/transactions" className="rounded-xl border border-slate-200 bg-white p-3 lg:p-5">
                         <p className="text-xs text-slate-500">Khoản đang mở</p>
                         <p className="font-mono text-xl font-bold text-slate-900 lg:text-2xl">{summary?.open_count ?? '—'}</p>
-                        <p className="text-[11px] font-semibold text-amber-600">{summary?.open_over_6_months ?? 0} quá 6 tháng</p>
+                        <p className="text-[13px] font-semibold text-amber-600">{summary?.open_over_6_months ?? 0} quá 6 tháng</p>
                     </Link>
                 </div>
             </section>
@@ -142,55 +144,23 @@ export default function Reports() {
                 {quickActions.map((action) => (
                     <Link key={action.label} to={action.to} state={action.state} className="flex flex-col items-center gap-1.5 rounded-xl py-1 active:bg-slate-100">
                         <span className={`flex h-12 w-12 items-center justify-center rounded-2xl ${action.tone}`}><action.icon size={20} /></span>
-                        <span className="text-[11px] font-semibold text-slate-700">{action.label}</span>
+                        <span className="text-[13px] font-semibold text-slate-700">{action.label}</span>
                     </Link>
                 ))}
                 <button type="button" onClick={() => triggerBatchExport()} disabled={isBackingUp} className="flex flex-col items-center gap-1.5 rounded-xl py-1 active:bg-slate-100 disabled:opacity-60">
                     <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-50 text-violet-600">
                         <FileDown size={20} className={isBackingUp ? 'animate-bounce' : ''} />
                     </span>
-                    <span className="text-[11px] font-semibold text-slate-700">Xuất PDF</span>
+                    <span className="text-[13px] font-semibold text-slate-700">Xuất PDF</span>
                 </button>
             </nav>
-
-            <div className="grid gap-4 lg:grid-cols-3">
-                <section aria-label="Giao dịch gần đây">
-                    <div className="mb-2 flex items-center justify-between">
-                        <h2 className="font-bold text-slate-900">Giao dịch gần đây</h2>
-                        <Link to="/transactions" className="text-xs font-semibold text-blue-600">Xem tất cả</Link>
-                    </div>
-                    <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white">
-                        {summary?.recent?.map((tx) => (
-                            <li key={tx._id}>
-                                <Link to={`/customers/${tx.customer_id}/debt`} className="flex items-center gap-3 p-3 hover:bg-slate-50">
-                                    <Avatar name={tx.customer_name} className="h-9 w-9 rounded-full text-xs" />
-                                    <div className="min-w-0 flex-1">
-                                        <p className="truncate text-sm font-semibold text-slate-800">{tx.customer_name}</p>
-                                        <p className="text-[11px] text-slate-500">{formatDate(tx.transaction_date)} · {typeName(tx.type)}</p>
-                                    </div>
-                                    {tx.status === 'PAID'
-                                        ? <p className="text-sm font-bold text-emerald-600">Đã trả</p>
-                                        : <p className="font-mono text-sm font-bold tabular-nums text-slate-900">{money(tx.amount)}</p>}
-                                </Link>
-                            </li>
-                        ))}
-                        {summary?.recent?.length === 0 && <li className="p-4 text-center text-sm text-slate-500">Chưa có giao dịch</li>}
-                    </ul>
-                </section>
-
-                <section className="rounded-2xl border border-slate-200 bg-white p-3 sm:p-4 lg:col-span-2" aria-label="Biểu đồ">
-                    <div className="reports-charts-root">
-                        <ReportsAdminCharts report={report ?? []} />
-                    </div>
-                </section>
-            </div>
 
             <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white" aria-label="Công nợ theo khách hàng">
                 <div className="card-header">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                         <h2 className="section-kicker">
                             <span className="h-4 w-1 rounded-full bg-blue-600" aria-hidden />
-                            Công nợ theo khách hàng
+                            Công nợ theo khách hàng · VND
                         </h2>
                         <div className="relative w-full sm:w-56 md:w-64">
                             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
@@ -247,7 +217,7 @@ export default function Reports() {
                             priority: 3,
                             align: 'right',
                             sortable: true,
-                            cellClassName: 'font-mono text-orange-600 font-medium',
+                            cellClassName: 'font-mono text-amber-800 font-medium',
                             cell: (item) => `+${item.total_interest.toLocaleString('vi-VN')}`,
                         },
                         {
@@ -256,7 +226,7 @@ export default function Reports() {
                             priority: 2,
                             align: 'right',
                             sortable: true,
-                            cellClassName: 'font-mono text-emerald-600 font-medium',
+                            cellClassName: 'font-mono text-emerald-700 font-medium',
                             cell: (item) => item.total_collected?.toLocaleString('vi-VN') || 0,
                         },
                         {
@@ -300,6 +270,40 @@ export default function Reports() {
                     )}
                 />
             </section>
+
+            <div className="grid gap-4 lg:grid-cols-3">
+                <section aria-label="Giao dịch gần đây">
+                    <div className="mb-2 flex items-center justify-between">
+                        <h2 className="font-bold text-slate-900">Giao dịch gần đây</h2>
+                        <Link to="/transactions" className="text-xs font-semibold text-blue-600">Xem tất cả</Link>
+                    </div>
+                    <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white">
+                        {summary?.recent?.map((tx) => (
+                            <li key={tx._id}>
+                                <Link to={`/customers/${tx.customer_id}/debt`} className="flex items-center gap-3 p-3 hover:bg-slate-50">
+                                    <Avatar name={tx.customer_name} className="h-9 w-9 rounded-full text-xs" />
+                                    <div className="min-w-0 flex-1">
+                                        <p className="truncate text-sm font-semibold text-slate-800">{tx.customer_name}</p>
+                                        <p className="text-[13px] text-slate-500">{formatDate(tx.transaction_date)} · {typeName(tx.type)}</p>
+                                    </div>
+                                    <div className="shrink-0 text-right">
+                                        <p className="font-mono text-sm font-semibold text-slate-900">{money(tx.amount)} ₫</p>
+                                        {tx.status === 'PAID' && <p className="text-[13px] text-emerald-700">Đã trả</p>}
+                                    </div>
+                                </Link>
+                            </li>
+                        ))}
+                        {summary?.recent?.length === 0 && <li className="p-4 text-center text-sm text-slate-500">Chưa có giao dịch</li>}
+                    </ul>
+                </section>
+
+                <section className="rounded-2xl border border-slate-200 bg-white p-3 sm:p-4 lg:col-span-2" aria-label="Biểu đồ">
+                    <div className="reports-charts-root">
+                        <ReportsAdminCharts report={report ?? []} />
+                    </div>
+                </section>
+            </div>
+
         </div>
     );
 }

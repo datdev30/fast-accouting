@@ -311,7 +311,7 @@ export default function BankAccountConfig() {
 
                         <form onSubmit={handleSubmit} className="space-y-5">
                             <div className="space-y-1.5">
-                                <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider ml-1">
+                                <label className="block text-xs font-bold text-slate-600  ml-1">
                                     Ngân hàng
                                 </label>
                                 {isLoadingBanks ? (
@@ -417,7 +417,7 @@ export default function BankAccountConfig() {
                             </div>
 
                             <div className="space-y-1.5">
-                                <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider ml-1">
+                                <label className="block text-xs font-bold text-slate-600  ml-1">
                                     Số tài khoản
                                 </label>
                                 <div className="relative group">
@@ -455,7 +455,7 @@ export default function BankAccountConfig() {
                             </div>
 
                             <div className="space-y-1.5">
-                                <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider ml-1">
+                                <label className="block text-xs font-bold text-slate-600  ml-1">
                                     Chủ tài khoản
                                 </label>
                                 <div className="relative group">
@@ -487,7 +487,7 @@ export default function BankAccountConfig() {
                             </div>
 
                             <div className="space-y-1.5">
-                                <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider ml-1">
+                                <label className="block text-xs font-bold text-slate-600  ml-1">
                                     Nội dung chuyển khoản mặc định
                                     <span className="text-slate-400 font-normal normal-case ml-1">(Tùy chọn)</span>
                                 </label>

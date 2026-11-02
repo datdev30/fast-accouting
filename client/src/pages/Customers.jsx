@@ -383,7 +383,7 @@ export default function Customers() {
                 icon={(
                     <div className={clsx(
                         'flex shrink-0 items-center justify-center rounded-xl p-2.5',
-                        isHistoryView || isEdit ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'
+                        isHistoryView || isEdit ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-700'
                     )}>
                         {isHistoryView ? <History size={22} /> : isEdit ? <Edit2 size={22} /> : <Plus size={22} />}
                     </div>
@@ -419,12 +419,12 @@ export default function Customers() {
             >
                 {!isHistoryView && (
                     <>
-                        <p className="mb-3 text-sm font-medium uppercase tracking-widest text-slate-400">
+                        <p className="mb-3 text-sm font-medium  text-slate-400">
                             {isEdit ? 'Chỉnh sửa hồ sơ khách hàng' : 'Khởi tạo đối tác mới'}
                         </p>
                         <form id="customer-form" onSubmit={handleSubmit} className="space-y-4">
                         <div className="space-y-2">
-                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Họ và tên</label>
+                            <label className="block text-xs font-semibold text-slate-600  ml-1">Họ và tên</label>
                             <div className="relative group">
                                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors">
                                     <User size={18} />
@@ -456,7 +456,7 @@ export default function Customers() {
                         </div>
 
                         <div className="space-y-2">
-                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Thông tin liên hệ</label>
+                            <label className="block text-xs font-semibold text-slate-600  ml-1">Thông tin liên hệ</label>
                             <div className="relative group">
                                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors">
                                     <MapPin size={18} />
@@ -530,18 +530,18 @@ export default function Customers() {
                                                         <div className="flex items-center gap-3 min-w-0">
                                                             <div className={clsx(
                                                                 "w-12 h-12 rounded-xl flex items-center justify-center flex-none",
-                                                                tx.status === 'PAID' ? "bg-emerald-50 text-emerald-600" : "bg-blue-50 text-blue-600"
+                                                                tx.status === 'PAID' ? "bg-emerald-50 text-emerald-700" : "bg-blue-50 text-blue-600"
                                                             )}>
                                                                 {tx.status === 'PAID' ? <Check size={22} /> : <Clock size={22} />}
                                                             </div>
                                                             <div className="min-w-0">
                                                                 <div className="flex items-center gap-3 mb-1">
-                                                                    <span className="text-sm font-bold uppercase tracking-widest text-slate-400">
+                                                                    <span className="text-sm font-bold  text-slate-400">
                                                                         {formatDate(tx.transaction_date)}
                                                                     </span>
                                                                     <span className="w-1 h-1 rounded-full bg-slate-200"></span>
                                                                     <span className={clsx(
-                                                                        "text-xs font-bold uppercase tracking-widest",
+                                                                        "text-xs font-bold ",
                                                                         tx.status === 'PAID' ? "text-emerald-500" : "text-amber-500"
                                                                     )}>
                                                                         {tx.status === 'PAID' ? 'ĐÃ THANH TOÁN' : 'CHƯA THU'}
@@ -561,7 +561,7 @@ export default function Customers() {
                                                             <p className="text-base font-semibold text-slate-900 tracking-tight tabular-nums">
                                                                 {formatMoneyComma(tx.amount || 0)} <span className="text-xs font-normal">đ</span>
                                                             </p>
-                                                            <span className="text-xs font-bold uppercase tracking-widest text-blue-500 mt-1">
+                                                            <span className="text-xs font-bold  text-blue-500 mt-1">
                                                                 {typeConfig?.name || tx.type}
                                                             </span>
                                                         </div>
@@ -583,7 +583,7 @@ export default function Customers() {
                         <div className="p-4 border-t border-slate-100 bg-white/50 text-center">
                             <Link
                                 to={`/customers/${currentId}/debt`}
-                                className="text-[10px] font-bold text-blue-500 uppercase tracking-[0.2em] hover:text-blue-700 transition-colors flex items-center justify-center gap-2 group"
+                                className="text-[13px] font-bold text-blue-500  hover:text-blue-700 transition-colors flex items-center justify-center gap-2 group"
                             >
                                 Xem chi tiết bảng nợ <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
                             </Link>
@@ -644,11 +644,11 @@ export default function Customers() {
                     </div>
                 )}
             >
-                <p className="mb-3 text-sm font-medium uppercase tracking-widest text-slate-400">Cập nhật thông tin chi tiết</p>
+                <p className="mb-3 text-sm font-medium  text-slate-400">Cập nhật thông tin chi tiết</p>
                 <form id="customer-tx-form" onSubmit={handleTxSubmit} className="space-y-4">
                     {/* Type config selector */}
                     <div>
-                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mb-2 ml-1">Loại giao dịch</label>
+                        <label className="block text-xs font-semibold text-slate-600  mb-2 ml-1">Loại giao dịch</label>
                         <div className="flex flex-wrap gap-2">
                             {configs?.map((config) => {
                                 const colors = getInterestConfigColorScheme(config.code);
@@ -671,7 +671,7 @@ export default function Customers() {
                     </div>
 
                     <div className="space-y-2">
-                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] mb-2 ml-1">Nội dung</label>
+                        <label className="block text-xs font-semibold text-slate-600  mb-2 ml-1">Nội dung</label>
                         <textarea
                             ref={txContentRef}
                             required
@@ -683,7 +683,7 @@ export default function Customers() {
 
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div className="space-y-2">
-                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Số tiền gốc</label>
+                            <label className="block text-xs font-semibold text-slate-600  ml-1">Số tiền gốc</label>
                             <div className="relative group">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 font-bold text-sm">đ</div>
                                 <input
@@ -698,7 +698,7 @@ export default function Customers() {
                             </div>
                         </div>
                         <div className="space-y-2">
-                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Ngày giao dịch</label>
+                            <label className="block text-xs font-semibold text-slate-600  ml-1">Ngày giao dịch</label>
                             <div className="relative group">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400"><Calendar size={18} /></div>
                                 <DateInput
@@ -713,7 +713,7 @@ export default function Customers() {
 
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div className="space-y-2">
-                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Trạng thái</label>
+                            <label className="block text-xs font-semibold text-slate-600  ml-1">Trạng thái</label>
                             <StatusDropdown
                                 value={txFormData.status}
                                 onChange={(next) => setTxFormData({ ...txFormData, status: next })}
@@ -722,7 +722,7 @@ export default function Customers() {
                         </div>
                         {txFormData.status === 'PAID' && (
                             <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
-                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Ngày thanh toán</label>
+                                <label className="block text-xs font-semibold text-slate-600  ml-1">Ngày thanh toán</label>
                                 <div className="relative group">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400"><Check size={18} /></div>
                                     <DateInput
@@ -798,7 +798,7 @@ export default function Customers() {
                     showDetails={true}
                 />
             ) : (
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-3">
             {isLoadingCustomers ? (
                 // Show skeleton loaders while loading
                 Array.from({ length: 8 }).map((_, i) => (
@@ -828,8 +828,6 @@ export default function Customers() {
                             onClick={() => handleEdit(customer)}
                             className="group relative grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1 overflow-hidden rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition-all duration-300 cursor-pointer card-hover hover:border-blue-200 hover:shadow-md hover:shadow-blue-500/10 sm:flex sm:flex-col sm:items-stretch sm:p-4"
                         >
-                            {/* Decorative Background Element */}
-                            <div className="absolute -top-12 -right-12 w-32 h-32 bg-gradient-to-br from-blue-50 to-indigo-50/30 rounded-full group-hover:scale-150 transition-transform duration-500 ease-out z-0 opacity-60"></div>
 
                             {/* Paid in Full Ribbon */}
                             {customer.is_paid_in_full && (
@@ -847,10 +845,10 @@ export default function Customers() {
                                         chạy xuống dưới băng và không đọc được. Dưới sm không có
                                         dải băng (nó đè lên cụm nút ở bố cục compact) nên không chừa. */}
                                     <h3 className={clsx(
-                                        "truncate text-[15px] font-bold text-slate-900 transition-colors group-hover:text-blue-600 sm:text-lg",
+                                        "break-words text-[15px] font-semibold text-slate-900 transition-colors group-hover:text-blue-600 sm:text-lg",
                                         customer.is_paid_in_full && "sm:pr-16"
                                     )}>
-                                        {customer.name}
+                                        <button type="button" className="text-left" onClick={(e) => { e.stopPropagation(); handleEdit(customer); }}>{customer.name}</button>
                                     </h3>
                                 </div>
                                 {customer.is_paid_in_full && (
@@ -868,7 +866,7 @@ export default function Customers() {
                                     <div className="rounded-lg bg-slate-50 p-0.5 text-slate-400 transition-colors group-hover:bg-blue-50 group-hover:text-blue-500 sm:p-1.5">
                                         <MapPin size={14} />
                                     </div>
-                                    <span className="line-clamp-1 pt-0.5 font-medium italic leading-tight text-slate-500 sm:line-clamp-2">
+                                    <span className="line-clamp-1 pt-0.5 font-normal leading-relaxed text-slate-600 sm:line-clamp-2">
                                         {customer.contact_info || 'Chưa cập nhật địa chỉ'}
                                     </span>
                                 </div>
@@ -887,8 +885,9 @@ export default function Customers() {
                                 </button>
                                 <Link
                                     to={`/customers/${customer.id}/debt`}
+                                    aria-label={`Xem công nợ của ${customer.name}`}
                                     onClick={(e) => e.stopPropagation()}
-                                    className="group/btn flex min-h-[var(--tap-min)] min-w-[var(--tap-min)] items-center justify-center gap-2 rounded-xl border border-blue-100 text-[10px] font-bold uppercase tracking-wider text-blue-600 shadow-sm transition-all hover:border-blue-600 hover:bg-blue-600 hover:text-white sm:flex-1 sm:px-3 sm:py-2.5"
+                                    className="group/btn flex min-h-[var(--tap-min)] min-w-[var(--tap-min)] items-center justify-center gap-2 rounded-xl border border-blue-100 text-[13px] font-bold  text-blue-600 shadow-sm transition-all hover:border-blue-600 hover:bg-blue-600 hover:text-white sm:flex-1 sm:px-3 sm:py-2.5"
                                 >
                                     <span className="hidden sm:inline">Xem chi tiết nợ</span>
                                     <ChevronRight size={16} className="transition-transform group-hover/btn:translate-x-1" />

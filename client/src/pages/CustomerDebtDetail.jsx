@@ -10,12 +10,12 @@ import PrintableAllTransactions from '../components/PrintableAllTransactions';
 import PrintPreviewFrame from '../components/PrintPreviewFrame';
 import { ArrowLeft, Printer, Calendar, X, FileText, Download, Loader2, QrCode, Phone, MessageCircle, CheckCheck } from 'lucide-react';
 import Avatar from '../components/Avatar';
+import DebtHistoryEntry from '../components/DebtHistoryEntry';
 import { readMoney } from '../utils/numberToWords';
 import { isNativeApp, saveFile } from '../utils/saveFile';
 import { clsx } from 'clsx';
 import DateInput from '../components/DateInput';
 import DatePicker from '../components/DatePicker';
-import { formatDate } from '../utils/dateUtils';
 import { useToast } from '../context/ToastContext';
 import { getApiErrorMessage } from '../utils/errorMessage';
 import LoadingSkeleton from '../components/LoadingSkeleton';
@@ -291,9 +291,9 @@ const CustomerDebtDetail = () => {
             </Link>
 
             <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
-                <section className="rounded-2xl border border-slate-200 bg-white p-4" aria-label="Khách hàng">
+                <section className="rounded-xl border border-slate-200 bg-white p-4" aria-label="Khách hàng">
                     <div className="flex items-center gap-3">
-                        <Avatar name={customer.name} className="h-14 w-14 rounded-2xl font-heading text-base font-extrabold" />
+                        <Avatar name={customer.name} className="h-14 w-14 rounded-2xl font-heading text-base font-bold" />
                         <div className="min-w-0 flex-1">
                             <h1 className="truncate font-heading text-lg font-bold text-slate-900 lg:text-xl">{customer.name}</h1>
                             <p className="truncate text-sm text-slate-500">{customer.contact_info || 'Không có thông tin liên hệ'}</p>
@@ -309,7 +309,7 @@ const CustomerDebtDetail = () => {
                             </a>
                         </div>
                     )}
-                    <div className="mt-4 grid grid-cols-4 gap-2">
+                    <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
                         {[
                             { label: 'Mã QR', icon: QrCode, tone: 'text-teal-600', onClick: handleGenerateQR, disabled: isGeneratingQR || totalDebtAmount === 0 || isLoadingBankConfig },
                             { label: 'Phiếu nợ', icon: Printer, tone: 'text-blue-600', onClick: () => setShowPreview(true) },
@@ -321,7 +321,7 @@ const CustomerDebtDetail = () => {
                                 type="button"
                                 onClick={action.onClick}
                                 disabled={action.disabled}
-                                className="flex flex-col items-center gap-1 rounded-xl border border-slate-200 bg-white py-3 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 lg:text-xs"
+                                className="flex flex-col items-center gap-1 rounded-xl border border-slate-200 bg-white py-3 text-[13px] font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 lg:text-xs"
                             >
                                 <action.icon size={20} className={clsx(action.tone, action.icon === Loader2 && 'animate-spin')} />
                                 {action.label}
@@ -331,16 +331,15 @@ const CustomerDebtDetail = () => {
                 </section>
 
                 <section className="space-y-3" aria-label="Công nợ còn lại">
-                    <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                        <p className="text-xs font-bold uppercase tracking-wide text-amber-800">Còn nợ lại</p>
-                        <p className="mt-1 font-mono text-2xl font-bold tabular-nums text-amber-900">
-                            {totalRemaining.toLocaleString('vi-VN')} <span className="font-sans text-base font-normal">₫</span>
-                        </p>
-                        {totalRemaining > 0 && <p className="mt-1 text-xs italic text-amber-700">{readMoney(totalRemaining)}</p>}
-                        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-amber-900">
-                            <span>Gốc <b className="font-mono tabular-nums">{remainingPrincipal.toLocaleString('vi-VN')}</b></span>
-                            <span>Lãi <b className="font-mono tabular-nums">{remainingInterest.toLocaleString('vi-VN')}</b></span>
-                        </div>
+                    <div className="ledger-summary">
+                        <p className="ledger-caption">Còn phải thu</p>
+                        <p className="ledger-total mt-1">{isLoading || transactionsError ? '—' : `${totalRemaining.toLocaleString('vi-VN')} ₫`}</p>
+                        {!isLoading && !transactionsError && totalRemaining > 0 && <p className="mt-2 text-[13px] leading-relaxed text-slate-600">{readMoney(totalRemaining)}</p>}
+                        <dl className="ledger-breakdown">
+                            <div><dt>Nợ gốc</dt><dd>{isLoading || transactionsError ? '—' : `${remainingPrincipal.toLocaleString('vi-VN')} ₫`}</dd></div>
+                            <div><dt>Tiền lãi</dt><dd>{isLoading || transactionsError ? '—' : `${remainingInterest.toLocaleString('vi-VN')} ₫`}</dd></div>
+                        </dl>
+                        <p className="mt-3 text-[13px] text-slate-600">{isLoading ? 'Đang tải công nợ…' : transactionsError ? 'Chưa tải được công nợ' : startDate || endDate ? 'Theo khoảng ngày đang lọc' : 'Các khoản chưa thanh toán'}</p>
                     </div>
                     {hasOpenTx && (
                         <div
@@ -368,7 +367,7 @@ const CustomerDebtDetail = () => {
 
                             <form onSubmit={handleBulkPay} className="space-y-4 lg:space-y-6">
                                 <div>
-                                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-2 ml-1 tracking-widest">Ngày thanh toán</label>
+                                    <label className="block text-[13px] font-semibold text-slate-600 mb-2 ml-1">Ngày thanh toán</label>
                                     <div className="relative">
                                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                                             <Calendar size={18} />
@@ -383,7 +382,7 @@ const CustomerDebtDetail = () => {
                                 </div>
 
                                 <div>
-                                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-2 ml-1 tracking-widest">Mã PIN xác thực</label>
+                                    <label className="block text-[13px] font-semibold text-slate-600 mb-2 ml-1">Mã PIN xác thực</label>
                                     <input
                                         type="password"
                                         required
@@ -588,43 +587,14 @@ const CustomerDebtDetail = () => {
                     <EmptyStates.NoTransactions />
                 )
             ) : (
-                <section className="rounded-2xl border border-slate-200 bg-white p-4 lg:p-5" aria-label="Lịch sử giao dịch">
+                <section className="rounded-xl border border-slate-200 bg-white p-4 lg:p-5" aria-label="Lịch sử giao dịch">
                     <h2 className="mb-3 font-bold text-slate-900">Lịch sử <span className="font-normal text-slate-400">· {transactions.length} giao dịch</span></h2>
-                    <ol className="relative ml-2 space-y-4 border-l-2 border-slate-200">
+                    <ol>
                         {[...transactions]
                             .sort((a, b) => new Date(b.transaction_date) - new Date(a.transaction_date))
-                            .map((tx) => {
-                                const isPaid = tx.status === 'PAID';
-                                const interest = tx.interest_calculation?.rounded_interest || 0;
-                                const typeConfig = configs?.find((c) => c.code === tx.type);
-                                return (
-                                    <li key={tx._id} className="relative pl-4">
-                                        <span
-                                            aria-hidden
-                                            className={clsx(
-                                                'absolute -left-[7px] top-1 h-3 w-3 rounded-full ring-4',
-                                                isPaid ? 'bg-emerald-500 ring-emerald-100' : 'bg-amber-500 ring-amber-100'
-                                            )}
-                                        />
-                                        <div className="flex items-baseline justify-between gap-3">
-                                            <p className={clsx('text-sm font-semibold', isPaid ? 'text-slate-500 line-through' : 'text-slate-900')}>
-                                                {typeConfig ? typeConfig.name : tx.type}
-                                            </p>
-                                            <p className={clsx('shrink-0 font-mono text-sm font-bold tabular-nums', isPaid ? 'text-emerald-600' : 'text-slate-900')}>
-                                                {isPaid ? 'Đã trả' : ((tx.amount || 0) + interest).toLocaleString('vi-VN')}
-                                            </p>
-                                        </div>
-                                        <p className="text-xs text-slate-500">
-                                            {isPaid && tx.closed_at
-                                                ? `${formatDate(tx.transaction_date)} → ${formatDate(tx.closed_at)}`
-                                                : formatDate(tx.transaction_date)}
-                                            {' · '}gốc {(tx.amount || 0).toLocaleString('vi-VN')} · lãi {interest.toLocaleString('vi-VN')} ({tx.interest_rate_snapshot}%, {(tx.interest_calculation?.months || 0).toFixed(1)} tháng)
-                                            {tx.image_drive_file_id && <span className="font-semibold text-blue-600"> · 📎 có chứng từ</span>}
-                                        </p>
-                                        {tx.content && <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-slate-700 line-clamp-3">{tx.content}</p>}
-                                    </li>
-                                );
-                            })}
+                            .map((tx) => (
+                                <DebtHistoryEntry key={tx._id} transaction={tx} typeName={configs?.find((c) => c.code === tx.type)?.name || tx.type} />
+                            ))}
                     </ol>
                 </section>
             )

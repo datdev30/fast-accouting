@@ -246,7 +246,7 @@ export default function UserManagement() {
                                     <div>
                                         <div className="font-bold text-slate-800 text-sm">{u.username}</div>
                                         {u.legacy_password ? (
-                                            <div className="text-[10px] font-bold text-amber-600 uppercase tracking-wider bg-amber-50 px-1.5 py-0.5 rounded-md mt-1 w-fit">Legacy</div>
+                                            <div className="text-[13px] font-bold text-amber-600  bg-amber-50 px-1.5 py-0.5 rounded-md mt-1 w-fit">Legacy</div>
                                         ) : null}
                                     </div>
                                 </div>

@@ -250,7 +250,7 @@ export default function Transactions() {
     const isLgUp = useMediaQuery('(min-width: 1024px)');
     const [selectedTxId, setSelectedTxId] = useState(null);
     const selectedTx = isLgUp
-        ? paginatedTransactions.find((t) => t._id === selectedTxId) ?? paginatedTransactions[0]
+        ? paginatedTransactions.find((t) => t._id === selectedTxId)
         : null;
 
     const monthGroups = React.useMemo(() => {
@@ -840,7 +840,7 @@ export default function Transactions() {
                     type="button"
                     onClick={openCreate}
                     aria-label="Tạo giao dịch"
-                    className="fixed right-4 z-30 flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-500 text-white shadow-lg shadow-orange-300/60 active:bg-orange-600 md:hidden"
+                    className="fixed right-4 z-30 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-sm active:bg-blue-700 md:hidden"
                     style={{ bottom: 'calc(var(--tabbar-h) + 1rem)' }}
                 >
                     <Plus size={24} />
@@ -858,14 +858,14 @@ export default function Transactions() {
                 <div className="space-y-3">
                     {/* Row 1: Title & Subtitle & Create Button */}
                     <div className="flex items-center gap-3">
-                        <h1 className="flex-1 font-heading text-xl font-extrabold text-slate-900 md:text-2xl">Giao dịch</h1>
+                        <h1 className="flex-1 font-heading text-xl font-bold text-slate-900 md:text-2xl">Giao dịch</h1>
                         <button type="button" onClick={() => triggerBatchExport()} disabled={isBackingUp} className="btn-secondary btn-md hidden lg:inline-flex">
                             <FileDown size={18} className={isBackingUp ? 'animate-bounce' : ''} />
                             Xuất PDF
                         </button>
                         <button
                             onClick={openCreate}
-                            className="btn-md hidden shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl bg-orange-500 px-4 font-bold text-white hover:bg-orange-600 md:inline-flex"
+                            className="btn-md hidden shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl bg-blue-600 px-4 font-bold text-white hover:bg-blue-700 md:inline-flex"
                         >
                             <Plus size={18} className="shrink-0" />
                             <span>Thêm</span>
@@ -1080,7 +1080,7 @@ export default function Transactions() {
                             <div className="flex-1 overflow-y-auto p-5 custom-scrollbar min-h-0">
                                 <div className="space-y-4">
                                     <div className="rounded-2xl bg-slate-50 px-3 py-3 text-center">
-                                        <label htmlFor="tx-amount" className="block text-[11px] font-bold uppercase tracking-wider text-slate-400">Số tiền</label>
+                                        <label htmlFor="tx-amount" className="block text-[13px] font-bold  text-slate-400">Số tiền</label>
                                         <div className="mt-1 flex items-baseline justify-center">
                                             <input
                                                 id="tx-amount"
@@ -1127,7 +1127,7 @@ export default function Transactions() {
                                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                         {/* Date Input */}
                                         <div className="space-y-2">
-                                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Ngày giao dịch</label>
+                                            <label className="block text-xs font-semibold text-slate-600  ml-1">Ngày giao dịch</label>
                                             <div className="relative group">
                                                 <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors">
                                                     <Calendar size={18} />
@@ -1145,7 +1145,7 @@ export default function Transactions() {
 
                                         {/* Customer Input */}
                                         <div className="space-y-2">
-                                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Khách hàng</label>
+                                            <label className="block text-xs font-semibold text-slate-600  ml-1">Khách hàng</label>
                                             <div className="relative" ref={comboboxRef}>
                                                 <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors">
                                                     <User size={18} />
@@ -1221,7 +1221,7 @@ export default function Transactions() {
                                     </div>
 
                                     <div className="space-y-2">
-                                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Loại giao dịch</label>
+                                        <label className="block text-xs font-semibold text-slate-600  ml-1">Loại giao dịch</label>
                                         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
                                             {configs?.map((config) => (
                                                 <button
@@ -1243,7 +1243,7 @@ export default function Transactions() {
 
                                     {/* Content (Full Width) */}
                                     <div className="space-y-2">
-                                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Nội dung chi tiết</label>
+                                        <label className="block text-xs font-semibold text-slate-600  ml-1">Nội dung chi tiết</label>
                                         <textarea
                                             required
                                             className="w-full min-h-[88px] bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all text-sm font-medium text-slate-800 shadow-inner resize-none placeholder:text-slate-300 leading-relaxed sm:min-h-[120px]"
@@ -1254,17 +1254,17 @@ export default function Transactions() {
                                     </div>
 
                                     <div className="space-y-2">
-                                        <p className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Chứng từ</p>
+                                        <p className="block text-xs font-semibold text-slate-600  ml-1">Chứng từ</p>
                                         <div className="flex gap-2">
                                             {(editingId ? editingHasImage : Boolean(pendingUploadFile)) && (
-                                                <button type="button" onClick={() => setIsImageDetailOpen(true)} disabled={txImageLoading} className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-xl border-2 border-blue-200 bg-blue-50 text-[11px] font-semibold text-blue-700">
+                                                <button type="button" onClick={() => setIsImageDetailOpen(true)} disabled={txImageLoading} className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-xl border-2 border-blue-200 bg-blue-50 text-[13px] font-semibold text-blue-700">
                                                     <ImageIcon size={20} /> Xem ảnh
                                                 </button>
                                             )}
-                                            <button type="button" onClick={pickFromCamera} disabled={txImageLoading} className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-slate-300 text-[11px] text-slate-500 hover:border-blue-300 hover:text-blue-600">
+                                            <button type="button" onClick={pickFromCamera} disabled={txImageLoading} className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-slate-300 text-[13px] text-slate-500 hover:border-blue-300 hover:text-blue-600">
                                                 <Camera size={20} /> Chụp
                                             </button>
-                                            <button type="button" onClick={pickFromFile} disabled={txImageLoading} className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-slate-300 text-[11px] text-slate-500 hover:border-blue-300 hover:text-blue-600">
+                                            <button type="button" onClick={pickFromFile} disabled={txImageLoading} className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-slate-300 text-[13px] text-slate-500 hover:border-blue-300 hover:text-blue-600">
                                                 <ImageIcon size={20} /> Thư viện
                                             </button>
                                         </div>
@@ -1306,7 +1306,7 @@ export default function Transactions() {
                                 {editingId && (
                                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 mt-5 pt-5 border-t border-slate-50">
                                         <div className="space-y-2">
-                                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Trạng thái</label>
+                                            <label className="block text-xs font-semibold text-slate-600  ml-1">Trạng thái</label>
                                             <div className="grid grid-cols-2 rounded-xl bg-slate-100 p-1 text-sm font-semibold" role="radiogroup" aria-label="Trạng thái">
                                             {[['OPEN', 'Đang mở', 'text-amber-700'], ['PAID', 'Đã trả', 'text-emerald-700']].map(([nextStatus, label, tone]) => (
                                             <button
@@ -1347,7 +1347,7 @@ export default function Transactions() {
 
                                         {formData.status === 'PAID' && (
                                             <div className="space-y-2">
-                                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Ngày thanh toán</label>
+                                                <label className="block text-xs font-semibold text-slate-600  ml-1">Ngày thanh toán</label>
                                                 <div className="relative group">
                                                     <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-emerald-500 transition-colors">
                                                         <Calendar size={18} />
@@ -1512,7 +1512,7 @@ export default function Transactions() {
                         <div className="space-y-2.5 bg-slate-50 p-3 md:grid md:grid-cols-2 md:gap-3 md:space-y-0 lg:hidden">
                             {monthGroups.map((group) => (
                                 <React.Fragment key={group.key}>
-                                    <p className="pt-1 text-[11px] font-bold uppercase tracking-wider text-slate-400 md:col-span-2">
+                                    <p className="pt-1 text-[13px] font-semibold text-slate-600 md:col-span-2">
                                         Tháng {group.key} · <span className="font-mono normal-case">{group.total.toLocaleString('vi-VN')} ₫</span>
                                     </p>
                                     {group.items.map((tx) => {
@@ -1545,9 +1545,9 @@ export default function Transactions() {
                                                         <TxStatusBadge paid={isPaid} />
                                                     </button>
                                                 </div>
-                                                <div className={clsx('mt-3 grid grid-cols-3 gap-2 border-t border-dashed border-slate-200 pt-3 text-xs', isPaid && 'opacity-60')}>
+                                                <div className={'transaction-amounts mt-3 grid gap-3 border-t border-slate-200 pt-3 text-[13px]'}>
                                                     <div><p className="text-slate-500">Gốc</p><p className="font-mono text-sm font-bold tabular-nums">{principal.toLocaleString('vi-VN')}</p></div>
-                                                    <div><p className="text-slate-500">Lãi</p><p className={clsx('font-mono text-sm font-bold tabular-nums', !isPaid && 'text-orange-600')}>{interest.toLocaleString('vi-VN')}</p></div>
+                                                    <div><p className="text-slate-500">Lãi</p><p className={clsx('font-mono text-sm font-bold tabular-nums', !isPaid && 'text-amber-800')}>{interest.toLocaleString('vi-VN')}</p></div>
                                                     <div className="text-right"><p className="text-slate-500">Tổng</p><p className={clsx('font-mono text-sm font-bold tabular-nums', !isPaid && 'text-blue-700')}>{total.toLocaleString('vi-VN')}</p></div>
                                                 </div>
                                             </div>
@@ -1570,10 +1570,10 @@ export default function Transactions() {
                         </div>
 
                         {/* lg+ (tablet ngang, PC): bảng bên trái, chi tiết bên phải */}
-                        <div className="hidden lg:flex">
+                        <div className="transaction-workspace hidden lg:flex">
                         <div className="min-w-0 flex-1 overflow-x-auto">
                             <table className="table w-full whitespace-nowrap text-sm">
-                                <caption className="sr-only">Danh sách giao dịch, bấm một dòng để xem chi tiết bên phải</caption>
+                                <caption className="caption-top px-4 py-3 text-left text-[13px] text-slate-600">Đơn vị: VND · Chọn khách hàng để xem chi tiết</caption>
                                 <thead className="table-head sticky top-0 z-10 shadow-sm">
                                     <tr>
                                         <th scope="col" className="table-th">Ngày</th>
@@ -1605,11 +1605,11 @@ export default function Transactions() {
                                             >
                                                 <td className="table-td font-mono tabular-nums text-slate-600">{formatDate(tx.transaction_date)}</td>
                                                 <td className="table-td max-w-[14rem]">
-                                                    <p className="truncate font-semibold text-slate-800" title={customerName}>{customerName}</p>
-                                                    <p className="text-[11px] text-slate-500">{typeName} · {tx.interest_rate_snapshot}%</p>
+                                                    <button type="button" className="max-w-full truncate text-left font-semibold text-slate-800 underline decoration-slate-300 underline-offset-4" aria-label={`Xem giao dịch của ${customerName}`} onClick={() => setSelectedTxId(tx._id)}>{customerName}</button>
+                                                    <p className="text-[13px] text-slate-500">{typeName} · {tx.interest_rate_snapshot}%</p>
                                                 </td>
                                                 <td className="table-td text-right font-mono tabular-nums text-slate-700">{principal.toLocaleString('vi-VN')}</td>
-                                                <td className="table-td text-right font-mono tabular-nums text-orange-600">{interest > 0 ? interest.toLocaleString('vi-VN') : '—'}</td>
+                                                <td className="table-td text-right font-mono tabular-nums text-amber-800">{interest.toLocaleString('vi-VN')}</td>
                                                 <td className="table-td text-right font-mono font-bold tabular-nums text-blue-700">{total.toLocaleString('vi-VN')}</td>
                                                 <td className="table-td text-center"><TxStatusBadge paid={tx.status === 'PAID'} /></td>
                                             </tr>
@@ -1639,25 +1639,29 @@ export default function Transactions() {
                             const customer = findCustomerById(customers, customerId);
                             const customerName = customer?.name ?? 'Không xác định';
                             return (
-                                <aside className="w-72 shrink-0 space-y-4 border-l border-slate-200 bg-slate-50 p-5" aria-label="Chi tiết giao dịch">
+                                <aside className="transaction-detail space-y-4" aria-label="Chi tiết giao dịch">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <h2 className="font-semibold text-slate-900">Chi tiết giao dịch</h2>
+                                        <button type="button" className="icon-btn" aria-label="Đóng chi tiết giao dịch" onClick={() => setSelectedTxId(null)}><X size={20} /></button>
+                                    </div>
                                     <div className="flex items-center gap-3">
-                                        <Avatar name={customerName} className="h-12 w-12 rounded-2xl font-heading text-sm font-extrabold" />
+                                        <Avatar name={customerName} className="h-12 w-12 rounded-2xl font-heading text-sm font-bold" />
                                         <div className="min-w-0">
                                             <p className="truncate font-heading font-bold text-slate-900">{customerName}</p>
                                             {customer?.contact_info && <p className="truncate text-sm text-slate-500">{customer.contact_info}</p>}
                                         </div>
                                     </div>
                                     {customer?.total_debt != null && (
-                                        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                                            <p className="text-xs font-bold uppercase text-amber-800">Còn nợ lại</p>
-                                            <p className="font-mono text-2xl font-bold tabular-nums text-amber-900">{Number(customer.total_debt).toLocaleString('vi-VN')} ₫</p>
+                                        <div className="ledger-summary">
+                                            <p className="ledger-caption">Còn nợ lại</p>
+                                            <p className="ledger-total">{Number(customer.total_debt).toLocaleString('vi-VN')} ₫</p>
                                         </div>
                                     )}
                                     <dl className="space-y-2 rounded-xl border border-slate-200 bg-white p-4 text-sm">
                                         <div className="flex justify-between gap-3"><dt className="text-slate-500">Ngày</dt><dd className="font-mono tabular-nums">{formatDate(selectedTx.transaction_date)}</dd></div>
                                         <div className="flex justify-between gap-3"><dt className="text-slate-500">Loại</dt><dd className="text-right">{typeConfig ? typeConfig.name : selectedTx.type} · {selectedTx.interest_rate_snapshot}%</dd></div>
                                         <div className="flex justify-between gap-3"><dt className="text-slate-500">Gốc</dt><dd className="font-mono font-bold tabular-nums">{principal.toLocaleString('vi-VN')}</dd></div>
-                                        <div className="flex justify-between gap-3"><dt className="text-slate-500">Lãi</dt><dd className="font-mono font-bold tabular-nums text-orange-600">{interest.toLocaleString('vi-VN')}</dd></div>
+                                        <div className="flex justify-between gap-3"><dt className="text-slate-500">Lãi</dt><dd className="font-mono font-bold tabular-nums text-amber-800">{interest.toLocaleString('vi-VN')}</dd></div>
                                         <div className="flex justify-between gap-3 border-t border-slate-100 pt-2"><dt className="font-semibold text-slate-700">Tổng</dt><dd className="font-mono font-bold tabular-nums text-blue-700">{total.toLocaleString('vi-VN')}</dd></div>
                                     </dl>
                                     {selectedTx.content && (
@@ -1709,7 +1713,7 @@ export default function Transactions() {
                                     <Camera size={32} />
                                 </div>
                                 <span className="text-sm font-bold text-slate-700 group-hover:text-emerald-700">Chụp ảnh</span>
-                                <span className="text-[10px] text-slate-400 mt-1 uppercase tracking-widest font-bold">Camera</span>
+                                <span className="text-[13px] text-slate-400 mt-1  font-bold">Camera</span>
                             </button>
 
                             <button
@@ -1724,7 +1728,7 @@ export default function Transactions() {
                                     <ImageIcon size={32} />
                                 </div>
                                 <span className="text-sm font-bold text-slate-700 group-hover:text-blue-700">Tải lên</span>
-                                <span className="text-[10px] text-slate-400 mt-1 uppercase tracking-widest font-bold">Thư viện</span>
+                                <span className="text-[13px] text-slate-400 mt-1  font-bold">Thư viện</span>
                             </button>
                         </div>
 
@@ -1732,7 +1736,7 @@ export default function Transactions() {
                             <button
                                 type="button"
                                 onClick={() => setIsImagePickerOpen(false)}
-                                className="w-full py-4 text-sm font-bold text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-2xl transition-all uppercase tracking-widest"
+                                className="w-full py-4 text-sm font-semibold text-slate-600 hover:text-slate-600 hover:bg-slate-100 rounded-2xl transition-all "
                             >
                                 Đóng cửa sổ
                             </button>

@@ -186,13 +186,13 @@ export default function InterestConfigs() {
                     </div>
                 )}
             >
-                <p className="mb-3 text-xs font-medium uppercase tracking-widest text-slate-400">
+                <p className="mb-3 text-xs font-medium  text-slate-400">
                     {isEditing ? 'Chỉnh sửa chính sách lãi suất' : 'Khởi tạo quy chuẩn mới'}
                 </p>
                 <form id="interest-config-form" onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                         <div className="space-y-2">
-                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Mã (Duy nhất)</label>
+                            <label className="block text-xs font-semibold text-slate-600  ml-1">Mã (Duy nhất)</label>
                             <div className="relative group">
                                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors">
                                     <Tag size={18} />
@@ -212,7 +212,7 @@ export default function InterestConfigs() {
                             </div>
                         </div>
                         <div className="space-y-2">
-                            <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Lãi tháng (%)</label>
+                            <label className="block text-xs font-semibold text-slate-600  ml-1">Lãi tháng (%)</label>
                             <div className="relative group">
                                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors">
                                     <Percent size={18} />
@@ -241,7 +241,7 @@ export default function InterestConfigs() {
                         </div>
                     </div>
                     <div className="space-y-2">
-                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Tên hiển thị</label>
+                        <label className="block text-xs font-semibold text-slate-600  ml-1">Tên hiển thị</label>
                         <div className="relative group">
                             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-blue-500 transition-colors">
                                 <Pencil size={18} />
@@ -257,7 +257,7 @@ export default function InterestConfigs() {
                         </div>
                     </div>
                     <div className="space-y-2">
-                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Mô tả quy tắc</label>
+                        <label className="block text-xs font-semibold text-slate-600  ml-1">Mô tả quy tắc</label>
                         <textarea
                             className="textarea min-h-[100px]"
                             placeholder="Ghi chú về mức lãi này..."
@@ -298,10 +298,10 @@ export default function InterestConfigs() {
                                     </div>
 
                                     <div className="flex flex-col items-end gap-0.5">
-                                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest border shadow-sm ${isLiquidation ? 'border-amber-200 bg-amber-50 text-amber-600' : 'border-blue-200 bg-blue-50 text-blue-600'}`}>
+                                        <span className={`px-1.5 py-0.5 rounded text-[13px] font-bold  border shadow-sm ${isLiquidation ? 'border-amber-200 bg-amber-50 text-amber-600' : 'border-blue-200 bg-blue-50 text-blue-600'}`}>
                                             {isLiquidation ? 'Thanh lý' : 'Định kỳ'}
                                         </span>
-                                        <span className="text-[9px] font-semibold text-slate-400 font-mono">#{config.code}</span>
+                                        <span className="text-[13px] font-semibold text-slate-400 font-mono">#{config.code}</span>
                                     </div>
                                 </div>
 
@@ -314,7 +314,7 @@ export default function InterestConfigs() {
                                             <span className="text-xl font-bold text-white leading-none">
                                                 {config.rate_per_month}%
                                             </span>
-                                            <span className="text-[9px] font-bold text-white/90 uppercase">/ Th</span>
+                                            <span className="text-[13px] font-bold text-white/90 uppercase">/ Th</span>
                                         </div>
                                     </div>
                                 </div>
