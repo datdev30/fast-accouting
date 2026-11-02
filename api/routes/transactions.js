@@ -6,6 +6,7 @@ import mongoose, { Types } from 'mongoose';
 import { getInterestConfigModel, getTransactionModel, getCustomerModel } from '../db/models.js';
 import { getNextId } from '../utils/counter.js';
 import { calculateInterestAmount } from '../utils/interest.js';
+import { buildSummary } from '../utils/summary.js';
 import { verifyAdminPin } from '../utils/helpers.js';
 import { authMiddleware, requireAdmin, requireAdminOrSale } from '../middleware/auth.js';
 import { validate, transactionSchemas } from '../middleware/validation.js';
@@ -785,6 +786,22 @@ router.get('/reports/monthly-count', async (req, res, next) => {
         }));
 
         res.json(result);
+    } catch (error) {
+        next(error);
+    }
+});
+
+/**
+ * GET /api/transactions/reports/summary
+ * Số liệu màn Tổng quan (năm làm việc hiện tại)
+ */
+router.get('/reports/summary', async (req, res, next) => {
+    try {
+        const [customers, transactions] = await Promise.all([
+            getCustomerModel().find({}).lean(),
+            getTransactionModel().find({ working_year: req.workingYear }).lean(),
+        ]);
+        res.json(buildSummary(customers, transactions));
     } catch (error) {
         next(error);
     }

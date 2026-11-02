@@ -7,7 +7,7 @@
     "scripts": {
         "dev": "node --watch index.js",
         "start": "node index.js",
-        "test": "echo \"Error: no test specified\" && exit 1",
+        "test": "node --test \"utils/*.test.js\"",
         "backup:export": "node scripts/backup-export.js",
         "backup:import": "node scripts/backup-import.js",
         "backfill:working-year": "node scripts/backfill-working-year.js",

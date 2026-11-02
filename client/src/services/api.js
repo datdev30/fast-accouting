@@ -111,6 +111,7 @@ export const uploadTransactionImage = (id, file) => {
 };
 
 export const getDebtReport = () => api.get('/transactions/reports/debt').then(res => res.data);
+export const getOverviewSummary = () => api.get('/transactions/reports/summary').then(res => res.data);
 export const batchExportReports = () => api.post('/reports/batch-export').then(res => res.data);
 
 /** Tải PDF tất cả giao dịch (bao gồm cả đã trả và đang nợ). Truyền startDate, endDate nếu có lọc. */
@@ -249,7 +250,7 @@ export const deleteUserSecure = (id, pin) => api.post('/users/delete-secure', { 
 export const deleteTransactionImage = (id) => api.delete(`/transactions/${id}/image`).then(res => res.data);
 
 // Monthly Transaction Count for Analytics
-export const getMonthlyTransactionCount = (year) => api.get(`/transactions/monthly-count?year=${year}`).then(res => res.data);
+export const getMonthlyTransactionCount = (year) => api.get(`/transactions/reports/monthly-count?year=${year}`).then(res => res.data);
 
 // Bank Account Config (Toàn hệ thống - tất cả user đều thấy)
 /** Lấy cấu hình ngân hàng toàn hệ thống (tất cả user đều có thể xem) */
