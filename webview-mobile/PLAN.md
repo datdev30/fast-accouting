@@ -49,7 +49,7 @@ APK mở → Capacitor WebView → https://<web-production-url>
 
 APK chỉ hiển thị web, nên responsive nằm hoàn toàn trong code React/Tailwind.
 
-Prototype giao diện: [`prototype/index.html`](prototype/index.html) (5 màn phone + tablet dọc + tablet ngang).
+Giao diện prototype đã được hiện thực trực tiếp trong `client/` (web và APK dùng chung); bản prototype HTML đã xoá.
 
 ### Breakpoints (Tailwind mặc định)
 
