@@ -77,12 +77,6 @@
   .transaction-amounts > div { min-width: 0; overflow-wrap: anywhere; }
   .transaction-amounts > div:last-child { grid-column: 1 / -1; border-top: 1px solid #e2e8f0; padding-top: 0.5rem; }
   .transaction-amounts > div:last-child p:last-child { font-size: 1.125rem; }
-  .transaction-workspace { flex-direction: column; }
-  .transaction-detail { width: 100%; border-top: 1px solid #e2e8f0; padding: 1.25rem; background: #f8fafc; }
-  @media (min-width: 1280px) {
-    .transaction-workspace { flex-direction: row; }
-    .transaction-detail { width: 20rem; flex-shrink: 0; border-top: 0; border-left: 1px solid #e2e8f0; }
-  }
   @media (pointer: coarse) {
     html:root { --tap-min: 48px; --field-h: 48px; }
     .accounting-app .table-td { padding-block: 1rem; }

@@ -2,7 +2,6 @@ import useScrollLock from '../hooks/useScrollLock';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import useMediaQuery from '../hooks/useMediaQuery';
 import { getTransactions, createTransaction, updateTransaction, getCustomers, getInterestConfigs, createCustomer, uploadTransactionImage, fetchTransactionImageBlob, deleteTransactionImage } from '../services/api';
 import { Plus, Edit2, Search, Calendar, Tag, Filter, X, ChevronLeft, ChevronRight, Check, Clock, User, UserPlus, ArrowUpDown, ArrowUp, ArrowDown, Trash2, Camera, Image as ImageIcon, Loader2, ZoomIn, ZoomOut, RotateCw, Download, FileDown } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -22,6 +21,7 @@ import { trapFocus } from '../utils/focusTrap';
 import { handleComboboxKeyboard } from '../utils/keyboardNav';
 import Avatar from '../components/Avatar';
 import TxStatusBadge from '../components/TxStatusBadge';
+import AppModal from '../components/AppModal';
 
 /** id khi API trả `id` hoặc `_id` */
 function getCustomerKey(c) {
@@ -246,12 +246,9 @@ export default function Transactions() {
         return filteredTransactions.slice(start, start + txPageSize);
     }, [filteredTransactions, txPage, txPageSize]);
 
-    /* ≥1024 (tablet ngang + PC): bấm dòng để xem chi tiết ở khung bên phải */
-    const isLgUp = useMediaQuery('(min-width: 1024px)');
+    /* Bấm thẻ / dòng → hộp chi tiết (bottom sheet trên phone, dialog rộng từ 640px) */
     const [selectedTxId, setSelectedTxId] = useState(null);
-    const selectedTx = isLgUp
-        ? paginatedTransactions.find((t) => t._id === selectedTxId)
-        : null;
+    const selectedTx = paginatedTransactions.find((t) => t._id === selectedTxId) ?? null;
 
     const monthGroups = React.useMemo(() => {
         const groups = [];
@@ -1500,7 +1497,7 @@ export default function Transactions() {
                                         return (
                                             <div
                                                 key={tx._id}
-                                                onClick={() => handleEdit(tx)}
+                                                onClick={() => setSelectedTxId(tx._id)}
                                                 className="cursor-pointer rounded-2xl border border-slate-200 bg-white p-3.5 transition-colors active:bg-slate-50"
                                             >
                                                 <div className="flex items-start gap-3">
@@ -1544,11 +1541,10 @@ export default function Transactions() {
                             )}
                         </div>
 
-                        {/* lg+ (tablet ngang, PC): bảng bên trái, chi tiết bên phải */}
-                        <div className="transaction-workspace hidden lg:flex">
-                        <div className="min-w-0 flex-1 overflow-x-auto">
+                        {/* lg+: bảng full chiều ngang, chi tiết mở trong hộp thoại */}
+                        <div className="hidden overflow-x-auto lg:block">
                             <table className="table w-full whitespace-nowrap text-sm">
-                                <caption className="caption-top px-4 py-3 text-left text-[13px] text-slate-600">Đơn vị: VND · Chọn khách hàng để xem chi tiết</caption>
+                                <caption className="caption-top px-4 py-3 text-left text-[13px] text-slate-600">Đơn vị: VND · Bấm vào dòng để xem chi tiết</caption>
                                 <thead className="table-head sticky top-0 z-10 shadow-sm">
                                     <tr>
                                         <th scope="col" className="table-th">Ngày</th>
@@ -1606,67 +1602,75 @@ export default function Transactions() {
                                 </tbody>
                             </table>
                         </div>
-                        {selectedTx && (() => {
-                            const { principal, interest, total } = parseTxAmounts(selectedTx);
-                            const typeConfig = configs?.find(c => c.code === selectedTx.type);
-                            const isPaid = selectedTx.status === 'PAID';
-                            const customerId = selectedTx.customer_id ?? selectedTx.customer?.id ?? selectedTx.customer;
-                            const customer = findCustomerById(customers, customerId);
-                            const customerName = customer?.name ?? 'Không xác định';
-                            return (
-                                <aside className="transaction-detail space-y-4" aria-label="Chi tiết giao dịch">
-                                    <div className="flex items-center justify-between gap-3">
-                                        <h2 className="font-semibold text-slate-900">Chi tiết giao dịch</h2>
-                                        <button type="button" className="icon-btn" aria-label="Đóng chi tiết giao dịch" onClick={() => setSelectedTxId(null)}><X size={20} /></button>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        <Avatar name={customerName} className="h-12 w-12 rounded-2xl font-heading text-sm font-bold" />
-                                        <div className="min-w-0">
-                                            <p className="truncate font-heading font-bold text-slate-900">{customerName}</p>
-                                            {customer?.contact_info && <p className="truncate text-sm text-slate-500">{customer.contact_info}</p>}
-                                        </div>
-                                    </div>
-                                    {customer?.total_debt != null && (
-                                        <div className="ledger-summary">
-                                            <p className="ledger-caption">Còn nợ lại</p>
-                                            <p className="ledger-total">{Number(customer.total_debt).toLocaleString('vi-VN')} ₫</p>
-                                        </div>
-                                    )}
-                                    <dl className="space-y-2 rounded-xl border border-slate-200 bg-white p-4 text-sm">
-                                        <div className="flex justify-between gap-3"><dt className="text-slate-500">Ngày</dt><dd className="font-mono tabular-nums">{formatDate(selectedTx.transaction_date)}</dd></div>
-                                        <div className="flex justify-between gap-3"><dt className="text-slate-500">Loại</dt><dd className="text-right">{typeConfig ? typeConfig.name : selectedTx.type} · {selectedTx.interest_rate_snapshot}%</dd></div>
-                                        <div className="flex justify-between gap-3"><dt className="text-slate-500">Gốc</dt><dd className="font-mono font-bold tabular-nums">{principal.toLocaleString('vi-VN')}</dd></div>
-                                        <div className="flex justify-between gap-3"><dt className="text-slate-500">Lãi</dt><dd className="font-mono font-bold tabular-nums text-amber-800">{interest.toLocaleString('vi-VN')}</dd></div>
-                                        <div className="flex justify-between gap-3 border-t border-slate-100 pt-2"><dt className="font-semibold text-slate-700">Tổng</dt><dd className="font-mono font-bold tabular-nums text-blue-700">{total.toLocaleString('vi-VN')}</dd></div>
-                                    </dl>
-                                    {selectedTx.content && (
-                                        <div className="max-h-40 overflow-y-auto whitespace-pre-wrap rounded-xl border border-slate-200 bg-white p-3 text-sm leading-relaxed text-slate-700">
-                                            {selectedTx.content}
-                                        </div>
-                                    )}
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <button type="button" onClick={() => handleEdit(selectedTx)} className="btn-secondary btn-md">
-                                            <Edit2 size={16} /> Sửa
-                                        </button>
-                                        {customerId ? (
-                                            <Link to={`/customers/${customerId}/debt`} className="btn-secondary btn-md">Công nợ</Link>
-                                        ) : <span />}
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={(e) => handleStatusToggle(e, selectedTx)}
-                                        disabled={updateMutation.isPending}
-                                        className={clsx('btn-md w-full', isPaid ? 'btn-secondary' : 'btn-primary')}
-                                    >
-                                        {isPaid ? <><Clock size={16} /> Chuyển về đang mở</> : <><Check size={16} /> Đánh dấu đã trả</>}
-                                    </button>
-                                </aside>
-                            );
-                        })()}
-                        </div>
                     </>
                 )}
             </div>
+            {selectedTx && (() => {
+                const { principal, interest, total } = parseTxAmounts(selectedTx);
+                const typeConfig = configs?.find(c => c.code === selectedTx.type);
+                const isPaid = selectedTx.status === 'PAID';
+                const customerId = selectedTx.customer_id ?? selectedTx.customer?.id ?? selectedTx.customer;
+                const customer = findCustomerById(customers, customerId);
+                const customerName = customer?.name ?? 'Không xác định';
+                const closeDetail = () => setSelectedTxId(null);
+                return (
+                    <AppModal
+                        isOpen
+                        onClose={closeDetail}
+                        title="Chi tiết giao dịch"
+                        size="2xl"
+                        footer={
+                            <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:items-center">
+                                <button type="button" onClick={() => { closeDetail(); handleEdit(selectedTx); }} className="btn-secondary btn-md">
+                                    <Edit2 size={16} /> Sửa
+                                </button>
+                                {customerId ? (
+                                    <Link to={`/customers/${customerId}/debt`} className="btn-secondary btn-md">Công nợ khách</Link>
+                                ) : <span />}
+                                <button
+                                    type="button"
+                                    onClick={(e) => handleStatusToggle(e, selectedTx)}
+                                    disabled={updateMutation.isPending}
+                                    className={clsx('btn-md col-span-2 sm:ml-auto', isPaid ? 'btn-secondary' : 'btn-primary')}
+                                >
+                                    {isPaid ? <><Clock size={16} /> Chuyển về chưa trả</> : <><Check size={16} /> Đánh dấu đã trả</>}
+                                </button>
+                            </div>
+                        }
+                    >
+                        <div className="grid gap-4 sm:grid-cols-2 sm:gap-5">
+                            <div className="min-w-0 space-y-4">
+                                <div className="flex items-center gap-3">
+                                    <Avatar name={customerName} className="h-12 w-12 shrink-0 rounded-2xl font-heading text-sm font-bold" />
+                                    <div className="min-w-0">
+                                        <p className="font-heading font-bold text-slate-900 break-words">{customerName}</p>
+                                        {customer?.contact_info && <p className="text-sm text-slate-500 break-words">{customer.contact_info}</p>}
+                                    </div>
+                                </div>
+                                {customer?.total_debt != null && (
+                                    <div className="ledger-summary">
+                                        <p className="ledger-caption">Khách còn nợ</p>
+                                        <p className="mt-1 whitespace-nowrap text-2xl font-bold tabular-nums text-slate-900">{Number(customer.total_debt).toLocaleString('vi-VN')} ₫</p>
+                                    </div>
+                                )}
+                                {selectedTx.content && (
+                                    <div className="max-h-40 overflow-y-auto whitespace-pre-wrap break-words rounded-xl bg-slate-50 p-3 text-sm leading-relaxed text-slate-700">
+                                        {selectedTx.content}
+                                    </div>
+                                )}
+                            </div>
+                            <dl className="space-y-2.5 self-start rounded-2xl border border-slate-200 bg-white p-4 text-sm">
+                                <div className="flex items-center justify-between gap-3"><dt className="text-slate-500">Trạng thái</dt><dd><TxStatusBadge paid={isPaid} /></dd></div>
+                                <div className="flex justify-between gap-3"><dt className="text-slate-500">Ngày</dt><dd className="font-mono tabular-nums">{formatDate(selectedTx.transaction_date)}</dd></div>
+                                <div className="flex justify-between gap-3"><dt className="text-slate-500">Loại</dt><dd className="text-right">{typeConfig ? typeConfig.name : selectedTx.type} · {selectedTx.interest_rate_snapshot}%</dd></div>
+                                <div className="flex justify-between gap-3"><dt className="text-slate-500">Gốc</dt><dd className="font-mono font-bold tabular-nums">{principal.toLocaleString('vi-VN')}</dd></div>
+                                <div className="flex justify-between gap-3"><dt className="text-slate-500">Lãi</dt><dd className="font-mono font-bold tabular-nums text-amber-800">{interest.toLocaleString('vi-VN')}</dd></div>
+                                <div className="flex justify-between gap-3 border-t border-slate-100 pt-2.5"><dt className="font-semibold text-slate-700">Tổng</dt><dd className="font-mono text-base font-bold tabular-nums text-blue-700">{total.toLocaleString('vi-VN')}</dd></div>
+                            </dl>
+                        </div>
+                    </AppModal>
+                );
+            })()}
             {isImagePickerOpen && (
                 <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[70] flex items-center justify-center p-4 animate-in fade-in duration-300">
                     <div className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden animate-in zoom-in duration-300">
