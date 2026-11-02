@@ -1,0 +1,98 @@
+/* Screen-only accounting styles: printable documents keep their own layout. */
+@media screen {
+  html:root {
+    --font-sans: 'Be Vietnam Pro', system-ui, sans-serif;
+    --font-body: var(--font-sans);
+    --color-text: #0f172a;
+    --color-text-muted: #475569;
+    --field-fs: 1rem;
+  }
+
+  .accounting-app {
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: var(--color-text);
+  }
+
+  .accounting-app .font-mono {
+    font-family: var(--font-sans);
+    font-variant-numeric: lining-nums tabular-nums;
+  }
+  .accounting-app .font-extrabold { font-weight: 700; }
+  .print-preview-frame { --font-body: 'Open Sans', system-ui, sans-serif; }
+
+  .accounting-app .section-kicker,
+  .accounting-app .field-label,
+  .accounting-app .table-head {
+    font-size: 0.875rem;
+    font-weight: 600;
+    letter-spacing: normal;
+    text-transform: none;
+    color: #475569;
+  }
+
+  .accounting-app .table-td { padding-block: 0.875rem; }
+  .accounting-app .table-th { padding-block: 0.75rem; }
+  .accounting-app .btn-primary { box-shadow: none; }
+  .accounting-app :focus-visible { outline: 2px solid #2563eb; outline-offset: 3px; }
+  .accounting-app label { font-size: 0.875rem; letter-spacing: normal; text-transform: none; color: #475569; }
+  .accounting-app .badge-warning { color: #92400e; }
+  .accounting-app .badge-success { color: #047857; }
+  .accounting-app .tabbar__item { font-size: 0.75rem; }
+  .accounting-app input.pl-10 { padding-inline-start: 2.75rem; }
+  .accounting-app #tx-amount { font-size: clamp(1.25rem, 6vw, 1.875rem); }
+
+  .ledger-summary {
+    border: 1px solid #cbd5e1;
+    border-top: 3px solid #2563eb;
+    border-radius: 0.75rem;
+    background: #fff;
+    padding: 1.25rem;
+  }
+  .ledger-caption { color: #475569; font-size: 0.875rem; font-weight: 500; }
+  .ledger-total {
+    font-size: clamp(1.5rem, 3vw, 2.25rem);
+    font-weight: 700;
+    line-height: 1.4;
+    font-variant-numeric: tabular-nums;
+    color: #0f172a;
+    overflow-wrap: anywhere;
+  }
+  .ledger-breakdown {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr));
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e2e8f0;
+  }
+  .ledger-breakdown dt { font-size: 0.8125rem; color: #475569; }
+  .ledger-breakdown dd { margin-top: 0.25rem; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .ledger-entry { padding: 1rem 0; border-bottom: 1px solid #e2e8f0; }
+  .ledger-entry:last-child { border-bottom: 0; }
+  .ledger-entry-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; }
+  .ledger-entry-title { min-width: 0; overflow-wrap: anywhere; }
+  .ledger-entry .ledger-breakdown { border: 0; padding-top: 0; }
+  .transaction-amounts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .transaction-amounts > div { min-width: 0; overflow-wrap: anywhere; }
+  .transaction-amounts > div:last-child { grid-column: 1 / -1; border-top: 1px solid #e2e8f0; padding-top: 0.5rem; }
+  .transaction-amounts > div:last-child p:last-child { font-size: 1.125rem; }
+  .transaction-workspace { flex-direction: column; }
+  .transaction-detail { width: 100%; border-top: 1px solid #e2e8f0; padding: 1.25rem; background: #f8fafc; }
+  @media (min-width: 1280px) {
+    .transaction-workspace { flex-direction: row; }
+    .transaction-detail { width: 20rem; flex-shrink: 0; border-top: 0; border-left: 1px solid #e2e8f0; }
+  }
+  @media (pointer: coarse) {
+    html:root { --tap-min: 48px; --field-h: 48px; }
+    .accounting-app .table-td { padding-block: 1rem; }
+    .accounting-app button,
+    .accounting-app [role='button'],
+    .accounting-app a.min-h-11 {
+      min-height: var(--tap-min);
+      min-width: var(--tap-min);
+    }
+    .accounting-app input:not([type='checkbox']):not([type='radio']):not([type='range']),
+    .accounting-app select { min-height: var(--field-h); }
+  }
+}

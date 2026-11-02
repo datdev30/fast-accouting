@@ -145,7 +145,7 @@ export default function Layout() {
     const isExpanded = !navCollapsed;
 
     return (
-        <div className="flex h-dvh bg-slate-50 font-sans overflow-x-hidden max-w-full">
+        <div className="accounting-app flex h-dvh bg-slate-50 font-sans overflow-x-hidden max-w-full">
             <a href="#main-content" className="skip-link">
                 Bỏ qua, tới nội dung chính
             </a>
@@ -291,7 +291,7 @@ export default function Layout() {
                     {user?.role === 'ADMIN' && (
                         <>
                             <NavItem to="/users" icon={Users} label="Người dùng" collapsed={navCollapsed} onClick={onNavigate} />
-                            <NavItem to="/backup-data" icon={DatabaseBackup} label="Backup Data" collapsed={navCollapsed} onClick={onNavigate} />
+                            <NavItem to="/backup-data" icon={DatabaseBackup} label="Sao lưu dữ liệu" collapsed={navCollapsed} onClick={onNavigate} />
                         </>
                     )}
                     <NavItem to="/settings" icon={SettingsIcon} label="Cài đặt" collapsed={navCollapsed} onClick={onNavigate} />
