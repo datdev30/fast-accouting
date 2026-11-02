@@ -945,10 +945,6 @@ body {
     font-family: var(--font-heading);
   }
 
-  .reports-page__export-hint {
-    @apply mt-1 max-w-xs text-[11px] leading-snug text-slate-400;
-  }
-
   .reports-page__kpi-grid {
     @apply grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4;
   }
@@ -995,22 +991,6 @@ body {
     @apply bg-gradient-to-b from-blue-500 to-blue-600;
   }
 
-  .reports-page__kpi-card--interest::before {
-    @apply bg-gradient-to-b from-violet-500 to-indigo-600;
-  }
-
-  .reports-page__kpi-card--interest {
-    background-image: linear-gradient(160deg, rgba(245, 243, 255, 0.5) 0%, #fff 55%);
-  }
-
-  .reports-page__kpi-card--debt::before {
-    @apply bg-gradient-to-b from-rose-500 to-red-600;
-  }
-
-  .reports-page__kpi-card--collected::before {
-    @apply bg-gradient-to-b from-emerald-500 to-teal-600;
-  }
-
   .reports-page__kpi-icon {
     @apply flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-slate-100 bg-slate-50 text-slate-600 shadow-sm sm:h-10 sm:w-10;
   }
@@ -1021,14 +1001,6 @@ body {
 
   .reports-page__kpi-icon--principal {
     @apply border-blue-100 bg-blue-50 text-blue-600;
-  }
-
-  .reports-page__kpi-icon--interest {
-    @apply border-violet-100 bg-violet-50 text-violet-700;
-  }
-
-  .reports-page__kpi-icon--debt {
-    @apply border-rose-100 bg-rose-50 text-rose-600;
   }
 
   .reports-page__kpi-icon--collected {
@@ -1052,10 +1024,6 @@ body {
     @apply mt-3 text-[11px] leading-snug text-slate-500;
   }
 
-  .reports-page__kpi-pill {
-    @apply mt-3 inline-flex items-center gap-1 rounded-full border border-violet-200/80 bg-violet-50/90 px-2.5 py-1 text-[11px] font-semibold text-violet-800;
-  }
-
   .reports-page__charts-panel {
     @apply relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-md shadow-slate-200/30;
     background-image: linear-gradient(180deg, rgba(248, 250, 252, 0.85) 0%, #fff 18%);
@@ -1067,14 +1035,6 @@ body {
 
   .reports-page__charts-panel-inner {
     @apply p-4 lg:p-6;
-  }
-
-  .reports-page__table-card {
-    @apply overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-md shadow-slate-200/40;
-  }
-
-  .reports-page__table-card .card-header {
-    @apply border-slate-100 bg-gradient-to-r from-slate-50/95 via-white to-blue-50/20;
   }
 
   .reports-chart-card {
@@ -1098,291 +1058,8 @@ body {
     @apply text-slate-800;
   }
 
-  /* ==========================================================
-     Trang đăng nhập — liquid glass trên nền ảnh
-     --------------------------------------------------------
-     Nguyên tắc: chữ SÁNG trên kính TỐI.
-     Bản trước dùng chữ slate-900 trên kính trắng mờ, nên độ đọc
-     phụ thuộc vào chỗ sáng/tối của tấm ảnh nền — trên vùng trời
-     sáng thì nhãn và placeholder gần như biến mất. Kính tối cộng
-     scrim khoanh vùng cho tương phản ổn định bất kể ảnh là gì.
-     ========================================================== */
-
-  .login-page {
-    @apply relative min-h-screen w-full overflow-x-hidden antialiased lg:min-h-dvh;
-    --glass-fill: rgb(15 23 42 / 0.46);
-    --glass-line: rgb(255 255 255 / 0.16);
-    --glass-line-strong: rgb(255 255 255 / 0.26);
-    --glass-ink: rgb(248 250 252 / 0.96);
-    --glass-ink-dim: rgb(203 213 225 / 0.82);
-    --glass-accent: #60A5FA;
-  }
-
-  .login-page--splash {
-    isolation: isolate;
-  }
-
-  .login-page__bg {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    background-color: #0f172a;
-    background-image: url('/logo/pexels-alex-ning-523843601-34945588.jpg');
-    background-position: center;
-    background-repeat: no-repeat;
-    background-size: cover;
-  }
-
-  /* Scrim hai lớp: một lớp phủ đều cho toàn ảnh, một lớp elip đậm hơn
-     khoanh đúng vùng đặt form. Ảnh vẫn nhìn rõ ở rìa, chữ vẫn đọc tốt ở giữa. */
-  .login-page__overlay {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    background: linear-gradient(180deg,
-        rgb(2 6 23 / 0.52) 0%,
-        rgb(2 6 23 / 0.34) 38%,
-        rgb(2 6 23 / 0.62) 100%);
-  }
-
-  .login-page__overlay::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: radial-gradient(ellipse 72% 58% at 50% 48%,
-        rgb(2 6 23 / 0.42) 0%,
-        rgb(2 6 23 / 0.12) 55%,
-        transparent 100%);
-  }
-
-  .login-page__main--splash {
-    @apply relative z-[1] flex min-h-screen w-full items-center justify-center px-4 py-10 sm:px-6 lg:min-h-dvh lg:py-12;
-  }
-
-  .login-page__card {
-    @apply rounded-2xl p-7 sm:p-8;
-  }
-
-  /* Khối kính chính */
-  .login-page__card--splash {
-    @apply relative overflow-hidden;
-    border: 1px solid var(--glass-line-strong);
-    background: var(--glass-fill);
-    backdrop-filter: blur(28px) saturate(1.25);
-    -webkit-backdrop-filter: blur(28px) saturate(1.25);
-    box-shadow:
-      0 32px 64px -20px rgb(2 6 23 / 0.62),
-      inset 0 1px 0 0 rgb(255 255 255 / 0.22);
-  }
-
-  /* Vệt sáng chéo — giữ chất "liquid", nhưng nhạt hơn nhiều so với bản cũ
-     để không làm loang chữ bên dưới. */
-  .login-page__card--splash::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    pointer-events: none;
-    background: linear-gradient(135deg,
-        rgb(255 255 255 / 0.13) 0%,
-        transparent 46%,
-        transparent 62%,
-        rgb(255 255 255 / 0.05) 100%);
-    opacity: 0.7;
-  }
-
-  @media (prefers-reduced-motion: no-preference) {
-    .login-page__card--splash::before {
-      animation: login-liquid-sheen 16s ease-in-out infinite alternate;
-    }
-  }
-
-  .login-page__card--splash > * {
-    position: relative;
-    z-index: 1;
-  }
-
-  .login-page__splash-foot {
-    text-shadow: 0 1px 3px rgb(2 6 23 / 0.6);
-  }
-
-  /* Logo không có khung — thay bằng quầng sáng phía sau.
-     Logo là chữ CP xanh lá đậm, trên nền ảnh đã làm tối thì tự nó chìm;
-     quầng sáng tách nó khỏi nền mà không cần hộp trắng bao quanh. */
-  .login-page__brand {
-    @apply relative flex items-center justify-center;
-  }
-
-  .login-page__brand::before {
-    content: '';
-    position: absolute;
-    inset: -28%;
-    z-index: 0;
-    border-radius: 9999px;
-    background: radial-gradient(circle,
-        rgb(255 255 255 / 0.5) 0%,
-        rgb(209 250 229 / 0.26) 38%,
-        rgb(255 255 255 / 0.08) 60%,
-        transparent 74%);
-    filter: blur(16px);
-  }
-
-  .login-page__brand > * {
-    position: relative;
-    z-index: 1;
-    filter:
-      drop-shadow(0 0 14px rgb(255 255 255 / 0.55)) drop-shadow(0 2px 10px rgb(2 6 23 / 0.5));
-  }
-
-  @media (prefers-reduced-motion: no-preference) {
-    .login-page__brand::before {
-      animation: login-brand-glow 6s ease-in-out infinite alternate;
-    }
-  }
-
-  /* --- Chữ trên kính ------------------------------------- */
-
-  .login-page__card--splash h1 {
-    color: var(--glass-ink);
-    text-shadow: 0 1px 2px rgb(2 6 23 / 0.45);
-  }
-
-  .login-page__card--splash .field-label {
-    color: var(--glass-ink-dim);
-    text-shadow: none;
-    letter-spacing: 0.04em;
-  }
-
-  .login-page__lead {
-    @apply text-sm;
-    color: var(--glass-ink-dim);
-    text-shadow: 0 1px 2px rgb(2 6 23 / 0.4);
-  }
-
-  .login-page__divider {
-    border-color: var(--glass-line);
-  }
-
-  /* --- Ô nhập -------------------------------------------- */
-
-  .login-page__input-group {
-    @apply relative;
-  }
-
-  .login-page__input-icon {
-    @apply pointer-events-none absolute inset-y-0 left-0 z-[2] flex w-11 items-center justify-center transition-colors;
-    color: rgb(226 232 240 / 0.62);
-  }
-
-  .login-page__input-group:focus-within .login-page__input-icon {
-    color: var(--glass-accent);
-  }
-
-  .login-page__field {
-    @apply w-full rounded-xl py-2.5 pl-11 pr-4 text-sm font-medium outline-none transition-[border-color,box-shadow,background-color] duration-200;
-    min-height: var(--tap-min);
-    color: var(--glass-ink);
-    border: 1px solid var(--glass-line-strong);
-    background: rgb(255 255 255 / 0.09);
-    box-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.08);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-  }
-
-  .login-page__field::placeholder {
-    color: rgb(203 213 225 / 0.52);
-  }
-
-  /* Đang nhập: nền đặc hơn + viền xanh, KHÔNG lật sang nền trắng như bản cũ
-     — lật màu giữa chừng làm mắt phải thích nghi lại mỗi lần chuyển ô. */
-  .login-page__field:focus,
-  .login-page__field:focus-visible {
-    border-color: var(--glass-accent);
-    background: rgb(255 255 255 / 0.15);
-    box-shadow:
-      inset 0 1px 0 0 rgb(255 255 255 / 0.1),
-      0 0 0 3px rgb(96 165 250 / 0.28);
-  }
-
-  .login-page__field--password {
-    @apply pr-12;
-  }
-
-  /* Tự động điền của trình duyệt vốn ép nền trắng — ghi đè để giữ kính tối */
-  .login-page__field:-webkit-autofill,
-  .login-page__field:-webkit-autofill:hover,
-  .login-page__field:-webkit-autofill:focus {
-    -webkit-text-fill-color: var(--glass-ink);
-    caret-color: var(--glass-ink);
-    transition: background-color 9999s ease-out;
-  }
-
-  .login-page__toggle-password {
-    @apply absolute inset-y-0 right-0 z-[2] flex items-center justify-center rounded-r-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/60;
-    min-height: var(--tap-min);
-    min-width: var(--tap-min);
-    color: rgb(226 232 240 / 0.66);
-    background: rgb(255 255 255 / 0.05);
-  }
-
-  .login-page__toggle-password:hover {
-    color: var(--glass-ink);
-    background: rgb(255 255 255 / 0.14);
-  }
-
-  /* --- Nút đăng nhập -------------------------------------
-     Hành động chính thì phải ĐẶC, không mờ. Kính ở đây chỉ làm
-     nút chìm vào nền và khó nhận ra là nút. */
-  .login-page__submit {
-    @apply inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-base font-semibold text-white transition-[transform,box-shadow,filter] duration-200 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100;
-    min-height: calc(var(--tap-min) + 6px);
-    border: 1px solid rgb(96 165 250 / 0.5);
-    background: linear-gradient(135deg, #3B82F6 0%, #2563EB 52%, #1D4ED8 100%);
-    box-shadow:
-      0 12px 28px -8px rgb(37 99 235 / 0.65),
-      inset 0 1px 0 0 rgb(255 255 255 / 0.24);
-  }
-
-  .login-page__submit:hover:not(:disabled) {
-    filter: brightness(1.08);
-    box-shadow:
-      0 16px 34px -8px rgb(37 99 235 / 0.75),
-      inset 0 1px 0 0 rgb(255 255 255 / 0.28);
-  }
-
-  .login-page__submit:focus-visible {
-    @apply outline-none ring-2 ring-white/80 ring-offset-2;
-    --tw-ring-offset-color: transparent;
-  }
-
-  /* --- Cảnh báo lỗi -------------------------------------- */
-
-  .login-page__alert {
-    @apply flex gap-3 rounded-xl px-3.5 py-3 text-sm font-medium leading-snug;
-    color: rgb(254 226 226);
-    animation: fadeIn 0.3s ease-out;
-    border: 1px solid rgb(248 113 113 / 0.45);
-    background: rgb(127 29 29 / 0.5);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    box-shadow: inset 0 1px 0 0 rgb(255 255 255 / 0.1);
-  }
-
-  .login-page__alert svg {
-    color: rgb(252 165 165);
-  }
 }
 
-@keyframes login-liquid-sheen {
-  0% {
-    opacity: 0.55;
-  }
-
-  100% {
-    opacity: 0.92;
-  }
-}
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
@@ -1797,28 +1474,7 @@ body {
   }
 }
 
-/* --- Login: dvh ở MỌI bề rộng, không chỉ lg ------------------
-   Với vh, thanh địa chỉ của Safari/Chrome mobile làm form bị đẩy
-   xuống dưới mép nhìn thấy được. */
-@supports (height: 100dvh) {
 
-  .login-page,
-  .login-page__main--splash {
-    min-height: 100dvh;
-  }
-}
-
-@keyframes login-brand-glow {
-  0% {
-    opacity: 0.72;
-    transform: scale(0.97);
-  }
-
-  100% {
-    opacity: 1;
-    transform: scale(1.04);
-  }
-}
 
 /* ==========================================================
    Thông báo hệ thống — thẻ nổi lớn, dễ đọc

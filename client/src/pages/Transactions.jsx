@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import useMediaQuery from '../hooks/useMediaQuery';
 import { getTransactions, createTransaction, updateTransaction, getCustomers, getInterestConfigs, createCustomer, uploadTransactionImage, fetchTransactionImageBlob, deleteTransactionImage } from '../services/api';
-import { Plus, Edit2, Search, Calendar, Tag, Filter, X, ChevronLeft, ChevronRight, Check, Clock, User, UserPlus, ArrowUpDown, ArrowUp, ArrowDown, Trash2, Camera, Image as ImageIcon, Loader2, ZoomIn, ZoomOut, RotateCw, Download } from 'lucide-react';
+import { Plus, Edit2, Search, Calendar, Tag, Filter, X, ChevronLeft, ChevronRight, Check, Clock, User, UserPlus, ArrowUpDown, ArrowUp, ArrowDown, Trash2, Camera, Image as ImageIcon, Loader2, ZoomIn, ZoomOut, RotateCw, Download, FileDown } from 'lucide-react';
 import { clsx } from 'clsx';
 import DateInput from '../components/DateInput';
 import DatePicker from '../components/DatePicker';
@@ -20,7 +20,8 @@ import { deleteTransactionSecure } from '../services/api';
 import { SkeletonTable } from '../components/SkeletonLoader';
 import { trapFocus } from '../utils/focusTrap';
 import { handleComboboxKeyboard } from '../utils/keyboardNav';
-import { getInterestConfigColorScheme } from '../utils/colorSchemes';
+import Avatar from '../components/Avatar';
+import TxStatusBadge from '../components/TxStatusBadge';
 
 /** id khi API trả `id` hoặc `_id` */
 function getCustomerKey(c) {
@@ -49,7 +50,6 @@ function parseTxAmounts(tx) {
     return { principal: p, interest, total: p + interest, calc };
 }
 
-/** Nội dung hiển thị trong bảng / thẻ giao dịch (rút gọn dòng có dấu -) */
 const TX_PAGE_SIZE_STORAGE_KEY = 'fa-transactions-page-size';
 const TX_PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
@@ -63,32 +63,10 @@ function readStoredTxPageSize() {
     }
 }
 
-function formatTransactionContentPreview(content, { lineClampClass = 'line-clamp-3' } = {}) {
-    const str = String(content ?? '').trim();
-    if (!str) return '-';
-    if (str.includes('-')) {
-        const parts = str
-            .split(/\n/)
-            .flatMap((line) => (line.includes('-') ? line.split(/(?=-)/).filter((p) => p.trim()) : [line]))
-            .filter((p) => p.trim());
-        return (
-            <div className={clsx('whitespace-pre-wrap', lineClampClass)}>
-                {parts.map((part, idx) => (
-                    <React.Fragment key={idx}>
-                        {idx > 0 && <br />}
-                        {part.trim()}
-                    </React.Fragment>
-                ))}
-            </div>
-        );
-    }
-    return <div className={lineClampClass}>{str}</div>;
-}
-
 export default function Transactions() {
     const queryClient = useQueryClient();
     const { showToast } = useToast();
-    const { user } = useAuth();
+    const { user, triggerBatchExport, isBackingUp } = useAuth();
     const isAdmin = user?.role === 'ADMIN';
     const location = useLocation();
     const navigate = useNavigate();
@@ -199,8 +177,8 @@ export default function Transactions() {
         });
     }, [rawTransactions]);
 
-    // Filtering
-    const filteredTransactions = React.useMemo(() => {
+    // Filtering (mọi bộ lọc trừ trạng thái — để chip trạng thái đếm được số lượng)
+    const scopedTransactions = React.useMemo(() => {
         let result = sortedTransactions;
 
         if (customerSearchTerm) {
@@ -242,12 +220,22 @@ export default function Transactions() {
         return result;
     }, [sortedTransactions, customers, customerSearchTerm, selectedCustomerId, startDate, endDate]);
 
+    const [statusFilter, setStatusFilter] = useState('ALL');
+    const statusCounts = React.useMemo(() => {
+        const open = scopedTransactions.filter((t) => t.status === 'OPEN').length;
+        return { ALL: scopedTransactions.length, OPEN: open, PAID: scopedTransactions.length - open };
+    }, [scopedTransactions]);
+    const filteredTransactions = React.useMemo(
+        () => (statusFilter === 'ALL' ? scopedTransactions : scopedTransactions.filter((t) => t.status === statusFilter)),
+        [scopedTransactions, statusFilter]
+    );
+
     const totalFilteredCount = filteredTransactions.length;
     const totalTxPages = Math.max(1, Math.ceil(totalFilteredCount / txPageSize));
 
     React.useEffect(() => {
         setTxPage(1);
-    }, [customerSearchTerm, selectedCustomerId, startDate, endDate]);
+    }, [customerSearchTerm, selectedCustomerId, startDate, endDate, statusFilter]);
 
     React.useEffect(() => {
         if (txPage > totalTxPages) setTxPage(totalTxPages);
@@ -258,13 +246,25 @@ export default function Transactions() {
         return filteredTransactions.slice(start, start + txPageSize);
     }, [filteredTransactions, txPage, txPageSize]);
 
-    /* Tablet ngang (cảm ứng, ≥1024): chạm dòng để xem chi tiết ở panel phải.
-       PC có chuột giữ nguyên click = sửa, double-click = đổi trạng thái. */
-    const isTouchWide = useMediaQuery('(min-width: 1024px) and (pointer: coarse)');
+    /* ≥1024 (tablet ngang + PC): bấm dòng để xem chi tiết ở khung bên phải */
+    const isLgUp = useMediaQuery('(min-width: 1024px)');
     const [selectedTxId, setSelectedTxId] = useState(null);
-    const selectedTx = isTouchWide
+    const selectedTx = isLgUp
         ? paginatedTransactions.find((t) => t._id === selectedTxId) ?? paginatedTransactions[0]
         : null;
+
+    const monthGroups = React.useMemo(() => {
+        const groups = [];
+        for (const tx of paginatedTransactions) {
+            const d = new Date(tx.transaction_date);
+            const key = `${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+            if (groups.at(-1)?.key !== key) groups.push({ key, items: [], total: 0 });
+            const g = groups.at(-1);
+            g.items.push(tx);
+            g.total += parseTxAmounts(tx).total;
+        }
+        return groups;
+    }, [paginatedTransactions]);
 
     const txRangeFrom = totalFilteredCount === 0 ? 0 : (txPage - 1) * txPageSize + 1;
     const txRangeTo = Math.min(txPage * txPageSize, totalFilteredCount);
@@ -857,17 +857,18 @@ export default function Transactions() {
             <div className="space-y-0">
                 <div className="space-y-3">
                     {/* Row 1: Title & Subtitle & Create Button */}
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-                        <div>
-                            <h2 className="section-title">Danh sách giao dịch</h2>
-                            <p className="section-subtitle mt-1">Quản lý các giao dịch vay và nợ</p>
-                        </div>
+                    <div className="flex items-center gap-3">
+                        <h1 className="flex-1 font-heading text-xl font-extrabold text-slate-900 md:text-2xl">Giao dịch</h1>
+                        <button type="button" onClick={() => triggerBatchExport()} disabled={isBackingUp} className="btn-secondary btn-md hidden lg:inline-flex">
+                            <FileDown size={18} className={isBackingUp ? 'animate-bounce' : ''} />
+                            Xuất PDF
+                        </button>
                         <button
                             onClick={openCreate}
-                            className="btn-primary btn-md hidden whitespace-nowrap shrink-0 md:inline-flex"
+                            className="btn-md hidden shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl bg-orange-500 px-4 font-bold text-white hover:bg-orange-600 md:inline-flex"
                         >
                             <Plus size={18} className="shrink-0" />
-                            <span>Tạo giao dịch</span>
+                            <span>Thêm</span>
                         </button>
                     </div>
 
@@ -984,6 +985,25 @@ export default function Transactions() {
                             )}
                         </div>
                     </div>
+
+                    <div className="-mx-3 flex gap-2 overflow-x-auto px-3 sm:mx-0 sm:px-0" role="group" aria-label="Lọc theo trạng thái" style={{ scrollbarWidth: 'none' }}>
+                        {[['ALL', 'Tất cả'], ['OPEN', 'Đang mở'], ['PAID', 'Đã trả']].map(([key, label]) => (
+                            <button
+                                key={key}
+                                type="button"
+                                onClick={() => setStatusFilter(key)}
+                                aria-pressed={statusFilter === key}
+                                className={clsx(
+                                    'min-h-9 shrink-0 whitespace-nowrap rounded-full border px-3 text-xs font-semibold transition-colors',
+                                    statusFilter === key
+                                        ? 'border-blue-600 bg-blue-600 text-white'
+                                        : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                                )}
+                            >
+                                {label} · {statusCounts[key]}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
 
@@ -1042,62 +1062,67 @@ export default function Transactions() {
                         aria-labelledby="tx-modal-title"
                     >
                         <div aria-hidden className="mx-auto mt-2 h-1.5 w-10 shrink-0 rounded-full bg-slate-300 sm:hidden" />
-                        <div className="flex items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/50 p-4 sm:p-5">
-                            <div className="flex items-center gap-3 min-w-0">
-                                <div className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-md shadow-blue-200/50 sm:flex">
-                                    {editingId ? <Edit2 size={18} /> : <Plus size={20} />}
-                                </div>
-                                <div className="min-w-0">
-                                    <h2 id="tx-modal-title" className="text-base font-bold tracking-tight text-slate-900 sm:text-lg">
-                                        {editingId ? 'Chỉnh sửa giao dịch' : 'Tạo giao dịch mới'}
-                                    </h2>
-                                    <p className="text-xs text-slate-500 mt-0.5 font-medium line-clamp-2">
-                                        {editingId ? 'Cập nhật lại thông tin bản ghi hiện có' : 'Thêm một bản ghi tài chính mới vào hệ thống'}
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                {(() => {
-                                    const hasImageIndicator = editingId ? editingHasImage : Boolean(pendingUploadFile);
-                                    return (
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                if (txImageLoading) return;
-
-                                                // Use backend metadata to decide UI. Do not fetch image unless user opens viewer.
-                                                if (hasImageIndicator) {
-                                                    setIsImageDetailOpen(true);
-                                                } else {
-                                                    setIsImagePickerOpen(true);
-                                                }
-                                            }}
-                                            title={hasImageIndicator ? "Xem ảnh giao dịch" : "Thêm ảnh giao dịch"}
-                                            className={clsx(
-                                                "p-2.5 rounded-2xl transition-all border",
-                                                txImageLoading && "opacity-60 cursor-not-allowed",
-                                                hasImageIndicator
-                                                    ? "bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100"
-                                                    : "bg-white text-slate-400 border-slate-200 hover:text-blue-500 hover:border-blue-200"
-                                            )}
-                                            disabled={txImageLoading}
-                                        >
-                                            <ImageIcon size={20} />
-                                        </button>
-                                    );
-                                })()}
-                                <button
-                                    onClick={handleClose}
-                                    className="p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-2xl transition-all"
-                                >
-                                    <X size={20} />
-                                </button>
-                            </div>
+                        <div className="flex items-center justify-between gap-3 px-4 py-2 sm:border-b sm:border-slate-100 sm:p-5">
+                            <h2 id="tx-modal-title" className="font-heading text-lg font-bold text-slate-900">
+                                {editingId ? 'Sửa giao dịch' : 'Giao dịch mới'}
+                            </h2>
+                            <button
+                                type="button"
+                                onClick={handleClose}
+                                aria-label="Đóng"
+                                className="flex h-11 w-11 items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                            >
+                                <X size={20} />
+                            </button>
                         </div>
 
                         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
                             <div className="flex-1 overflow-y-auto p-5 custom-scrollbar min-h-0">
                                 <div className="space-y-4">
+                                    <div className="rounded-2xl bg-slate-50 px-3 py-3 text-center">
+                                        <label htmlFor="tx-amount" className="block text-[11px] font-bold uppercase tracking-wider text-slate-400">Số tiền</label>
+                                        <div className="mt-1 flex items-baseline justify-center">
+                                            <input
+                                                id="tx-amount"
+                                                type="text"
+                                                inputMode="numeric"
+                                                required
+                                                className="min-w-0 max-w-full bg-transparent text-center font-mono text-3xl font-bold tabular-nums text-slate-900 outline-none placeholder:text-slate-300"
+                                                style={{ width: `${(formData.amount ? Number(formData.amount).toLocaleString('vi-VN').length : 1) + 1}ch` }}
+                                                value={formData.amount ? Number(formData.amount).toLocaleString('vi-VN') : ''}
+                                                onChange={e => {
+                                                    const rawValue = e.target.value.replace(/\D/g, '');
+                                                    setFormData({ ...formData, amount: rawValue });
+                                                }}
+                                                placeholder="0"
+                                            />
+                                            <span className="shrink-0 text-xl text-slate-400">₫</span>
+                                        </div>
+                                        {Number(formData.amount) > 0 && (
+                                            <p className="mt-1 text-xs italic text-slate-500">{readMoney(Number(formData.amount))}</p>
+                                        )}
+                                        <div className="mt-3 flex flex-wrap justify-center gap-2">
+                                            {[['+1tr', 1_000_000], ['+5tr', 5_000_000], ['+10tr', 10_000_000]].map(([label, step]) => (
+                                                <button
+                                                    key={label}
+                                                    type="button"
+                                                    className="min-h-9 rounded-full border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 active:bg-slate-100"
+                                                    onClick={() => setFormData((prev) => ({ ...prev, amount: String((Number(prev.amount) || 0) + step) }))}
+                                                >
+                                                    {label}
+                                                </button>
+                                            ))}
+                                            <button
+                                                type="button"
+                                                className="min-h-9 rounded-full border border-slate-200 bg-white px-3 font-mono text-xs font-semibold text-slate-600 active:bg-slate-100"
+                                                onClick={() => setFormData((prev) => ({ ...prev, amount: String((Number(prev.amount) || 0) * 1000) }))}
+                                                aria-label="Nhân 1000"
+                                            >
+                                                000
+                                            </button>
+                                        </div>
+                                    </div>
+
                                     {/* Row 1: Date & Customer - Same row for portrait */}
                                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                         {/* Date Input */}
@@ -1195,6 +1220,27 @@ export default function Transactions() {
                                         </div>
                                     </div>
 
+                                    <div className="space-y-2">
+                                        <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Loại giao dịch</label>
+                                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
+                                            {configs?.map((config) => (
+                                                <button
+                                                    key={config.code}
+                                                    type="button"
+                                                    onClick={() => setFormData({ ...formData, type: config.code })}
+                                                    className={clsx(
+                                                        "px-2 py-2 rounded-lg text-xs font-bold border transition-all text-center flex items-center justify-center min-h-[var(--tap-min)] leading-tight active:scale-95 hyphens-auto",
+                                                        formData.type === config.code
+                                                            ? "bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-200"
+                                                            : "bg-slate-50 text-slate-500 border-slate-100 hover:border-slate-200 hover:bg-white"
+                                                    )}
+                                                >
+                                                    {config.name} · {config.rate_per_month}%
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
                                     {/* Content (Full Width) */}
                                     <div className="space-y-2">
                                         <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Nội dung chi tiết</label>
@@ -1205,6 +1251,23 @@ export default function Transactions() {
                                             onChange={e => setFormData({ ...formData, content: e.target.value })}
                                             placeholder="Nhập nội dung vay/trả chi tiết..."
                                         />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <p className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Chứng từ</p>
+                                        <div className="flex gap-2">
+                                            {(editingId ? editingHasImage : Boolean(pendingUploadFile)) && (
+                                                <button type="button" onClick={() => setIsImageDetailOpen(true)} disabled={txImageLoading} className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-xl border-2 border-blue-200 bg-blue-50 text-[11px] font-semibold text-blue-700">
+                                                    <ImageIcon size={20} /> Xem ảnh
+                                                </button>
+                                            )}
+                                            <button type="button" onClick={pickFromCamera} disabled={txImageLoading} className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-slate-300 text-[11px] text-slate-500 hover:border-blue-300 hover:text-blue-600">
+                                                <Camera size={20} /> Chụp
+                                            </button>
+                                            <button type="button" onClick={pickFromFile} disabled={txImageLoading} className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-slate-300 text-[11px] text-slate-500 hover:border-blue-300 hover:text-blue-600">
+                                                <ImageIcon size={20} /> Thư viện
+                                            </button>
+                                        </div>
                                     </div>
 
 
@@ -1240,84 +1303,19 @@ export default function Transactions() {
 
 
 
-                                {/* Section: Loại giao dịch (Full Width Row) */}
-                                <div className="space-y-2 mt-5">
-                                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Loại giao dịch</label>
-                                    {/* 4 cols on all screens */}
-                                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
-                                        {configs?.map((config) => (
-                                            <button
-                                                key={config.code}
-                                                type="button"
-                                                onClick={() => setFormData({ ...formData, type: config.code })}
-                                                className={clsx(
-                                                    "px-2 py-2 rounded-lg text-[11px] font-bold border transition-all text-center flex items-center justify-center min-h-[var(--tap-min)] leading-tight active:scale-95 hyphens-auto",
-                                                    formData.type === config.code
-                                                        ? "bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-200"
-                                                        : "bg-slate-50 text-slate-500 border-slate-100 hover:border-slate-200 hover:bg-white"
-                                                )}
-                                            >
-                                                {config.name}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Section: Số tiền (Full Width Row) */}
-                                <div className="space-y-2 mt-5">
-                                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Số tiền giao dịch</label>
-                                    <div className="relative group">
-                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 font-bold group-focus-within:text-blue-500 transition-colors text-sm">
-                                            đ
-                                        </div>
-                                        <input
-                                            type="text"
-                                            inputMode="numeric"
-                                            required
-                                            className="w-full h-14 bg-slate-50 border border-slate-100 rounded-xl pl-10 pr-4 outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all font-semibold text-xl text-slate-800 shadow-inner tracking-tight placeholder:text-slate-300"
-                                            value={formData.amount ? Number(formData.amount).toLocaleString('en-US') : ''}
-                                            onChange={e => {
-                                                const rawValue = e.target.value.replace(/,/g, '');
-                                                if (/^\d*$/.test(rawValue)) {
-                                                    setFormData({ ...formData, amount: rawValue });
-                                                }
-                                            }}
-                                            placeholder="0"
-                                        />
-                                    </div>
-                                    {Number(formData.amount) > 0 && (
-                                        <p className="ml-1 text-xs italic text-slate-500">{readMoney(Number(formData.amount))}</p>
-                                    )}
-                                    <div className="flex flex-wrap gap-2">
-                                        {[['+1tr', 1_000_000], ['+5tr', 5_000_000], ['+10tr', 10_000_000]].map(([label, step]) => (
-                                            <button
-                                                key={label}
-                                                type="button"
-                                                className="min-h-[var(--tap-min)] rounded-full border border-slate-200 bg-white px-3.5 text-xs font-semibold text-slate-600 active:bg-slate-100"
-                                                onClick={() => setFormData((prev) => ({ ...prev, amount: String((Number(prev.amount) || 0) + step) }))}
-                                            >
-                                                {label}
-                                            </button>
-                                        ))}
-                                        <button
-                                            type="button"
-                                            className="min-h-[var(--tap-min)] rounded-full border border-slate-200 bg-white px-3.5 font-mono text-xs font-semibold text-slate-600 active:bg-slate-100"
-                                            onClick={() => setFormData((prev) => ({ ...prev, amount: String((Number(prev.amount) || 0) * 1000) }))}
-                                            aria-label="Nhân 1000"
-                                        >
-                                            000
-                                        </button>
-                                    </div>
-                                </div>
-
                                 {editingId && (
                                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 mt-5 pt-5 border-t border-slate-50">
                                         <div className="space-y-2">
                                             <label className="block text-xs font-bold text-slate-400 uppercase tracking-[0.2em] ml-1">Trạng thái</label>
+                                            <div className="grid grid-cols-2 rounded-xl bg-slate-100 p-1 text-sm font-semibold" role="radiogroup" aria-label="Trạng thái">
+                                            {[['OPEN', 'Đang mở', 'text-amber-700'], ['PAID', 'Đã trả', 'text-emerald-700']].map(([nextStatus, label, tone]) => (
                                             <button
+                                                key={nextStatus}
                                                 type="button"
+                                                role="radio"
+                                                aria-checked={formData.status === nextStatus}
                                                 onClick={() => {
-                                                    const nextStatus = formData.status === 'OPEN' ? 'PAID' : 'OPEN';
+                                                    if (formData.status === nextStatus) return;
                                                     setFormData(prev => ({
                                                         ...prev,
                                                         status: nextStatus,
@@ -1337,26 +1335,14 @@ export default function Transactions() {
                                                     }));
                                                 }}
                                                 className={clsx(
-                                                    'w-full h-12 rounded-xl border shadow-inner',
-                                                    'flex items-center justify-center gap-2 font-bold uppercase tracking-[0.2em] text-xs',
-                                                    'transition-all active:scale-[0.99]',
-                                                    formData.status === 'PAID'
-                                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100/60'
-                                                        : 'bg-amber-50 text-amber-700 border-amber-100 hover:bg-amber-100/60'
+                                                    'flex h-10 items-center justify-center rounded-lg transition-colors',
+                                                    formData.status === nextStatus ? `bg-white shadow ${tone}` : 'text-slate-500'
                                                 )}
                                             >
-                                                {formData.status === 'PAID' ? (
-                                                    <>
-                                                        <Check size={16} className="text-emerald-600" />
-                                                        Đã thanh toán
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <Clock size={16} className="text-amber-600" />
-                                                        Chưa thu
-                                                    </>
-                                                )}
+                                                {label}
                                             </button>
+                                            ))}
+                                            </div>
                                         </div>
 
                                         {formData.status === 'PAID' && (
@@ -1415,21 +1401,20 @@ export default function Transactions() {
                                 đến mức nhãn xuống dòng. Cùng khuôn với footer modal ở
                                 Customers.jsx — nút chính đứng đầu trên mobile, nằm ngoài
                                 cùng bên phải trên desktop; nút xóa tách hẳn sang trái. */}
-                            <div className="flex w-full flex-col gap-2 border-t border-slate-100 bg-slate-50/50 p-5 pb-[max(1.25rem,var(--safe-b))] sm:flex-row-reverse sm:items-center sm:gap-3">
+                            <div className="flex w-full flex-row-reverse flex-wrap items-center gap-2 border-t border-slate-100 bg-white p-3 pb-[max(1rem,var(--safe-b))] sm:gap-3 sm:p-5">
                                 <button
                                     type="submit"
                                     disabled={createMutation.isPending || updateMutation.isPending}
-                                    className="btn-primary btn-lg w-full disabled:cursor-wait sm:w-auto"
+                                    className="btn-primary btn-lg flex-1 disabled:cursor-wait sm:flex-none"
                                 >
                                     {createMutation.isPending || updateMutation.isPending
                                         ? 'Đang xử lý...'
-                                        : (editingId ? 'Lưu thay đổi' : 'Tạo giao dịch mới')}
-                                    <ChevronRight size={18} />
+                                        : 'Lưu giao dịch'}
                                 </button>
                                 <button
                                     type="button"
                                     onClick={handleClose}
-                                    className="btn-secondary btn-lg w-full sm:w-auto"
+                                    className="btn-secondary btn-lg"
                                 >
                                     Hủy
                                 </button>
@@ -1523,99 +1508,58 @@ export default function Transactions() {
                             </div>
                         )}
 
-                        {/* Mobile: thẻ — dễ đọc, thao tác bằng cảm ứng */}
-                        {/* Mobile: danh sách — mỗi giao dịch là một dòng, ngăn nhau bằng
-                            đường kẻ hết bề ngang. Trước đây thẻ có một hộp xám lồng bên
-                            trong, viền của nó đậm hơn cả đường ngăn giữa hai dòng nên mắt
-                            đọc nhầm ranh giới; giờ làm phẳng để đường ngăn là nét mạnh nhất. */}
-                        {/* Tablet dọc (md): cùng thẻ đó, xếp 2 cột; bảng chỉ từ lg */}
-                        <div className="md:grid md:grid-cols-2 md:gap-3 md:p-3 lg:hidden">
-                            {paginatedTransactions.map((tx) => {
-                                const customerName = resolveCustomerName(customers, tx);
-                                const typeConfig = configs?.find(c => c.code === tx.type);
-                                const typeName = typeConfig ? typeConfig.name : tx.type;
-                                const typeColors = getInterestConfigColorScheme(tx.type);
-                                const { principal, interest, total, calc } = parseTxAmounts(tx);
-                                const isPaid = tx.status === 'PAID';
+                        {/* Điện thoại: thẻ 1 cột, tablet dọc (md): 2 cột; nhóm theo tháng. Bảng chỉ từ lg */}
+                        <div className="space-y-2.5 bg-slate-50 p-3 md:grid md:grid-cols-2 md:gap-3 md:space-y-0 lg:hidden">
+                            {monthGroups.map((group) => (
+                                <React.Fragment key={group.key}>
+                                    <p className="pt-1 text-[11px] font-bold uppercase tracking-wider text-slate-400 md:col-span-2">
+                                        Tháng {group.key} · <span className="font-mono normal-case">{group.total.toLocaleString('vi-VN')} ₫</span>
+                                    </p>
+                                    {group.items.map((tx) => {
+                                        const customerName = resolveCustomerName(customers, tx);
+                                        const typeConfig = configs?.find(c => c.code === tx.type);
+                                        const typeName = typeConfig ? typeConfig.name : tx.type;
+                                        const { principal, interest, total } = parseTxAmounts(tx);
+                                        const isPaid = tx.status === 'PAID';
 
-                                return (
-                                    <div
-                                        key={tx._id}
-                                        onClick={() => handleEdit(tx)}
-                                        className={clsx(
-                                            'relative border-b-2 border-slate-200 px-4 py-3.5 transition-colors last:border-b-0 active:bg-slate-100',
-                                            'md:overflow-hidden md:rounded-xl md:border md:last:border-b',
-                                            isPaid ? 'bg-emerald-50/40' : 'bg-white'
-                                        )}
-                                    >
-                                        {/* Sọc trạng thái dừng trước đường kẻ, để hai dòng cùng
-                                            trạng thái không dính thành một vệt dài liền mạch */}
-                                        <span
-                                            aria-hidden
-                                            className={clsx(
-                                                'absolute inset-y-0 left-0 w-1',
-                                                isPaid ? 'bg-emerald-500' : 'bg-amber-400'
-                                            )}
-                                        />
-
-                                        <div className="flex items-start justify-between gap-3">
-                                            <div className="min-w-0 flex-1">
-                                                <div className="font-mono text-xs font-semibold tabular-nums text-slate-500">
-                                                    {formatDate(tx.transaction_date)}
-                                                </div>
-                                                <p className="mt-0.5 font-semibold leading-snug text-slate-900">{customerName}</p>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={(e) => handleStatusToggle(e, tx)}
-                                                aria-label={`Đổi trạng thái: hiện đang ${isPaid ? 'đã thu' : 'chưa thu'}`}
-                                                className={clsx(
-                                                    'tap-expand shrink-0 rounded-lg border px-2 py-1 text-[10px] font-bold uppercase tracking-wide',
-                                                    isPaid
-                                                        ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                                                        : 'border-amber-200 bg-amber-50 text-amber-900'
-                                                )}
+                                        return (
+                                            <div
+                                                key={tx._id}
+                                                onClick={() => handleEdit(tx)}
+                                                className="cursor-pointer rounded-2xl border border-slate-200 bg-white p-3.5 transition-colors active:bg-slate-50"
                                             >
-                                                {isPaid ? 'Đã thu' : 'Chưa thu'}
-                                            </button>
-                                        </div>
-
-                                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                                            <span className={clsx('rounded-md border border-transparent px-2 py-0.5 text-[11px] font-bold', typeColors.badge)}>
-                                                {typeName}
-                                            </span>
-                                            {calc != null && (
-                                                <span className="font-mono text-[11px] tabular-nums text-slate-500">
-                                                    {tx.interest_rate_snapshot}% · {calc?.months?.toFixed(1) ?? 0} tháng
-                                                </span>
-                                            )}
-                                        </div>
-
-                                        <div className="mt-2 text-sm leading-snug text-slate-700">
-                                            {formatTransactionContentPreview(tx.content, { lineClampClass: 'line-clamp-3' })}
-                                        </div>
-
-                                        {/* Hàng tiền: gốc + lãi bên trái, tổng nổi bật bên phải */}
-                                        <div className="mt-2.5 flex items-baseline justify-between gap-3 border-t border-slate-100 pt-2">
-                                            <span className="font-mono text-xs tabular-nums text-slate-500">
-                                                {principal.toLocaleString('vi-VN')}
-                                                {calc && interest > 0 && (
-                                                    <span className="text-blue-600"> +{interest.toLocaleString('vi-VN')}</span>
-                                                )}
-                                            </span>
-                                            <span className="font-mono text-base font-bold tabular-nums text-slate-900">
-                                                {(calc ? total : principal).toLocaleString('vi-VN')}
-                                                <span className="ml-0.5 font-sans text-xs font-normal text-slate-400">đ</span>
-                                            </span>
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                                                <div className="flex items-start gap-3">
+                                                    <Avatar name={customerName} />
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="truncate font-semibold text-slate-900">{customerName}</p>
+                                                        <p className="text-xs text-slate-500">
+                                                            {formatDate(tx.transaction_date)} · {typeName} · {tx.interest_rate_snapshot}%/th
+                                                        </p>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => handleStatusToggle(e, tx)}
+                                                        aria-label={`Đổi trạng thái: hiện đang ${isPaid ? 'đã trả' : 'mở'}`}
+                                                        className="tap-expand"
+                                                    >
+                                                        <TxStatusBadge paid={isPaid} />
+                                                    </button>
+                                                </div>
+                                                <div className={clsx('mt-3 grid grid-cols-3 gap-2 border-t border-dashed border-slate-200 pt-3 text-xs', isPaid && 'opacity-60')}>
+                                                    <div><p className="text-slate-500">Gốc</p><p className="font-mono text-sm font-bold tabular-nums">{principal.toLocaleString('vi-VN')}</p></div>
+                                                    <div><p className="text-slate-500">Lãi</p><p className={clsx('font-mono text-sm font-bold tabular-nums', !isPaid && 'text-orange-600')}>{interest.toLocaleString('vi-VN')}</p></div>
+                                                    <div className="text-right"><p className="text-slate-500">Tổng</p><p className={clsx('font-mono text-sm font-bold tabular-nums', !isPaid && 'text-blue-700')}>{total.toLocaleString('vi-VN')}</p></div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </React.Fragment>
+                            ))}
 
                             {totalFilteredCount === 0 && (
                                 <div className="py-12 px-4 text-center md:col-span-2">
                                     <div className="flex flex-col items-center justify-center text-slate-400">
-                                        <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-3 border border-dashed border-slate-200">
+                                        <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mb-3 border border-dashed border-slate-200">
                                             <Search size={22} className="opacity-40" />
                                         </div>
                                         <p className="text-sm font-medium text-slate-500">Chưa có giao dịch nào</p>
@@ -1625,23 +1569,19 @@ export default function Transactions() {
                             )}
                         </div>
 
-                        {/* Desktop: bảng — gốc / lãi / tổng tách cột */}
+                        {/* lg+ (tablet ngang, PC): bảng bên trái, chi tiết bên phải */}
                         <div className="hidden lg:flex">
                         <div className="min-w-0 flex-1 overflow-x-auto">
-                            <table className="table w-full text-sm">
-                                <caption className="sr-only">Danh sách giao dịch, nhấp để sửa, nhấp đúp để đổi trạng thái thanh toán</caption>
+                            <table className="table w-full whitespace-nowrap text-sm">
+                                <caption className="sr-only">Danh sách giao dịch, bấm một dòng để xem chi tiết bên phải</caption>
                                 <thead className="table-head sticky top-0 z-10 shadow-sm">
                                     <tr>
-                                        <th scope="col" className="table-th w-[1%] whitespace-nowrap pl-3">
-                                            TT
-                                        </th>
-                                        <th scope="col" className="table-th whitespace-nowrap">Ngày</th>
-                                        <th scope="col" className="table-th min-w-[7rem] max-w-[11rem]">Khách hàng</th>
-                                        <th scope="col" className="table-th min-w-[8.5rem]">Loại & lãi</th>
-                                        {!isTouchWide && <th scope="col" className="table-th min-w-[12rem] max-w-[20rem]">Nội dung</th>}
-                                        <th scope="col" className="table-th text-right whitespace-nowrap">Tiền gốc</th>
-                                        {!isTouchWide && <th scope="col" className="table-th text-right whitespace-nowrap">Tiền lãi</th>}
-                                        <th scope="col" className="table-th text-right whitespace-nowrap">Tổng cộng</th>
+                                        <th scope="col" className="table-th">Ngày</th>
+                                        <th scope="col" className="table-th">Khách hàng</th>
+                                        <th scope="col" className="table-th text-right">Gốc</th>
+                                        <th scope="col" className="table-th text-right">Tiền lãi</th>
+                                        <th scope="col" className="table-th text-right">Tổng cộng</th>
+                                        <th scope="col" className="table-th text-center">Trạng thái</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
@@ -1649,89 +1589,35 @@ export default function Transactions() {
                                         const customerName = resolveCustomerName(customers, tx);
                                         const typeConfig = configs?.find(c => c.code === tx.type);
                                         const typeName = typeConfig ? typeConfig.name : tx.type;
-                                        const typeColors = getInterestConfigColorScheme(tx.type);
-                                        const { principal, interest, total, calc } = parseTxAmounts(tx);
+                                        const { principal, interest, total } = parseTxAmounts(tx);
+                                        const isSelected = selectedTx?._id === tx._id;
 
                                         return (
                                             <tr
                                                 key={tx._id}
                                                 className={clsx(
-                                                    'table-row group relative cursor-pointer transition-colors',
-                                                    tx.status === 'PAID'
-                                                        ? 'bg-emerald-50/70 hover:bg-emerald-50'
-                                                        : 'hover:bg-slate-50/90',
-                                                    selectedTx?._id === tx._id && '!bg-blue-50 outline outline-2 -outline-offset-2 outline-blue-500'
+                                                    'table-row cursor-pointer border-l-4 transition-colors',
+                                                    isSelected ? 'border-l-blue-600 !bg-blue-50/70' : 'border-l-transparent hover:bg-slate-50/90'
                                                 )}
-                                                onClick={() => (isTouchWide ? setSelectedTxId(tx._id) : handleEdit(tx))}
-                                                onDoubleClick={isTouchWide ? undefined : (e) => {
-                                                    e.stopPropagation();
-                                                    handleStatusToggle(e, tx);
-                                                }}
-                                                aria-selected={isTouchWide ? selectedTx?._id === tx._id : undefined}
-                                                title={isTouchWide ? undefined : 'Click để chỉnh sửa · Double-click để đổi trạng thái thanh toán'}
+                                                onClick={() => setSelectedTxId(tx._id)}
+                                                onDoubleClick={() => handleEdit(tx)}
+                                                aria-selected={isSelected}
                                             >
-                                                <td className="table-td align-middle pl-3 pr-0 w-[1%]">
-                                                    <span
-                                                        className={clsx(
-                                                            'inline-block h-9 w-1 rounded-full',
-                                                            tx.status === 'PAID' ? 'bg-emerald-500' : 'bg-amber-400'
-                                                        )}
-                                                        aria-hidden
-                                                    />
+                                                <td className="table-td font-mono tabular-nums text-slate-600">{formatDate(tx.transaction_date)}</td>
+                                                <td className="table-td max-w-[14rem]">
+                                                    <p className="truncate font-semibold text-slate-800" title={customerName}>{customerName}</p>
+                                                    <p className="text-[11px] text-slate-500">{typeName} · {tx.interest_rate_snapshot}%</p>
                                                 </td>
-                                                <td className="table-td whitespace-nowrap align-top">
-                                                    <span className="font-medium text-slate-800 tabular-nums">{formatDate(tx.transaction_date)}</span>
-                                                </td>
-                                                <td className="table-td align-top max-w-[11rem]">
-                                                    <span className="font-medium text-slate-800 line-clamp-2 leading-snug" title={customerName}>
-                                                        {customerName}
-                                                    </span>
-                                                </td>
-                                                <td className="table-td align-top">
-                                                    <span
-                                                        className={clsx(
-                                                            'inline-flex px-2 py-0.5 rounded-md text-[11px] font-bold border border-transparent',
-                                                            typeColors.badge
-                                                        )}
-                                                    >
-                                                        {typeName}
-                                                    </span>
-                                                    {calc != null && (
-                                                        <p className="mt-1 text-[11px] text-slate-500 tabular-nums leading-tight">
-                                                            {tx.interest_rate_snapshot}% · {calc?.months?.toFixed(1) ?? 0} tháng
-                                                        </p>
-                                                    )}
-                                                </td>
-                                                {!isTouchWide && (
-                                                    <td className="table-td align-top text-slate-600 max-w-[20rem]">
-                                                        <div className="rounded-md bg-slate-50/90 px-2 py-1.5 border border-slate-100/80">
-                                                            {formatTransactionContentPreview(tx.content, { lineClampClass: 'line-clamp-4' })}
-                                                        </div>
-                                                    </td>
-                                                )}
-                                                <td className="table-td text-right align-top whitespace-nowrap font-mono text-slate-700 tabular-nums">
-                                                    {principal.toLocaleString('vi-VN')}
-                                                </td>
-                                                {!isTouchWide && (
-                                                    <td className="table-td text-right align-top whitespace-nowrap font-mono tabular-nums">
-                                                        {calc && interest > 0 ? (
-                                                            <span className="font-mono font-medium text-blue-600 tabular-nums">
-                                                                +{interest.toLocaleString('vi-VN')}
-                                                            </span>
-                                                        ) : (
-                                                            <span className="font-mono text-slate-400 tabular-nums">—</span>
-                                                        )}
-                                                    </td>
-                                                )}
-                                                <td className="table-td text-right align-top whitespace-nowrap font-mono font-semibold text-slate-900 tabular-nums">
-                                                    {(calc ? total : principal).toLocaleString('vi-VN')}
-                                                </td>
+                                                <td className="table-td text-right font-mono tabular-nums text-slate-700">{principal.toLocaleString('vi-VN')}</td>
+                                                <td className="table-td text-right font-mono tabular-nums text-orange-600">{interest > 0 ? interest.toLocaleString('vi-VN') : '—'}</td>
+                                                <td className="table-td text-right font-mono font-bold tabular-nums text-blue-700">{total.toLocaleString('vi-VN')}</td>
+                                                <td className="table-td text-center"><TxStatusBadge paid={tx.status === 'PAID'} /></td>
                                             </tr>
                                         );
                                     })}
                                     {totalFilteredCount === 0 && (
                                         <tr>
-                                            <td colSpan={isTouchWide ? 6 : 8} className="table-td py-12 text-center">
+                                            <td colSpan={6} className="table-td py-12 text-center">
                                                 <div className="flex flex-col items-center justify-center text-slate-400">
                                                     <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-3 border border-dashed border-slate-200">
                                                         <Search size={22} className="opacity-40" />
@@ -1746,27 +1632,39 @@ export default function Transactions() {
                             </table>
                         </div>
                         {selectedTx && (() => {
-                            const { principal, interest, total, calc } = parseTxAmounts(selectedTx);
+                            const { principal, interest, total } = parseTxAmounts(selectedTx);
                             const typeConfig = configs?.find(c => c.code === selectedTx.type);
                             const isPaid = selectedTx.status === 'PAID';
                             const customerId = selectedTx.customer_id ?? selectedTx.customer?.id ?? selectedTx.customer;
+                            const customer = findCustomerById(customers, customerId);
+                            const customerName = customer?.name ?? 'Không xác định';
                             return (
-                                <aside className="w-72 shrink-0 space-y-4 border-l border-slate-200 bg-slate-50 p-4" aria-label="Chi tiết giao dịch">
-                                    <div>
-                                        <p className="font-semibold leading-snug text-slate-900">{resolveCustomerName(customers, selectedTx)}</p>
-                                        <p className="mt-0.5 text-xs text-slate-500">
-                                            {formatDate(selectedTx.transaction_date)} · {typeConfig ? typeConfig.name : selectedTx.type}
-                                            {calc != null && ` · ${selectedTx.interest_rate_snapshot}% · ${calc?.months?.toFixed(1) ?? 0} tháng`}
-                                        </p>
+                                <aside className="w-72 shrink-0 space-y-4 border-l border-slate-200 bg-slate-50 p-5" aria-label="Chi tiết giao dịch">
+                                    <div className="flex items-center gap-3">
+                                        <Avatar name={customerName} className="h-12 w-12 rounded-2xl font-heading text-sm font-extrabold" />
+                                        <div className="min-w-0">
+                                            <p className="truncate font-heading font-bold text-slate-900">{customerName}</p>
+                                            {customer?.contact_info && <p className="truncate text-sm text-slate-500">{customer.contact_info}</p>}
+                                        </div>
                                     </div>
-                                    <dl className="space-y-1.5 rounded-xl border border-slate-200 bg-white p-3 text-sm">
-                                        <div className="flex justify-between gap-3"><dt className="text-slate-500">Gốc</dt><dd className="font-mono tabular-nums">{principal.toLocaleString('vi-VN')}</dd></div>
-                                        <div className="flex justify-between gap-3"><dt className="text-slate-500">Lãi</dt><dd className="font-mono tabular-nums text-blue-600">{calc && interest > 0 ? `+${interest.toLocaleString('vi-VN')}` : '—'}</dd></div>
-                                        <div className="flex justify-between gap-3 border-t border-slate-100 pt-1.5"><dt className="font-semibold text-slate-700">Tổng</dt><dd className="font-mono font-bold tabular-nums text-slate-900">{(calc ? total : principal).toLocaleString('vi-VN')}</dd></div>
+                                    {customer?.total_debt != null && (
+                                        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                                            <p className="text-xs font-bold uppercase text-amber-800">Còn nợ lại</p>
+                                            <p className="font-mono text-2xl font-bold tabular-nums text-amber-900">{Number(customer.total_debt).toLocaleString('vi-VN')} ₫</p>
+                                        </div>
+                                    )}
+                                    <dl className="space-y-2 rounded-xl border border-slate-200 bg-white p-4 text-sm">
+                                        <div className="flex justify-between gap-3"><dt className="text-slate-500">Ngày</dt><dd className="font-mono tabular-nums">{formatDate(selectedTx.transaction_date)}</dd></div>
+                                        <div className="flex justify-between gap-3"><dt className="text-slate-500">Loại</dt><dd className="text-right">{typeConfig ? typeConfig.name : selectedTx.type} · {selectedTx.interest_rate_snapshot}%</dd></div>
+                                        <div className="flex justify-between gap-3"><dt className="text-slate-500">Gốc</dt><dd className="font-mono font-bold tabular-nums">{principal.toLocaleString('vi-VN')}</dd></div>
+                                        <div className="flex justify-between gap-3"><dt className="text-slate-500">Lãi</dt><dd className="font-mono font-bold tabular-nums text-orange-600">{interest.toLocaleString('vi-VN')}</dd></div>
+                                        <div className="flex justify-between gap-3 border-t border-slate-100 pt-2"><dt className="font-semibold text-slate-700">Tổng</dt><dd className="font-mono font-bold tabular-nums text-blue-700">{total.toLocaleString('vi-VN')}</dd></div>
                                     </dl>
-                                    <div className="max-h-48 overflow-y-auto whitespace-pre-wrap rounded-xl border border-slate-200 bg-white p-3 text-sm leading-relaxed text-slate-700">
-                                        {selectedTx.content || '—'}
-                                    </div>
+                                    {selectedTx.content && (
+                                        <div className="max-h-40 overflow-y-auto whitespace-pre-wrap rounded-xl border border-slate-200 bg-white p-3 text-sm leading-relaxed text-slate-700">
+                                            {selectedTx.content}
+                                        </div>
+                                    )}
                                     <div className="grid grid-cols-2 gap-2">
                                         <button type="button" onClick={() => handleEdit(selectedTx)} className="btn-secondary btn-md">
                                             <Edit2 size={16} /> Sửa
@@ -1781,7 +1679,7 @@ export default function Transactions() {
                                         disabled={updateMutation.isPending}
                                         className={clsx('btn-md w-full', isPaid ? 'btn-secondary' : 'btn-primary')}
                                     >
-                                        {isPaid ? <><Clock size={16} /> Chuyển về chưa thu</> : <><Check size={16} /> Đánh dấu đã thu</>}
+                                        {isPaid ? <><Clock size={16} /> Chuyển về đang mở</> : <><Check size={16} /> Đánh dấu đã trả</>}
                                     </button>
                                 </aside>
                             );

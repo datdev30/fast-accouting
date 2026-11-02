@@ -55,16 +55,11 @@ export const AuthProvider = ({ children }) => {
         return true;
     };
 
-    const performBackup = async (customPath = null) => {
+    const performBackup = async () => {
         setIsBackingUp(true);
         try {
             // Artificial delay to let the modal show up nicely and user to see it
             await new Promise(r => setTimeout(r, 800));
-
-            if (customPath) {
-                await api.post('/reports/batch-export', { output_path: customPath });
-                return true;
-            }
 
             const res = await api.post(
                 '/reports/batch-export',

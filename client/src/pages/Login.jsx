@@ -3,7 +3,10 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { getApiErrorMessage } from '../utils/errorMessage';
 import AppBrandLogo from '../components/AppBrandLogo';
-import { Lock, User, AlertCircle, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { Lock, User, AlertCircle, Eye, EyeOff } from 'lucide-react';
+
+const fieldClass =
+    'h-12 w-full rounded-xl border border-slate-200 bg-slate-50 pl-11 pr-4 text-base text-slate-800 outline-none transition-colors placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/20';
 
 export default function Login() {
     const [formData, setFormData] = useState({ username: '', password: '' });
@@ -42,124 +45,87 @@ export default function Login() {
     };
 
     return (
-        <div className="login-page login-page--splash">
-            <div className="login-page__bg" aria-hidden />
-            <div className="login-page__overlay" aria-hidden />
-
-            <main className="login-page__main login-page__main--splash">
-                <div className="flex w-full max-w-[420px] flex-col items-center">
-                    {/* Logo là chữ CP xanh lá đậm — trên nền ảnh đã làm tối thì tự nó chìm,
-                        nên dùng quầng sáng phía sau để tách khỏi nền. */}
-                    <div className="login-page__brand mb-8">
-                        <AppBrandLogo
-                            variant="mark"
-                            alt="FastAccounting"
-                            className="h-32 w-auto max-w-[min(100%,26rem)] object-contain sm:h-36"
-                        />
+        <div className="min-h-dvh bg-slate-50">
+            <div
+                className="bg-gradient-to-br from-blue-600 to-sky-500 px-6 pb-24 text-white"
+                style={{ paddingTop: 'max(3.5rem, var(--safe-t))' }}
+            >
+                <div className="mx-auto max-w-md">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/90 p-1.5 shadow-sm">
+                        <AppBrandLogo variant="mark" alt="FastAccounting" className="h-full w-full object-contain" />
                     </div>
-
-                    <div className="login-page__card login-page__card--splash w-full">
-                        <div className="login-page__divider mb-6 border-b pb-6">
-                            <h1
-                                className="text-xl font-bold tracking-tight sm:text-2xl"
-                                style={{ fontFamily: 'var(--font-heading)' }}
-                            >
-                                Đăng nhập
-                            </h1>
-                            <p className="login-page__lead mt-1.5">
-                                Nhập tài khoản được cấp để vào hệ thống.
-                            </p>
-                        </div>
-
-                        {error && (
-                            <div className="login-page__alert mb-5" role="alert" aria-live="assertive">
-                                <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden />
-                                <span>{error}</span>
-                            </div>
-                        )}
-
-                        <form onSubmit={handleSubmit} className="space-y-5">
-                            <div className="space-y-1.5">
-                                <label htmlFor="username" className="field-label">
-                                    Tài khoản
-                                </label>
-                                <div className="login-page__input-group">
-                                    <span className="login-page__input-icon" aria-hidden>
-                                        <User className="h-[18px] w-[18px]" strokeWidth={2} />
-                                    </span>
-                                    <input
-                                        ref={usernameRef}
-                                        id="username"
-                                        name="username"
-                                        type="text"
-                                        required
-                                        autoComplete="username"
-                                        className="login-page__field"
-                                        placeholder="Tên đăng nhập"
-                                        value={formData.username}
-                                        onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="space-y-1.5">
-                                <label htmlFor="password" className="field-label">
-                                    Mật khẩu
-                                </label>
-                                <div className="login-page__input-group">
-                                    <span className="login-page__input-icon" aria-hidden>
-                                        <Lock className="h-[18px] w-[18px]" strokeWidth={2} />
-                                    </span>
-                                    <input
-                                        ref={passwordRef}
-                                        id="password"
-                                        name="password"
-                                        type={showPassword ? 'text' : 'password'}
-                                        required
-                                        autoComplete="current-password"
-                                        className="login-page__field login-page__field--password"
-                                        placeholder="Mật khẩu"
-                                        value={formData.password}
-                                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        className="login-page__toggle-password"
-                                        aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
-                                    >
-                                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                                    </button>
-                                </div>
-                            </div>
-
-                            <button
-                                type="submit"
-                                disabled={isLoading}
-                                className="login-page__submit"
-                            >
-                                {isLoading ? (
-                                    <>
-                                        <div className="spinner" />
-                                        <span>Đang đăng nhập…</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <span>Đăng nhập</span>
-                                        <ArrowRight className="h-[18px] w-[18px] shrink-0" aria-hidden />
-                                    </>
-                                )}
-                            </button>
-                        </form>
-                    </div>
-
-                    <p className="login-page__splash-foot mt-6 max-w-[420px] text-center text-[11px] leading-relaxed text-white/85 drop-shadow-md">
-                        Chỉ dùng trong phạm vi được phép. Liên hệ quản trị nếu quên mật khẩu.
-                    </p>
-                    <p className="login-page__splash-foot mt-2 text-center text-[10px] text-white/60 drop-shadow">
-                        © 2026 FastAccounting
-                    </p>
+                    <h1 className="mt-5 font-heading text-2xl font-extrabold">Xin chào 👋</h1>
+                    <p className="mt-1 text-sm text-blue-100">Đăng nhập để quản lý khoản vay</p>
                 </div>
+            </div>
+
+            <main className="relative mx-auto -mt-16 max-w-md px-4 pb-8">
+                <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl bg-white p-5 shadow-lg sm:p-6">
+                    {error && (
+                        <div className="flex gap-3 rounded-xl border border-red-200 bg-red-50 px-3.5 py-3 text-sm font-medium text-red-700" role="alert" aria-live="assertive">
+                            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden />
+                            <span>{error}</span>
+                        </div>
+                    )}
+
+                    <div>
+                        <label htmlFor="username" className="field-label mb-1.5 block">Tên đăng nhập</label>
+                        <div className="relative">
+                            <User className="pointer-events-none absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-slate-400" aria-hidden />
+                            <input
+                                ref={usernameRef}
+                                id="username"
+                                name="username"
+                                type="text"
+                                required
+                                autoComplete="username"
+                                className={fieldClass}
+                                placeholder="Tên đăng nhập"
+                                value={formData.username}
+                                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label htmlFor="password" className="field-label mb-1.5 block">Mật khẩu</label>
+                        <div className="relative">
+                            <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-slate-400" aria-hidden />
+                            <input
+                                ref={passwordRef}
+                                id="password"
+                                name="password"
+                                type={showPassword ? 'text' : 'password'}
+                                required
+                                autoComplete="current-password"
+                                className={`${fieldClass} pr-12`}
+                                placeholder="Mật khẩu"
+                                value={formData.password}
+                                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-r-xl text-slate-400 hover:text-slate-600"
+                                aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                            >
+                                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                            </button>
+                        </div>
+                    </div>
+
+                    <button
+                        type="submit"
+                        disabled={isLoading}
+                        className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 font-bold text-white shadow-md shadow-blue-200 transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                        {isLoading ? <><div className="spinner" /><span>Đang đăng nhập…</span></> : 'Đăng nhập'}
+                    </button>
+                </form>
+
+                <p className="mt-6 text-center text-xs text-slate-400">
+                    Chỉ dùng trong phạm vi được phép. Liên hệ quản trị nếu quên mật khẩu.
+                </p>
             </main>
         </div>
     );

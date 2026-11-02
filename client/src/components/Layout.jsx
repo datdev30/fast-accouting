@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { useWorkingYear } from '../context/WorkingYearContext';
 import { getAppInfo } from '../services/api';
 import AppBrandLogo from './AppBrandLogo';
+import { initialsOf } from '../utils/initials';
 import SelectMenu from './SelectMenu';
 import useMediaQuery from '../hooks/useMediaQuery';
 import useScrollLock from '../hooks/useScrollLock';
@@ -47,6 +48,14 @@ const TabBar = ({ onMore }) => {
             </button>
         </nav>
     );
+};
+
+const greeting = () => {
+    const h = new Date().getHours();
+    if (h < 11) return 'Chào buổi sáng';
+    if (h < 13) return 'Chào buổi trưa';
+    if (h < 18) return 'Chào buổi chiều';
+    return 'Chào buổi tối';
 };
 
 const NavItem = ({ to, icon: Icon, label, collapsed, onClick, end }) => {
@@ -123,12 +132,7 @@ export default function Layout() {
     const onNavigate = () => closeMobileNav();
 
     const userDisplayName = (user?.displayName || user?.username || 'User').trim();
-    const userInitials = (() => {
-        const parts = userDisplayName.split(/\s+/).filter(Boolean);
-        if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
-        if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-        return 'AD';
-    })();
+    const userInitials = initialsOf(userDisplayName);
 
     const handleLogout = () => {
         logout();
@@ -348,33 +352,27 @@ export default function Layout() {
 
             {/* Main column */}
             <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
-                <header
-                    className="lg:hidden shrink-0 flex items-center gap-2 px-3 py-2.5 border-b border-slate-200 bg-white/95 backdrop-blur-md supports-[backdrop-filter]:bg-white/80 z-30"
+                {location.pathname === '/overview' && <header
+                    className="lg:hidden shrink-0 flex items-center gap-3 px-4 py-2.5 border-b border-slate-200 bg-white z-30"
                     style={{ paddingTop: 'max(0.625rem, var(--safe-t))' }}
                 >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-700">
+                        {userInitials}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                        <p className="text-xs text-slate-500">{greeting()}</p>
+                        <p className="truncate font-heading font-bold text-slate-900">{userDisplayName}</p>
+                    </div>
                     <button
                         type="button"
                         onClick={() => setMobileNavOpen(true)}
-                        className="p-2 min-w-[var(--tap-min)] min-h-[var(--tap-min)] rounded-lg text-slate-700 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                        aria-expanded={drawerOpen}
-                        aria-controls="app-sidebar"
-                        aria-label="Mở menu điều hướng"
+                        className="flex min-h-[var(--tap-min)] items-center gap-1 rounded-lg bg-blue-50 px-2.5 font-mono text-xs font-bold text-blue-700"
+                        aria-label={`Năm làm việc ${workingYear} — mở menu`}
                     >
-                        <Menu size={20} />
+                        <CalendarRange size={14} />
+                        {workingYear}
                     </button>
-                    <AppBrandLogo
-                        variant="full"
-                        alt=""
-                        className="h-8 w-auto max-w-[6.5rem] shrink-0 rounded-md object-left object-contain"
-                        fallbackClassName="h-8 w-8 text-[10px]"
-                    />
-                    <div className="min-w-0 flex-1">
-                        <p className="font-semibold text-sm text-slate-900 truncate">
-                            {appInfo?.name || 'FastAccounting'}
-                        </p>
-                        <p className="text-[11px] text-slate-500 truncate">{userDisplayName}</p>
-                    </div>
-                </header>
+                </header>}
 
                 <main id="main-content" className="flex-1 flex flex-col overflow-hidden relative min-h-0" tabIndex={-1}>
                     <div

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getDebtReport } from '../services/api';
-import { Download, TrendingUp, Wallet, ArrowUpRight, ArrowDownRight, PieChart, Search, Plus, UserPlus, QrCode, FileDown } from 'lucide-react';
+import { getDebtReport, getOverviewSummary, getInterestConfigs } from '../services/api';
+import { ArrowUpRight, ArrowDownRight, Search, Plus, UserPlus, QrCode, FileDown } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import ReportsAdminCharts from '../components/ReportsAdminCharts';
@@ -9,6 +9,10 @@ import LoadingSkeleton from '../components/LoadingSkeleton';
 import { EmptyStates } from '../components/EmptyState';
 import { ErrorStates } from '../components/ErrorState';
 import DataTable from '../components/DataTable';
+import Avatar from '../components/Avatar';
+import { formatDate } from '../utils/dateUtils';
+
+const money = (n) => Number(n || 0).toLocaleString('vi-VN');
 
 export default function Reports() {
     const navigate = useNavigate();
@@ -21,13 +25,14 @@ export default function Reports() {
         queryFn: getDebtReport,
         retry: 1
     });
+    const { data: summary } = useQuery({ queryKey: ['overview-summary'], queryFn: getOverviewSummary });
+    const { data: configs } = useQuery({ queryKey: ['interest-configs'], queryFn: getInterestConfigs });
 
     const processedData = useMemo(() => {
         if (!report) return [];
 
         let data = [...report];
 
-        // 1. Filter
         if (searchTerm) {
             const lowerTerm = searchTerm.toLowerCase();
             data = data.filter((item) =>
@@ -35,7 +40,6 @@ export default function Reports() {
             );
         }
 
-        // 2. Sort
         if (sortConfig.key) {
             data.sort((a, b) => {
                 const aValue = a[sortConfig.key];
@@ -59,7 +63,7 @@ export default function Reports() {
     };
 
     if (reportError) return (
-        <div className="reports-page px-1 pb-8 sm:px-0">
+        <div className="px-1 pb-8 sm:px-0">
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
                 <ErrorStates.Network
                     error={reportError}
@@ -71,30 +75,13 @@ export default function Reports() {
     );
 
     if (isLoading) return (
-        <div className="reports-page space-y-6 pb-8">
+        <div className="space-y-6 pb-8">
             <LoadingSkeleton.Stats count={4} />
             <LoadingSkeleton.Table rows={8} columns={7} />
         </div>
     );
 
-    const totalPrincipal = report?.reduce((sum, item) => sum + item.total_principal, 0) || 0;
-    const totalInterest = report?.reduce((sum, item) => sum + item.total_interest, 0) || 0;
-    const totalDebt = report?.reduce((sum, item) => sum + item.total_debt, 0) || 0;
-    const totalCollected = report?.reduce((sum, item) => sum + (item.total_collected || 0), 0) || 0;
-    const debtorCount = report?.filter((i) => i.total_debt > 0).length || 0;
-
-    const handleExport = async () => {
-        let selectedPath = null;
-        if (window.pywebview && window.pywebview.api && window.pywebview.api.select_folder) {
-            try {
-                selectedPath = await window.pywebview.api.select_folder();
-                if (!selectedPath) return;
-            } catch (err) {
-                console.error("Error selecting folder:", err);
-            }
-        }
-        await triggerBatchExport(selectedPath);
-    };
+    const typeName = (code) => configs?.find((c) => c.code === code)?.name ?? code;
 
     const quickActions = [
         { to: '/transactions', state: { create: true }, icon: Plus, label: 'Giao dịch', tone: 'bg-orange-50 text-orange-600' },
@@ -103,163 +90,108 @@ export default function Reports() {
     ];
 
     return (
-        <div className="reports-page space-y-6 pb-10 animate-in fade-in duration-300 lg:space-y-8">
-            {/* Dưới lg: một thẻ tổng nổi bật + lối tắt, thay cho masthead và lưới 4 KPI */}
-            <section className="space-y-4 lg:hidden" aria-label="Tổng hợp nhanh">
-                <div className="rounded-2xl bg-gradient-to-br from-blue-600 to-blue-700 p-4 text-white shadow-lg shadow-blue-200">
-                    <p className="text-xs font-semibold text-blue-100">Tổng nợ phải thu</p>
-                    <p className="mt-1 font-mono text-[1.625rem] font-bold leading-tight tabular-nums">
-                        {totalDebt.toLocaleString('vi-VN')} <span className="text-base font-normal text-blue-200">đ</span>
+        <div className="space-y-4 pb-10 animate-in fade-in duration-300 lg:space-y-6">
+            <header className="hidden items-center gap-3 lg:flex">
+                <h1 className="flex-1 font-heading text-2xl font-extrabold text-slate-900">Tổng quan</h1>
+                <button type="button" onClick={() => triggerBatchExport()} disabled={isBackingUp} className="btn-secondary btn-md">
+                    <FileDown size={18} className={isBackingUp ? 'animate-bounce' : ''} />
+                    {isBackingUp ? 'Đang xử lý…' : 'Xuất PDF'}
+                </button>
+                <Link to="/transactions" state={{ create: true }} className="btn-md inline-flex items-center gap-1.5 rounded-xl bg-orange-500 px-4 font-bold text-white hover:bg-orange-600">
+                    <Plus size={18} /> Thêm giao dịch
+                </Link>
+            </header>
+
+            <section className="grid gap-3 lg:grid-cols-3 lg:gap-4" aria-label="Tổng hợp">
+                <div className="rounded-2xl bg-gradient-to-br from-blue-600 to-blue-700 p-4 text-white shadow-lg shadow-blue-200 lg:col-span-2 lg:p-6">
+                    <p className="text-xs font-semibold text-blue-100 lg:text-sm">Tổng nợ phải thu</p>
+                    <p className="mt-1 font-mono text-[1.625rem] font-bold leading-tight tabular-nums lg:text-4xl">
+                        {money(summary?.total_debt)} <span className="text-base font-normal text-blue-200">₫</span>
                     </p>
-                    <p className="mt-0.5 text-xs text-blue-100">{debtorCount} khách hàng còn dư nợ</p>
-                    <dl className="mt-3 grid grid-cols-3 gap-2 text-xs">
-                        <div className="min-w-0 rounded-xl bg-white/10 p-2.5">
+                    <dl className="mt-3 grid grid-cols-2 gap-2 text-xs lg:mt-5 lg:grid-cols-3 lg:gap-3">
+                        <div className="min-w-0 rounded-xl bg-white/10 p-2.5 lg:p-3">
                             <dt className="text-blue-100">Tiền gốc</dt>
-                            <dd className="mt-0.5 truncate font-mono text-sm font-bold tabular-nums">{totalPrincipal.toLocaleString('vi-VN')}</dd>
+                            <dd className="mt-0.5 truncate font-mono text-sm font-bold tabular-nums lg:text-base">{money(summary?.open_principal)}</dd>
                         </div>
-                        <div className="min-w-0 rounded-xl bg-white/10 p-2.5">
+                        <div className="min-w-0 rounded-xl bg-white/10 p-2.5 lg:p-3">
                             <dt className="text-blue-100">Lãi dự kiến</dt>
-                            <dd className="mt-0.5 truncate font-mono text-sm font-bold tabular-nums">{totalInterest.toLocaleString('vi-VN')}</dd>
+                            <dd className="mt-0.5 truncate font-mono text-sm font-bold tabular-nums lg:text-base">{money(summary?.open_interest)}</dd>
                         </div>
-                        <div className="min-w-0 rounded-xl bg-white/10 p-2.5">
+                        <div className="col-span-2 min-w-0 rounded-xl bg-white/10 p-2.5 lg:col-span-1 lg:p-3">
                             <dt className="text-blue-100">Đã thu</dt>
-                            <dd className="mt-0.5 truncate font-mono text-sm font-bold tabular-nums">{totalCollected.toLocaleString('vi-VN')}</dd>
+                            <dd className="mt-0.5 truncate font-mono text-sm font-bold tabular-nums lg:text-base">{money(summary?.total_collected)}</dd>
                         </div>
                     </dl>
                 </div>
-                <nav className="grid grid-cols-4 gap-2 text-center" aria-label="Lối tắt">
-                    {quickActions.map((action) => (
-                        <Link key={action.label} to={action.to} state={action.state} className="flex flex-col items-center gap-1.5 rounded-xl py-1 active:bg-slate-100">
-                            <span className={`flex h-12 w-12 items-center justify-center rounded-2xl ${action.tone}`}><action.icon size={20} /></span>
-                            <span className="text-[11px] font-semibold text-slate-700">{action.label}</span>
-                        </Link>
-                    ))}
-                    <button type="button" onClick={handleExport} disabled={isBackingUp} className="flex flex-col items-center gap-1.5 rounded-xl py-1 active:bg-slate-100 disabled:opacity-60">
-                        <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-50 text-violet-600">
-                            <FileDown size={20} className={isBackingUp ? 'animate-bounce' : ''} />
-                        </span>
-                        <span className="text-[11px] font-semibold text-slate-700">Xuất PDF</span>
-                    </button>
-                </nav>
+
+                <div className="grid grid-cols-2 gap-2 lg:grid-cols-1 lg:gap-4">
+                    <Link to="/customers" className="rounded-xl border border-slate-200 bg-white p-3 lg:p-5">
+                        <p className="text-xs text-slate-500">Khách hàng</p>
+                        <p className="font-mono text-xl font-bold text-slate-900 lg:text-2xl">{summary?.customer_count ?? '—'}</p>
+                        <p className="text-[11px] font-semibold text-emerald-600">+{summary?.new_customers_this_month ?? 0} tháng này</p>
+                    </Link>
+                    <Link to="/transactions" className="rounded-xl border border-slate-200 bg-white p-3 lg:p-5">
+                        <p className="text-xs text-slate-500">Khoản đang mở</p>
+                        <p className="font-mono text-xl font-bold text-slate-900 lg:text-2xl">{summary?.open_count ?? '—'}</p>
+                        <p className="text-[11px] font-semibold text-amber-600">{summary?.open_over_6_months ?? 0} quá 6 tháng</p>
+                    </Link>
+                </div>
             </section>
 
-            <div className="hidden lg:block">
-            <header className="reports-page__masthead">
-                <div className="reports-page__masthead-accent" aria-hidden />
-                <div className="relative z-[1] min-w-0 flex-1">
-                    <p className="reports-page__kicker">Báo cáo &amp; tổng hợp</p>
-                    <h1 className="section-title">Tổng quan tài chính</h1>
-                    <p className="section-subtitle mt-1 line-clamp-1 max-w-2xl sm:line-clamp-none">
-                        Công nợ theo khách hàng, chỉ số tổng và biểu đồ trực quan — dữ liệu từ sổ giao dịch hiện tại.
-                    </p>
-                </div>
-                <div className="relative z-[1] flex w-full shrink-0 flex-col gap-1 sm:w-auto sm:items-end">
-                    <button
-                        type="button"
-                        onClick={handleExport}
-                        disabled={isBackingUp}
-                        className="btn-primary btn-md w-full whitespace-nowrap sm:w-auto disabled:cursor-wait"
-                    >
-                        <Download size={16} className={isBackingUp ? 'animate-bounce' : ''} />
-                        <span>{isBackingUp ? 'Đang xử lý…' : 'Xuất phiếu PDF'}</span>
-                    </button>
-                    <p className="reports-page__export-hint hidden text-right sm:block">
-                        Gói PDF theo khách — chọn thư mục khi ứng dụng hỗ trợ.
-                    </p>
-                </div>
-            </header>
+            <nav className="grid grid-cols-4 gap-2 text-center lg:hidden" aria-label="Lối tắt">
+                {quickActions.map((action) => (
+                    <Link key={action.label} to={action.to} state={action.state} className="flex flex-col items-center gap-1.5 rounded-xl py-1 active:bg-slate-100">
+                        <span className={`flex h-12 w-12 items-center justify-center rounded-2xl ${action.tone}`}><action.icon size={20} /></span>
+                        <span className="text-[11px] font-semibold text-slate-700">{action.label}</span>
+                    </Link>
+                ))}
+                <button type="button" onClick={() => triggerBatchExport()} disabled={isBackingUp} className="flex flex-col items-center gap-1.5 rounded-xl py-1 active:bg-slate-100 disabled:opacity-60">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-50 text-violet-600">
+                        <FileDown size={20} className={isBackingUp ? 'animate-bounce' : ''} />
+                    </span>
+                    <span className="text-[11px] font-semibold text-slate-700">Xuất PDF</span>
+                </button>
+            </nav>
+
+            <div className="grid gap-4 lg:grid-cols-3">
+                <section aria-label="Giao dịch gần đây">
+                    <div className="mb-2 flex items-center justify-between">
+                        <h2 className="font-bold text-slate-900">Giao dịch gần đây</h2>
+                        <Link to="/transactions" className="text-xs font-semibold text-blue-600">Xem tất cả</Link>
+                    </div>
+                    <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white">
+                        {summary?.recent?.map((tx) => (
+                            <li key={tx._id}>
+                                <Link to={`/customers/${tx.customer_id}/debt`} className="flex items-center gap-3 p-3 hover:bg-slate-50">
+                                    <Avatar name={tx.customer_name} className="h-9 w-9 rounded-full text-xs" />
+                                    <div className="min-w-0 flex-1">
+                                        <p className="truncate text-sm font-semibold text-slate-800">{tx.customer_name}</p>
+                                        <p className="text-[11px] text-slate-500">{formatDate(tx.transaction_date)} · {typeName(tx.type)}</p>
+                                    </div>
+                                    {tx.status === 'PAID'
+                                        ? <p className="text-sm font-bold text-emerald-600">Đã trả</p>
+                                        : <p className="font-mono text-sm font-bold tabular-nums text-slate-900">{money(tx.amount)}</p>}
+                                </Link>
+                            </li>
+                        ))}
+                        {summary?.recent?.length === 0 && <li className="p-4 text-center text-sm text-slate-500">Chưa có giao dịch</li>}
+                    </ul>
+                </section>
+
+                <section className="rounded-2xl border border-slate-200 bg-white p-3 sm:p-4 lg:col-span-2" aria-label="Biểu đồ">
+                    <div className="reports-charts-root">
+                        <ReportsAdminCharts report={report ?? []} />
+                    </div>
+                </section>
             </div>
 
-            <section className="reports-page__kpi-grid hidden lg:grid" aria-label="Chỉ số tổng hợp">
-                <div className="reports-page__kpi-card reports-page__kpi-card--principal">
-                    <div className="relative z-[1] flex flex-col gap-1.5 sm:flex-row sm:items-start sm:gap-3">
-                        <div className="reports-page__kpi-icon reports-page__kpi-icon--principal" aria-hidden>
-                            <Wallet size={20} />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                            <p className="reports-page__kpi-label">Tổng tiền gốc</p>
-                            <div className="mt-2 flex items-baseline gap-1.5">
-                                <span className="reports-page__kpi-value">{totalPrincipal.toLocaleString('vi-VN')}</span>
-                                <span className="reports-page__kpi-suffix">đ</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="reports-page__kpi-card reports-page__kpi-card--interest">
-                    <div className="relative z-[1] flex flex-col gap-1.5 sm:flex-row sm:items-start sm:gap-3">
-                        <div className="reports-page__kpi-icon reports-page__kpi-icon--interest" aria-hidden>
-                            <TrendingUp size={20} />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                            <p className="reports-page__kpi-label">Lãi dự kiến (tổng hợp)</p>
-                            <div className="mt-2 flex items-baseline gap-1.5">
-                                <span className="reports-page__kpi-value text-violet-900">
-                                    +{totalInterest.toLocaleString('vi-VN')}
-                                </span>
-                                <span className="reports-page__kpi-suffix">đ</span>
-                            </div>
-                            <div className="reports-page__kpi-pill">
-                                <TrendingUp size={12} className="shrink-0 opacity-80" aria-hidden />
-                                Ước tính theo cấu hình lãi
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="reports-page__kpi-card reports-page__kpi-card--debt">
-                    <div className="relative z-[1] flex flex-col gap-1.5 sm:flex-row sm:items-start sm:gap-3">
-                        <div className="reports-page__kpi-icon reports-page__kpi-icon--debt" aria-hidden>
-                            <PieChart size={20} />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                            <p className="reports-page__kpi-label">Tổng nợ phải thu</p>
-                            <div className="mt-2 flex items-baseline gap-1.5">
-                                <span className="reports-page__kpi-value text-rose-950">{totalDebt.toLocaleString('vi-VN')}</span>
-                                <span className="reports-page__kpi-suffix">đ</span>
-                            </div>
-                            <p className="reports-page__kpi-foot">
-                                <span className="font-semibold text-slate-700">{debtorCount}</span>{' '}
-                                khách hàng còn dư nợ
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="reports-page__kpi-card reports-page__kpi-card--collected">
-                    <div className="relative z-[1] flex flex-col gap-1.5 sm:flex-row sm:items-start sm:gap-3">
-                        <div className="reports-page__kpi-icon reports-page__kpi-icon--collected" aria-hidden>
-                            <Download size={20} />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                            <p className="reports-page__kpi-label">Đã thu (thực tế)</p>
-                            <div className="mt-2 flex items-baseline gap-1.5">
-                                <span className="reports-page__kpi-value text-emerald-950">
-                                    {totalCollected.toLocaleString('vi-VN')}
-                                </span>
-                                <span className="reports-page__kpi-suffix">đ</span>
-                            </div>
-                            <p className="reports-page__kpi-foot">Tổng số tiền đã ghi nhận thanh toán.</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section className="reports-page__charts-panel" aria-label="Biểu đồ">
-                <div className="reports-page__charts-panel-accent" aria-hidden />
-                <div className="reports-page__charts-panel-inner reports-charts-root">
-                    <ReportsAdminCharts report={report ?? []} />
-                </div>
-            </section>
-
-            <section className="reports-page__table-card" aria-label="Chi tiết theo khách hàng">
+            <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white" aria-label="Công nợ theo khách hàng">
                 <div className="card-header">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
                         <h2 className="section-kicker">
                             <span className="h-4 w-1 rounded-full bg-blue-600" aria-hidden />
-                            Chi tiết theo khách hàng
+                            Công nợ theo khách hàng
                         </h2>
-                        {/* Search Bar */}
                         <div className="relative w-full sm:w-56 md:w-64">
                             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
                                 <Search size={16} className="shrink-0" />
@@ -315,7 +247,7 @@ export default function Reports() {
                             priority: 3,
                             align: 'right',
                             sortable: true,
-                            cellClassName: 'font-mono text-blue-600 font-medium',
+                            cellClassName: 'font-mono text-orange-600 font-medium',
                             cell: (item) => `+${item.total_interest.toLocaleString('vi-VN')}`,
                         },
                         {
@@ -333,7 +265,7 @@ export default function Reports() {
                             priority: 2,
                             align: 'right',
                             sortable: true,
-                            cellClassName: 'font-mono font-semibold text-red-600',
+                            cellClassName: 'font-mono font-semibold text-blue-700',
                             cell: (item) => item.total_debt.toLocaleString('vi-VN'),
                         },
                         {
