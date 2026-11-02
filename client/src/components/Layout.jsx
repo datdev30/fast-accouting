@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Calculator, FileText, ChevronLeft, ChevronRight, LogOut, BarChart3, Info, BookOpen, DatabaseBackup, Settings as SettingsIcon, Menu, X, CalendarRange, Loader2 } from 'lucide-react';
+import { LayoutDashboard, Users, Calculator, FileText, ChevronLeft, ChevronRight, LogOut, BarChart3, Info, BookOpen, DatabaseBackup, Settings as SettingsIcon, CalendarRange, Loader2 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
@@ -9,27 +9,29 @@ import { getAppInfo } from '../services/api';
 import AppBrandLogo from './AppBrandLogo';
 import { initialsOf } from '../utils/initials';
 import SelectMenu from './SelectMenu';
-import useMediaQuery from '../hooks/useMediaQuery';
-import useScrollLock from '../hooks/useScrollLock';
 
 /* Bottom tab bar — hiện ở MỌI thiết bị dưới lg (điện thoại + tablet).
-   Đưa 4 trang chính về 1 chạm thay vì 2. Mục cuối mở drawer cho phần còn lại. */
+   Tab Cài đặt gom mọi trang còn lại (danh sách nằm trong trang /settings). */
 const TAB_ITEMS = [
     { to: '/overview', icon: LayoutDashboard, label: 'Tổng quan', end: true },
     { to: '/transactions', icon: FileText, label: 'Giao dịch' },
     { to: '/customers', icon: Users, label: 'Khách hàng' },
     { to: '/reports', icon: BarChart3, label: 'Báo cáo' },
+    {
+        to: '/settings', icon: SettingsIcon, label: 'Cài đặt',
+        also: ['/info', '/guide', '/interest-configs', '/bank-account-config', '/system-notification-config', '/users', '/backup-data'],
+    },
 ];
 
-const TabBar = ({ onMore }) => {
+const TabBar = () => {
     const location = useLocation();
 
     return (
         <nav className="tabbar" aria-label="Điều hướng nhanh">
-            {TAB_ITEMS.map(({ to, icon: Icon, label, end }) => {
+            {TAB_ITEMS.map(({ to, icon: Icon, label, end, also = [] }) => {
                 const isActive = end
                     ? location.pathname === to
-                    : location.pathname === to || location.pathname.startsWith(`${to}/`);
+                    : [to, ...also].some((p) => location.pathname === p || location.pathname.startsWith(`${p}/`));
                 return (
                     <Link
                         key={to}
@@ -42,10 +44,6 @@ const TabBar = ({ onMore }) => {
                     </Link>
                 );
             })}
-            <button type="button" onClick={onMore} className="tabbar__item" aria-label="Mở menu đầy đủ">
-                <Menu size={20} strokeWidth={2} className="shrink-0" />
-                <span className="leading-none">Thêm</span>
-            </button>
         </nav>
     );
 };
@@ -105,31 +103,6 @@ export default function Layout() {
 
     const navigate = useNavigate();
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-    const [mobileNavOpen, setMobileNavOpen] = useState(false);
-    const isLgUp = useMediaQuery('(min-width: 1024px)', true);
-
-    // Drawer chỉ tồn tại dưới lg. Tablet dùng CÙNG kiến trúc với mobile:
-    // drawer + bottom tab bar, không có sidebar rail. Suy ra thay vì đồng bộ
-    // bằng effect — xoay ngang máy không để lại trạng thái khóa scroll treo.
-    const drawerOpen = mobileNavOpen && !isLgUp;
-
-    useScrollLock(drawerOpen);
-
-    useEffect(() => {
-        setMobileNavOpen(false);
-    }, [location.pathname]);
-
-    useEffect(() => {
-        if (!drawerOpen) return;
-        const onKey = (e) => {
-            if (e.key === 'Escape') setMobileNavOpen(false);
-        };
-        window.addEventListener('keydown', onKey);
-        return () => window.removeEventListener('keydown', onKey);
-    }, [drawerOpen]);
-
-    const closeMobileNav = () => setMobileNavOpen(false);
-    const onNavigate = () => closeMobileNav();
 
     const userDisplayName = (user?.displayName || user?.username || 'User').trim();
     const userInitials = initialsOf(userDisplayName);
@@ -139,10 +112,10 @@ export default function Layout() {
         navigate('/login');
     };
 
-    /* <lg (điện thoại + tablet): drawer trượt hiện nhãn đầy đủ + bottom tab
+    /* <lg (điện thoại + tablet): chỉ bottom tab
        lg+ (≥1024): sidebar cố định, thu/mở theo isSidebarOpen */
-    const navCollapsed = isLgUp ? !isSidebarOpen : false;
-    const isExpanded = !navCollapsed;
+    const navCollapsed = !isSidebarOpen;
+    const isExpanded = isSidebarOpen;
 
     return (
         <div className="accounting-app flex h-dvh bg-slate-50 font-sans overflow-x-hidden max-w-full">
@@ -150,25 +123,11 @@ export default function Layout() {
                 Bỏ qua, tới nội dung chính
             </a>
 
-            {/* Mobile overlay */}
-            <div
-                role="presentation"
-                aria-hidden={!drawerOpen}
-                className={clsx(
-                    'fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-[2px] transition-opacity duration-300 lg:hidden',
-                    drawerOpen ? 'opacity-100 pointer-events-auto' : 'pointer-events-none opacity-0'
-                )}
-                onClick={closeMobileNav}
-            />
-
             {/* Sidebar */}
             <aside
                 id="app-sidebar"
                 className={clsx(
-                    'bg-white border-r border-slate-200 flex flex-col shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)] transition-all duration-300 ease-in-out',
-                    'lg:relative lg:z-auto lg:translate-x-0',
-                    'fixed inset-y-0 left-0 z-50 max-w-[min(17.5rem,90vw)] w-full lg:max-w-none',
-                    drawerOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
+                    'relative hidden lg:flex flex-col bg-white border-r border-slate-200 shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)] transition-all duration-300 ease-in-out',
                     isSidebarOpen ? 'lg:w-56 xl:w-60' : 'lg:w-[4.5rem]'
                 )}
                 aria-label="Điều hướng chính"
@@ -184,26 +143,6 @@ export default function Layout() {
                 >
                     {isSidebarOpen ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
                 </button>
-
-                <div
-                    className="relative flex items-center justify-center border-b border-slate-100 px-3 py-3 lg:hidden shrink-0"
-                    style={{ paddingTop: 'max(0.75rem, var(--safe-t))' }}
-                >
-                    <AppBrandLogo
-                        variant="full"
-                        alt={appInfo?.name || 'FastAccounting'}
-                        className="h-9 w-auto max-w-[9rem] shrink-0 rounded-lg object-contain"
-                        fallbackClassName="h-9 w-9 text-xs shadow-sm shadow-blue-200/80"
-                    />
-                    <button
-                        type="button"
-                        onClick={closeMobileNav}
-                        className="absolute right-2 top-1/2 flex min-h-[var(--tap-min)] min-w-[var(--tap-min)] -translate-y-1/2 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-                        aria-label="Đóng menu"
-                    >
-                        <X size={20} />
-                    </button>
-                </div>
 
                 <div className={clsx('hidden lg:flex lg:justify-center lg:px-4 xl:px-5 xl:py-5', isExpanded ? '' : 'lg:pb-3')}>
                     {isExpanded ? (
@@ -283,20 +222,20 @@ export default function Layout() {
                 )}
 
                 <nav className="flex-1 space-y-1 px-2 overflow-y-auto" aria-label="Trang">
-                    <NavItem to="/overview" icon={LayoutDashboard} label="Tổng quan" collapsed={navCollapsed} onClick={onNavigate} end />
-                    <NavItem to="/transactions" icon={FileText} label="Giao dịch" collapsed={navCollapsed} onClick={onNavigate} />
-                    <NavItem to="/customers" icon={Users} label="Khách hàng" collapsed={navCollapsed} onClick={onNavigate} />
-                    <NavItem to="/interest-configs" icon={Calculator} label="Cấu hình lãi suất" collapsed={navCollapsed} onClick={onNavigate} />
-                    <NavItem to="/reports" icon={BarChart3} label="Báo cáo" collapsed={navCollapsed} onClick={onNavigate} />
+                    <NavItem to="/overview" icon={LayoutDashboard} label="Tổng quan" collapsed={navCollapsed} end />
+                    <NavItem to="/transactions" icon={FileText} label="Giao dịch" collapsed={navCollapsed} />
+                    <NavItem to="/customers" icon={Users} label="Khách hàng" collapsed={navCollapsed} />
+                    <NavItem to="/interest-configs" icon={Calculator} label="Cấu hình lãi suất" collapsed={navCollapsed} />
+                    <NavItem to="/reports" icon={BarChart3} label="Báo cáo" collapsed={navCollapsed} />
                     {user?.role === 'ADMIN' && (
                         <>
-                            <NavItem to="/users" icon={Users} label="Người dùng" collapsed={navCollapsed} onClick={onNavigate} />
-                            <NavItem to="/backup-data" icon={DatabaseBackup} label="Sao lưu dữ liệu" collapsed={navCollapsed} onClick={onNavigate} />
+                            <NavItem to="/users" icon={Users} label="Người dùng" collapsed={navCollapsed} />
+                            <NavItem to="/backup-data" icon={DatabaseBackup} label="Sao lưu dữ liệu" collapsed={navCollapsed} />
                         </>
                     )}
-                    <NavItem to="/settings" icon={SettingsIcon} label="Cài đặt" collapsed={navCollapsed} onClick={onNavigate} />
-                    <NavItem to="/info" icon={Info} label="Thông tin" collapsed={navCollapsed} onClick={onNavigate} />
-                    <NavItem to="/guide" icon={BookOpen} label="Hướng dẫn" collapsed={navCollapsed} onClick={onNavigate} />
+                    <NavItem to="/settings" icon={SettingsIcon} label="Cài đặt" collapsed={navCollapsed} />
+                    <NavItem to="/info" icon={Info} label="Thông tin" collapsed={navCollapsed} />
+                    <NavItem to="/guide" icon={BookOpen} label="Hướng dẫn" collapsed={navCollapsed} />
                 </nav>
 
                 <div className="p-3 lg:p-4 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
@@ -363,15 +302,14 @@ export default function Layout() {
                         <p className="text-xs text-slate-500">{greeting()}</p>
                         <p className="truncate font-heading font-bold text-slate-900">{userDisplayName}</p>
                     </div>
-                    <button
-                        type="button"
-                        onClick={() => setMobileNavOpen(true)}
+                    <Link
+                        to="/settings"
                         className="flex min-h-[var(--tap-min)] items-center gap-1 rounded-lg bg-blue-50 px-2.5 font-mono text-xs font-bold text-blue-700"
-                        aria-label={`Năm làm việc ${workingYear} — mở menu`}
+                        aria-label={`Năm làm việc ${workingYear} — đổi trong Cài đặt`}
                     >
                         <CalendarRange size={14} />
                         {workingYear}
-                    </button>
+                    </Link>
                 </header>}
 
                 <main id="main-content" className="flex-1 flex flex-col overflow-hidden relative min-h-0" tabIndex={-1}>
@@ -389,7 +327,7 @@ export default function Layout() {
                 </main>
             </div>
 
-            <TabBar onMore={() => setMobileNavOpen(true)} />
+            <TabBar />
         </div>
     );
 }
