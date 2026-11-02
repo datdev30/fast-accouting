@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">FastAccounting</string>
+    <string name="title_activity_main">FastAccounting</string>
+    <string name="package_name">com.fastaccounting.webview</string>
+    <string name="custom_url_scheme">com.fastaccounting.webview</string>
+</resources>

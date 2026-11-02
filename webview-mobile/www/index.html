@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FastAccounting</title>
+<style>
+  html, body { height: 100%; margin: 0; }
+  body {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+    padding: 24px; box-sizing: border-box; text-align: center;
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    background: #f8fafc; color: #1e293b;
+  }
+  .logo { width: 64px; height: 64px; border-radius: 18px; background: #2563eb; color: #fff;
+    display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 22px; }
+  h1 { margin: 8px 0 0; font-size: 20px; }
+  p { margin: 0; color: #64748b; font-size: 15px; max-width: 320px; line-height: 1.5; }
+  button { margin-top: 12px; min-height: 48px; padding: 0 32px; border: 0; border-radius: 12px;
+    background: #2563eb; color: #fff; font-size: 16px; font-weight: 700; }
+</style>
+</head>
+<body>
+  <div class="logo">FA</div>
+  <h1>Không có kết nối</h1>
+  <p>Không tải được FastAccounting. Kiểm tra Wi-Fi hoặc dữ liệu di động rồi thử lại.</p>
+  <button onclick="history.length > 1 ? history.back() : location.reload()">Thử lại</button>
+</body>
+</html>

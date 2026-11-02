@@ -1,0 +1,13 @@
+{
+  "appId": "com.fastaccounting.webview",
+  "appName": "FastAccounting",
+  "webDir": "www",
+  "server": {
+    "url": "https://dai-ly-cong-phu.vercel.app",
+    "androidScheme": "https",
+    "errorPath": "index.html"
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}
