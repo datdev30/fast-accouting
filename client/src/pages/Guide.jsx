@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
     BookOpen,
-    Monitor,
     LayoutDashboard,
     Settings,
     Zap,
@@ -118,29 +117,12 @@ export default function Guide() {
                         <p className="guide-page__kicker">Tài liệu người dùng</p>
                         <h2 className="section-title text-xl sm:text-2xl">Hướng dẫn sử dụng</h2>
                         <p className="section-subtitle mt-2 max-w-3xl text-sm sm:text-[13px]">
-                            Thao tác tối ưu trên máy tính: chuột, bàn phím và bảng nhiều cột. Dùng mục lục bên trái để nhảy
-                            nhanh tới từng phần.
+                            Thao tác tối ưu trên máy tính: chuột, bàn phím và bảng nhiều cột.
+                            <span className="hidden lg:inline"> Dùng mục lục bên trái để nhảy nhanh tới từng phần.</span>
                         </p>
                     </div>
                 </div>
             </header>
-
-            <div className="guide-page__mobile-callout">
-                <div className="relative z-[1] flex gap-4 pl-3">
-                    <div className="guide-page__mobile-icon" aria-hidden>
-                        <Monitor size={22} />
-                    </div>
-                    <div className="min-w-0 space-y-2">
-                        <p className="font-bold text-slate-900">Nội dung đầy đủ trên màn lớn</p>
-                        <p className="text-sm leading-relaxed text-slate-600">
-                            Mục lục và toàn bộ hướng dẫn chi tiết hiển thị khi độ rộng cửa sổ từ{' '}
-                            <strong className="font-semibold text-slate-800">1024px</strong> trở lên (
-                            <code className="guide-page__code">lg</code>). Hãy mở trên máy tính hoặc thu phóng trình duyệt
-                            để đọc tiếp.
-                        </p>
-                    </div>
-                </div>
-            </div>
 
             <div className="guide-page__layout">
                 <nav aria-label="Mục lục hướng dẫn" className="guide-page__toc">

@@ -228,7 +228,7 @@ export default function UserManagement() {
                 </div>
             </div>
 
-            <div className="card p-0 overflow-hidden">
+            <div className="card rounded-2xl p-0 overflow-hidden">
                 <DataTable
                     rows={users || []}
                     getRowKey={(u) => u._id}
@@ -243,8 +243,11 @@ export default function UserManagement() {
                                     <div className="flex-none w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
                                         <UserIcon size={20} />
                                     </div>
-                                    <div>
-                                        <div className="font-bold text-slate-800 text-sm">{u.username}</div>
+                                    <div className="min-w-0">
+                                        <div className="font-bold text-slate-800 text-sm break-all">{u.username}</div>
+                                        {u.display_name ? (
+                                            <div className="text-xs font-medium text-slate-500 break-words md:hidden">{u.display_name}</div>
+                                        ) : null}
                                         {u.legacy_password ? (
                                             <div className="text-[13px] font-bold text-amber-600  bg-amber-50 px-1.5 py-0.5 rounded-md mt-1 w-fit">Legacy</div>
                                         ) : null}
@@ -256,6 +259,7 @@ export default function UserManagement() {
                             id: 'display_name',
                             header: 'Display name',
                             priority: 2,
+                            cardHidden: true,
                             cellClassName: 'text-slate-600 font-medium',
                             cell: (u) => u.display_name || '—',
                         },
@@ -263,6 +267,7 @@ export default function UserManagement() {
                             id: 'role',
                             header: 'Role',
                             priority: 2,
+                            cardAside: true,
                             cell: (u) => (
                                 <span className={clsx(
                                     "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold border",
@@ -280,8 +285,9 @@ export default function UserManagement() {
                             header: 'Thao tác',
                             priority: 2,
                             align: 'right',
+                            cardFullWidth: true,
                             cell: (u) => (
-                                <div className="inline-flex items-center gap-2">
+                                <div className="flex items-center justify-end gap-2">
                                     <button
                                         className="p-1.5 min-w-[var(--tap-min)] min-h-[var(--tap-min)] flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                                         onClick={() => openEdit(u)}

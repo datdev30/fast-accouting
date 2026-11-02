@@ -122,7 +122,7 @@ export default function Info() {
                     </div>
                 </div>
                 {isAdmin && (
-                    <div className="flex shrink-0 gap-2">
+                    <div className="flex shrink-0 gap-2 [&>button]:flex-1 sm:[&>button]:flex-none">
                         {isEditing ? (
                             <>
                                 <button

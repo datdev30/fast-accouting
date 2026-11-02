@@ -213,7 +213,7 @@ export default function Settings() {
                                     type="text"
                                     readOnly
                                     value={showToken ? tokenData.refresh_token_masked : '••••••••••••'}
-                                    className="flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-mono text-slate-700"
+                                    className="min-w-0 flex-1 bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-mono text-slate-700"
                                 />
                                 <button
                                     onClick={() => handleCopyToken(tokenData.refresh_token_masked)}
@@ -224,7 +224,7 @@ export default function Settings() {
                                 </button>
                             </div>
                             {tokenData.google_account_email && (
-                                <p className="text-xs text-slate-500">
+                                <p className="text-xs text-slate-500 break-all">
                                     Account: {tokenData.google_account_email}
                                 </p>
                             )}
@@ -256,7 +256,7 @@ export default function Settings() {
                                 value={manualToken}
                                 onChange={(e) => setManualToken(e.target.value)}
                                 placeholder="Dán refresh token vào đây..."
-                                className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-mono text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                                className="min-w-0 flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-mono text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                             />
                             <button
                                 onClick={handleSaveManualToken}
@@ -322,7 +322,7 @@ export default function Settings() {
                                             value={oauthCode}
                                             onChange={(e) => setOAuthCode(e.target.value)}
                                             placeholder="Dán authorization code..."
-                                            className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-mono text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                                            className="min-w-0 flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-mono text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                                         />
                                         <button
                                             onClick={handleProcessCallback}

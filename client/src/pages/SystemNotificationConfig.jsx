@@ -268,9 +268,9 @@ export default function SystemNotificationConfig() {
                     {items.map((item) => (
                         <li
                             key={item._id}
-                            className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+                            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
                         >
-                            <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                                 <div className="min-w-0 flex-1 space-y-1.5">
                                     <div className="flex flex-wrap items-center gap-2">
                                         <LevelBadge level={item.level} />
@@ -285,10 +285,10 @@ export default function SystemNotificationConfig() {
                                             {item.is_active ? 'Đang bật' : 'Đã tắt'}
                                         </span>
                                     </div>
-                                    <h3 className="text-base font-bold text-slate-900">{item.title}</h3>
-                                    <p className="whitespace-pre-line text-sm leading-relaxed text-slate-600">{item.message}</p>
+                                    <h3 className="break-words text-base font-bold text-slate-900">{item.title}</h3>
+                                    <p className="whitespace-pre-line break-words text-sm leading-relaxed text-slate-600">{item.message}</p>
                                     {(item.starts_at || item.ends_at) && (
-                                        <p className="flex items-center gap-1.5 text-xs text-slate-400">
+                                        <p className="flex flex-wrap items-center gap-1.5 text-xs text-slate-400">
                                             <CalendarClock size={12} />
                                             {item.starts_at
                                                 ? toDisplayDate(toDateInput(item.starts_at))
@@ -301,7 +301,7 @@ export default function SystemNotificationConfig() {
                                     )}
                                 </div>
 
-                                <div className="flex items-center gap-1">
+                                <div className="-mx-1 -mb-1 flex shrink-0 items-center justify-end gap-1 border-t border-slate-100 pt-2 sm:m-0 sm:border-0 sm:p-0">
                                     <button
                                         type="button"
                                         title={item.is_active ? 'Tắt' : 'Bật'}

@@ -137,7 +137,7 @@ export default function InterestConfigs() {
                     {/* Right: Create Button */}
                     <button
                         onClick={() => { setIsEditing(false); setIsOpen(true); }}
-                        className="btn-primary btn-md whitespace-nowrap shrink-0"
+                        className="btn-primary btn-md w-full whitespace-nowrap shrink-0 sm:w-auto"
                     >
                         <Plus size={18} className="shrink-0" />
                         <span>Thêm cấu hình</span>
@@ -277,7 +277,7 @@ export default function InterestConfigs() {
                 isDeleting={deleteMutation.isPending}
             />
 
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 lg:gap-4 xl:grid-cols-5">
                 {configs?.map(config => {
                     const colors = getInterestConfigColorScheme(config.code);
                     const isLiquidation = config.code?.toLowerCase().includes('tl') || config.name?.toLowerCase().includes('thanh lý');
@@ -286,27 +286,27 @@ export default function InterestConfigs() {
                         <div
                             key={config._id}
                             onClick={() => handleEdit(config)}
-                            className="group relative bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md hover:shadow-blue-500/10 hover:border-blue-200 transition-all duration-300 cursor-pointer overflow-hidden flex flex-col items-center text-center card-hover"
+                            className="group relative bg-white rounded-2xl border border-slate-200 p-3 sm:p-4 shadow-sm hover:shadow-md hover:shadow-blue-500/10 hover:border-blue-200 transition-all duration-300 cursor-pointer overflow-hidden flex flex-col items-center text-center card-hover"
                         >
                             {/* Visual Pattern Overlays */}
                             <div className={`absolute top-0 right-0 w-20 h-20 bg-gradient-to-br ${colors.gradient} opacity-[0.03] group-hover:opacity-[0.08] rounded-full -mr-10 -mt-10 transition-all duration-700 group-hover:scale-150`}></div>
 
                             <div className="relative z-10 flex flex-col items-center w-full">
-                                <div className="flex justify-between items-start w-full mb-3">
-                                    <div className={`w-10 h-10 bg-gradient-to-br ${colors.gradient} rounded-lg flex items-center justify-center ${colors.icon} shadow-md shadow-current/10 ring-2 ring-white`}>
+                                <div className="flex justify-between items-start gap-2 w-full mb-3">
+                                    <div className={`w-10 h-10 shrink-0 bg-gradient-to-br ${colors.gradient} rounded-lg flex items-center justify-center ${colors.icon} shadow-md shadow-current/10 ring-2 ring-white`}>
                                         <Percent size={20} strokeWidth={2.5} />
                                     </div>
 
-                                    <div className="flex flex-col items-end gap-0.5">
-                                        <span className={`px-1.5 py-0.5 rounded text-[13px] font-bold  border shadow-sm ${isLiquidation ? 'border-amber-200 bg-amber-50 text-amber-600' : 'border-blue-200 bg-blue-50 text-blue-600'}`}>
+                                    <div className="flex min-w-0 flex-col items-end gap-0.5">
+                                        <span className={`px-1.5 py-0.5 rounded text-[13px] font-bold whitespace-nowrap border shadow-sm ${isLiquidation ? 'border-amber-200 bg-amber-50 text-amber-600' : 'border-blue-200 bg-blue-50 text-blue-600'}`}>
                                             {isLiquidation ? 'Thanh lý' : 'Định kỳ'}
                                         </span>
-                                        <span className="text-[13px] font-semibold text-slate-400 font-mono">#{config.code}</span>
+                                        <span className="max-w-full truncate text-[13px] font-semibold text-slate-400 font-mono">#{config.code}</span>
                                     </div>
                                 </div>
 
                                 <div className="mb-1 w-full">
-                                    <h3 className="text-base font-bold text-slate-900 leading-tight mb-2 group-hover:text-blue-600 transition-colors truncate">
+                                    <h3 className="text-base font-bold text-slate-900 leading-tight mb-2 group-hover:text-blue-600 transition-colors line-clamp-2 break-words">
                                         {config.name}
                                     </h3>
                                     <div className="flex justify-center">

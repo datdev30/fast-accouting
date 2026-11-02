@@ -277,7 +277,7 @@ export default function BankAccountConfig() {
         <div className="max-w-6xl mx-auto space-y-4 lg:space-y-5">
             <div className="space-y-0">
                 <div className="flex items-center justify-between gap-4">
-                    <div>
+                    <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                             <h2 className="section-title">Cấu hình STK</h2>
                             {!isAdmin && (
@@ -298,7 +298,7 @@ export default function BankAccountConfig() {
 
             <div className={clsx("grid gap-4", isAdmin ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1")}>
                 {isAdmin && (
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-4">
+                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-4">
                         <div className="flex items-center gap-2.5">
                             <div className="p-2 rounded-lg bg-blue-50 text-blue-600">
                                 <CreditCard size={20} />
@@ -557,7 +557,7 @@ export default function BankAccountConfig() {
                     </div>
                 )}
 
-                <div className={clsx("bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-4", !isAdmin && "max-w-2xl mx-auto")}>
+                <div className={clsx("bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-4", !isAdmin && "max-w-2xl mx-auto")}>
                     <div className="flex items-center gap-2.5">
                         <div className="p-2 rounded-lg bg-teal-50 text-teal-600">
                             <QrCode size={20} />
@@ -576,15 +576,15 @@ export default function BankAccountConfig() {
                             <p className="text-sm font-semibold text-slate-600">Đang tải cấu hình...</p>
                         </div>
                     ) : qrCodeUrl ? (
-                        <div className="flex flex-col items-center justify-center space-y-3 p-4 bg-slate-50 rounded-xl border border-slate-200">
-                            <div className="bg-white p-3 rounded-lg shadow-md border border-slate-200">
+                        <div className="flex flex-col items-center justify-center space-y-3 p-3 sm:p-4 bg-slate-50 rounded-xl border border-slate-200">
+                            <div className="w-full max-w-[17.5rem] bg-white p-3 rounded-lg shadow-md border border-slate-200">
                                 <img
                                     src={qrCodeUrl}
                                     alt="Mã QR ngân hàng"
-                                    className="w-64 h-64"
+                                    className="aspect-square h-auto w-full"
                                 />
                             </div>
-                            <div className="text-center space-y-2">
+                            <div className="w-full min-w-0 text-center space-y-2 break-words">
                                 <p className="text-sm font-semibold text-slate-700">{formData.bank_name || selectedBank?.name || 'Ngân hàng'}</p>
                                 <p className="text-xs text-slate-500 font-mono">{formData.account_number}</p>
                                 <p className="text-xs text-slate-600">{formData.account_holder}</p>
