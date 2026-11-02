@@ -37,7 +37,8 @@
   .accounting-app label { font-size: 0.8125rem; letter-spacing: normal; text-transform: none; color: #475569; }
   .accounting-app .badge-warning { color: #92400e; }
   .accounting-app .badge-success { color: #047857; }
-  .accounting-app .tabbar__item { font-size: 0.75rem; }
+  .accounting-app .tabbar__item { font-size: 0.75rem; white-space: nowrap; }
+  @media (max-width: 359px) { .accounting-app .tabbar__item { font-size: 0.6875rem; } }
   .accounting-app input.pl-10 { padding-inline-start: 2.75rem; }
   .accounting-app #tx-amount { font-size: clamp(1.25rem, 6vw, 1.875rem); }
 

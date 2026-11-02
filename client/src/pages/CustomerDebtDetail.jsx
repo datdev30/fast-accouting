@@ -340,7 +340,7 @@ const CustomerDebtDetail = () => {
                                 type="button"
                                 onClick={action.onClick}
                                 disabled={action.disabled}
-                                className="flex min-w-0 flex-col items-center gap-1 rounded-xl border border-slate-200 bg-white px-1 py-2.5 text-xs font-semibold whitespace-nowrap text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                                className="flex min-w-0 flex-col items-center gap-1 rounded-xl border border-slate-200 bg-white px-1 py-2.5 text-[11px] font-semibold whitespace-nowrap text-slate-700 min-[360px]:text-xs hover:bg-slate-50 disabled:opacity-50"
                             >
                                 <action.icon size={20} className={clsx(action.tone, action.icon === Loader2 && 'animate-spin')} />
                                 {action.label}
@@ -568,7 +568,7 @@ const CustomerDebtDetail = () => {
                                 aria-pressed={historyStatus === key}
                                 onClick={() => setHistoryStatus(key)}
                                 className={clsx(
-                                    'min-h-9 rounded-full px-3 text-xs font-semibold transition-colors',
+                                    'min-h-[var(--tap-min)] rounded-full px-3 text-xs font-semibold transition-colors',
                                     historyStatus === key ? 'bg-blue-600 text-white' : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
                                 )}
                             >

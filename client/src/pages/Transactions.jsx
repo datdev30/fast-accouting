@@ -248,7 +248,7 @@ export default function Transactions() {
 
     /* Bấm thẻ / dòng → hộp chi tiết (bottom sheet trên phone, dialog rộng từ 640px) */
     const [selectedTxId, setSelectedTxId] = useState(null);
-    const selectedTx = paginatedTransactions.find((t) => t._id === selectedTxId) ?? null;
+    const selectedTx = sortedTransactions.find((t) => t._id === selectedTxId) ?? null;
 
     const monthGroups = React.useMemo(() => {
         const groups = [];
@@ -966,7 +966,7 @@ export default function Transactions() {
                                 onClick={() => setStatusFilter(key)}
                                 aria-pressed={statusFilter === key}
                                 className={clsx(
-                                    'min-h-9 shrink-0 whitespace-nowrap rounded-full border px-3 text-xs font-semibold transition-colors',
+                                    'min-h-[var(--tap-min)] shrink-0 whitespace-nowrap rounded-full border px-3 text-xs font-semibold transition-colors',
                                     statusFilter === key
                                         ? 'border-blue-600 bg-blue-600 text-white'
                                         : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'

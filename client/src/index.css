@@ -1448,7 +1448,7 @@ body {
   --tabbar-h: 0px;
 }
 
-@media not ((min-width: 64rem) and (hover: hover) and (pointer: fine)) {
+@media not all and (min-width: 64rem) and (hover: hover) and (pointer: fine) {
   :root {
     --tabbar-h: calc(3.5rem + var(--safe-b));
   }

@@ -16,13 +16,17 @@ function buildPresets(year) {
     const y = now.getFullYear();
     const m = now.getMonth();
     const today = toYMD(now);
+    const all = { key: 'all', label: 'Tất cả thời gian', start: '', end: '' };
+    const wholeYear = { key: 'year', label: `Năm ${year}`, start: `${year}-01-01`, end: `${year}-12-31` };
+    // Dữ liệu chỉ thuộc năm làm việc: mốc theo ngày hôm nay sẽ luôn rỗng nếu đang xem năm khác.
+    if (year && Number(year) !== y) return [all, wholeYear];
     return [
-        { key: 'all', label: 'Tất cả thời gian', start: '', end: '' },
+        all,
         { key: 'today', label: 'Hôm nay', start: today, end: today },
         { key: '7d', label: '7 ngày qua', start: toYMD(new Date(y, m, now.getDate() - 6)), end: today },
         { key: 'month', label: 'Tháng này', start: toYMD(new Date(y, m, 1)), end: toYMD(new Date(y, m + 1, 0)) },
         { key: 'lastMonth', label: 'Tháng trước', start: toYMD(new Date(y, m - 1, 1)), end: toYMD(new Date(y, m, 0)) },
-        { key: 'year', label: `Năm ${year}`, start: `${year}-01-01`, end: `${year}-12-31` },
+        wholeYear,
     ];
 }
 
@@ -81,7 +85,7 @@ export default function DateRangeFilter({ startDate, endDate, onChange, classNam
                 aria-expanded={open}
                 aria-label={`Lọc theo ngày: ${label}`}
                 className={clsx(
-                    'inline-flex min-h-9 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 text-xs font-semibold transition-colors',
+                    'inline-flex min-h-[var(--tap-min)] items-center gap-1.5 whitespace-nowrap rounded-full border px-3 text-xs font-semibold transition-colors',
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1',
                     active
                         ? 'rounded-r-none border-r-0 border-blue-200 bg-blue-50 text-blue-700'
@@ -97,7 +101,7 @@ export default function DateRangeFilter({ startDate, endDate, onChange, classNam
                     type="button"
                     onClick={() => apply('', '')}
                     aria-label="Xóa lọc ngày"
-                    className="inline-flex min-h-9 items-center rounded-r-full border border-l-0 border-blue-200 bg-blue-50 pl-1 pr-2.5 text-blue-700 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    className="inline-flex min-h-[var(--tap-min)] min-w-[var(--tap-min)] items-center justify-center rounded-r-full border border-l-0 border-blue-200 bg-blue-50 pl-1 pr-2.5 text-blue-700 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 >
                     <X size={14} aria-hidden />
                 </button>

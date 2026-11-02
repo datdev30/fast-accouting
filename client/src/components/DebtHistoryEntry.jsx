@@ -15,6 +15,16 @@ export default function DebtHistoryEntry({ transaction: tx, typeName, onClick })
     return (
         <li
             onClick={onClick}
+            {...(onClick && {
+                role: 'button',
+                tabIndex: 0,
+                onKeyDown: (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        onClick();
+                    }
+                },
+            })}
             className={clsx('flex gap-3 py-3', onClick && '-mx-2 cursor-pointer rounded-xl px-2 transition-colors hover:bg-slate-50')}
         >
             <div
