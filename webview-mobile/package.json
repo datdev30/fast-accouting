@@ -1,7 +1,7 @@
 {
   "name": "fastaccounting-webview-mobile",
   "private": true,
-  "version": "1.2.0",
+  "version": "1.2.1",
   "scripts": {
     "sync": "cap sync android",
     "open": "cap open android",
