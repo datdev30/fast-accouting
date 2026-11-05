@@ -63,3 +63,22 @@ Script chặn toàn bộ request bên ngoài localhost, mọi API đều đượ
 
 - Kiểm tra production phát hiện base tương đối khiến reload URL công nợ tải sai JS/CSS.
   Đổi Vite base thành `/` để tài nguyên luôn tải từ gốc website.
+
+
+## Android system-bar safe areas — 05/11/2026
+- Cause: only the Overview mobile header applied `--safe-t`; other routes started
+  at the top edge of the WebView. Move this inset to the shared application shell
+  and remove the Overview-specific inset to avoid double padding.
+- The inset stays outside the scrolling content, including sticky table headings.
+- Bound modal height by available safe viewport height. Reset margins on fullscreen
+  overlays so page `space-y` utilities cannot shrink/offset their viewport bounds.
+- Image-preview toolbar now participates in the flex layout, wraps on narrow screens,
+  and respects top inset; image content respects bottom inset.
+- Regression test: `UI_SAFE_AREA_ONLY=1 node scripts/ui-review.cjs` with the same
+  Playwright/Vite setup described above. Covers login plus every routed application
+  screen (14 total) at 320×812, 412×915, 915×412, and 1194×834, with 24–36px top
+  insets and 24px bottom inset. Checks headings and scroller bounds before/after scroll.
+- Includes a 412×360 short-viewport transaction form and local image preview, without
+  submitting a transaction. `UI_OVERLAYS_ONLY=1` isolates those overlay checks.
+- Web-only fix: the existing WebView APK loads this update from the deployed site.
+  Browser simulation does not replace checking status bars/keyboard on real Android.

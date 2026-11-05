@@ -633,7 +633,7 @@ body {
   .modal-content {
     @apply flex w-full flex-col overflow-hidden rounded-2xl bg-white shadow-xl;
     /* dvh co lại khi bàn phím ảo bật; vh thì không */
-    max-height: min(90dvh, 100dvh - 2rem);
+    max-height: min(90dvh, calc(100dvh - max(1rem, var(--safe-t)) - max(1rem, var(--safe-b))));
   }
 
   .modal-header {
@@ -657,7 +657,7 @@ body {
     }
 
     .modal-overlay--sheet .modal-content {
-      max-height: 92dvh;
+      max-height: min(92dvh, calc(100dvh - var(--safe-t)));
       border-bottom-left-radius: 0;
       border-bottom-right-radius: 0;
     }
@@ -1452,6 +1452,12 @@ body {
   :root {
     --tabbar-h: calc(3.5rem + var(--safe-b));
   }
+}
+
+/* Fullscreen overlays must not inherit spacing from a page's space-y utilities. */
+.modal-overlay,
+.fixed.inset-0 {
+  margin: 0;
 }
 
 /* --- F13: safe-area cho các overlay modal viết tay ----------

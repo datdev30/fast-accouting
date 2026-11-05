@@ -17,6 +17,7 @@ async function main() {
     const context = await browser.newContext({ locale: 'vi-VN' });
     const intercept = async route => {
       const url = new URL(route.request().url());
+      if (url.href === 'https://api.vietqr.io/v2/banks') return route.fulfill({ json: { code: '00', data: [] } });
       if (url.origin !== base) return route.abort();
       if (!url.pathname.startsWith('/api/')) return route.continue();
       const endpoint = url.pathname.slice(4);
@@ -24,6 +25,7 @@ async function main() {
       if (endpoint === '/auth/login') data = { token: 'synthetic-ui-test', username: 'demo', display_name: 'Công Phú', role: 'ADMIN' };
       else if (endpoint === '/auth/me') data = { username: 'demo', display_name: 'Công Phú', role: 'ADMIN' };
       else if (endpoint === '/working-year') data = { current_working_year: 2026, available_years: [2026] };
+      else if (endpoint === '/users' || endpoint.startsWith('/system-notifications')) data = [];
       else if (endpoint === '/customers') data = [customer];
       else if (endpoint === '/customers/demo') data = customer;
       else if (endpoint === '/interest-configs') data = [{ _id: 'loan', code: 'LOAN', name: 'Nợ tiền hàng', rate: 1.5, interest_rate: 1.5 }];
@@ -42,6 +44,10 @@ async function main() {
     await page.locator('#password').fill('synthetic-password');
     await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
     await page.waitForURL('**/overview');
+    if (process.env.UI_SAFE_AREA_ONLY) {
+      await require('./ui-safe-area.cjs')({ browser, context, intercept, base, output });
+      return;
+    }
     for (const width of [320, 375, 768, 1024, 1440]) {
       await page.setViewportSize({ width, height: 960 });
       for (const route of ['/overview', '/customers', '/transactions', '/customers/demo/debt']) {

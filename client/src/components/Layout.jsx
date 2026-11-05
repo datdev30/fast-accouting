@@ -118,7 +118,9 @@ export default function Layout() {
     const isExpanded = isSidebarOpen;
 
     return (
-        <div className="accounting-app flex h-dvh bg-slate-50 font-sans overflow-x-hidden max-w-full">
+        <div className="accounting-app flex h-dvh bg-slate-50 font-sans overflow-x-hidden max-w-full"
+            // Keep every route and its scroll surface below the Android system bar.
+            style={{ paddingTop: 'var(--safe-t)' }}>
             <a href="#main-content" className="skip-link">
                 Bỏ qua, tới nội dung chính
             </a>
@@ -293,7 +295,6 @@ export default function Layout() {
             <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
                 {location.pathname === '/overview' && <header
                     className="desk:hidden shrink-0 flex items-center gap-3 px-4 py-2.5 border-b border-slate-200 bg-white z-30"
-                    style={{ paddingTop: 'max(0.625rem, var(--safe-t))' }}
                 >
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-700">
                         {userInitials}

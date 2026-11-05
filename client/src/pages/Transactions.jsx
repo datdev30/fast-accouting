@@ -1856,11 +1856,13 @@ function ImageDetailModal({ isOpen, imageUrl, onClose, onDelete, onUpdate, isDel
     return (
         <div
             className="fixed inset-0 bg-black/95 z-[70] flex flex-col animate-in fade-in duration-200"
+            role="dialog" aria-modal="true" aria-label="Chi tiết ảnh"
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
         >
             {/* Toolbar */}
-            <div className="flex items-center justify-between p-4 text-white/90 absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/50 to-transparent pointer-events-none">
+            <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 p-4 text-white/90 z-10 bg-gradient-to-b from-black/50 to-transparent"
+                style={{ paddingTop: 'max(1rem, var(--safe-t))' }}>
                 <div className="flex items-center gap-4 pointer-events-auto">
                     <button onClick={onClose} className="p-2.5 hover:bg-white/10 rounded-full transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center" aria-label="Đóng">
                         <X size={24} />
@@ -1926,7 +1928,8 @@ function ImageDetailModal({ isOpen, imageUrl, onClose, onDelete, onUpdate, isDel
 
             {/* Content */}
             <div
-                className="flex-1 flex items-center justify-center pt-16"
+                className="min-h-0 flex-1 flex items-center justify-center overflow-hidden"
+                style={{ paddingBottom: 'var(--safe-b)' }}
                 onWheel={handleWheel}
                 onMouseDown={handleMouseDown}
                 onMouseMove={handleMouseMove}
