@@ -60,3 +60,6 @@ Script chặn toàn bộ request bên ngoài localhost, mọi API đều đượ
   không thêm finding so với HEAD. Còn cảnh báo bundle lớn và Browserslist cũ.
 - WebView trỏ https://fast-accounting-client.vercel.app. Build assembleDebug đạt,
   APK xác minh chữ ký v2 và URL đóng gói. Đây là APK debug, chưa thử trên Android thật.
+
+- Kiểm tra production phát hiện base tương đối khiến reload URL công nợ tải sai JS/CSS.
+  Đổi Vite base thành `/` để tài nguyên luôn tải từ gốc website.
