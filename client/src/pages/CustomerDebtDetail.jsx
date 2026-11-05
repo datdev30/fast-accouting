@@ -309,7 +309,7 @@ const CustomerDebtDetail = () => {
                 <ArrowLeft size={18} /> Khách hàng
             </Link>
 
-            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
                 <section className="rounded-xl border border-slate-200 bg-white p-4" aria-label="Khách hàng">
                     <div className="flex items-center gap-3">
                         <Avatar name={customer.name} className="h-14 w-14 rounded-2xl font-heading text-base font-bold" />

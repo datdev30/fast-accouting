@@ -43,3 +43,20 @@ sau đó chạy `node scripts/ui-review.cjs` trong `client/`. Script cần Playw
 có thể đặt `PLAYWRIGHT_MODULE` trỏ tới gói Playwright cục bộ đã cài.
 `UI_BASE_URL` và `UI_OUTPUT` cho phép đổi URL localhost và nơi lưu ảnh.
 Script chặn toàn bộ request bên ngoài localhost, mọi API đều được giả lập.
+
+
+## Kiểm tra bổ sung — 05/11/2026
+- Thiết kế lại login, giữ nguyên API xác thực và xử lý lỗi.
+- Sửa số tiền bị chật ở thẻ giao dịch 320px bằng các dòng nhãn/số tiền riêng.
+- Sửa grid thông tin khách hàng bị rộng hơn viewport 320px (cột minmax thay cho cột auto).
+- Lịch sử công nợ cho phép xuống hàng, có nhãn tổng cộng rõ ràng.
+- Token vùng chạm và chiều cao input cảm ứng 48px; nút cộng nhanh số tiền dùng token chung.
+- Kiểm thử Chromium với API giả lập: 4 trang × 5 chiều rộng 320/375/768/1024/1440;
+  luồng đăng nhập → khách hàng → công nợ ở 320/375/768/1024/1194 với cảm ứng.
+- Kiểm tra cả biên khối nội dung (không chỉ scrollWidth của trang), tiền đầy đủ,
+  mở/đóng dialog, form tiền, preview A4 và lỗi API. Tất cả đạt.
+- Vùng chạm 48px ở cả 5 kích thước cảm ứng; số tổng 22–28px tùy bề rộng.
+- Build đạt; lint Login và DebtHistoryEntry đạt, Transactions và CustomerDebtDetail
+  không thêm finding so với HEAD. Còn cảnh báo bundle lớn và Browserslist cũ.
+- WebView trỏ https://fast-accounting-client.vercel.app. Build assembleDebug đạt,
+  APK xác minh chữ ký v2 và URL đóng gói. Đây là APK debug, chưa thử trên Android thật.

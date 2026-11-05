@@ -1078,7 +1078,7 @@ export default function Transactions() {
                                                 <button
                                                     key={label}
                                                     type="button"
-                                                    className="min-h-9 rounded-full border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 active:bg-slate-100"
+                                                    className="min-h-[var(--tap-min)] min-w-[var(--tap-min)] rounded-full border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 active:bg-slate-100"
                                                     onClick={() => setFormData((prev) => ({ ...prev, amount: String((Number(prev.amount) || 0) + step) }))}
                                                 >
                                                     {label}
@@ -1086,7 +1086,7 @@ export default function Transactions() {
                                             ))}
                                             <button
                                                 type="button"
-                                                className="min-h-9 rounded-full border border-slate-200 bg-white px-3 font-mono text-xs font-semibold text-slate-600 active:bg-slate-100"
+                                                className="min-h-[var(--tap-min)] min-w-[var(--tap-min)] rounded-full border border-slate-200 bg-white px-3 font-mono text-xs font-semibold text-slate-600 active:bg-slate-100"
                                                 onClick={() => setFormData((prev) => ({ ...prev, amount: String((Number(prev.amount) || 0) * 1000) }))}
                                                 aria-label="Nhân 1000"
                                             >

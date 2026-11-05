@@ -73,9 +73,13 @@
   .ledger-entry-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; }
   .ledger-entry-title { min-width: 0; overflow-wrap: anywhere; }
   .ledger-entry .ledger-breakdown { border: 0; padding-top: 0; }
-  .transaction-amounts > div { min-width: 0; }
+  /* Keep full currency values readable even in narrow phone/tablet cards. */
+  .accounting-app .transaction-amounts { grid-template-columns: minmax(0, 1fr); }
+  .transaction-amounts > div { min-width: 0; display: flex; justify-content: space-between; gap: 0.75rem; }
+  .transaction-amounts > div > p:last-child { text-align: right; overflow-wrap: anywhere; }
+  .transaction-amounts > div:last-child { border-top: 1px solid #e2e8f0; padding-top: 0.5rem; }
   @media (pointer: coarse) {
-    html:root { --tap-min: 44px; --field-h: 44px; }
+    html:root { --tap-min: 48px; --field-h: 48px; }
     .accounting-app .table-td { padding-block: 0.75rem; }
     .accounting-app input:not([type='checkbox']):not([type='radio']):not([type='range']),
     .accounting-app select { min-height: var(--field-h); }

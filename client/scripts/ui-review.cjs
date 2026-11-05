@@ -33,6 +33,7 @@ async function main() {
       await route.fulfill({ json: data });
     };
     await context.route('**/*', intercept);
+    context.setDefaultTimeout(15000);
     const page = await context.newPage();
     const errors = [];
     page.on('pageerror', e => errors.push(e.message));
@@ -64,14 +65,39 @@ async function main() {
     await page.setViewportSize({ width: 1024, height: 960 });
     await page.goto(base + '/transactions');
     await page.getByRole('table').waitFor();
-    assert.equal(await page.getByRole('complementary', { name: 'Chi tiết giao dịch' }).count(), 0);
+    assert.equal(await page.getByRole('dialog', { name: 'Chi tiết giao dịch' }).count(), 0);
     await page.getByRole('button', { name: `Xem giao dịch của ${customer.name}` }).first().click();
-    await page.getByRole('complementary', { name: 'Chi tiết giao dịch' }).waitFor();
-    await page.getByRole('button', { name: 'Đóng chi tiết giao dịch' }).click();
-    assert.equal(await page.getByRole('complementary', { name: 'Chi tiết giao dịch' }).count(), 0);
+    await page.getByRole('dialog', { name: 'Chi tiết giao dịch' }).waitFor();
+    await page.getByRole('dialog', { name: 'Chi tiết giao dịch' }).getByRole('button', { name: 'Đóng', exact: true }).click();
+    assert.equal(await page.getByRole('dialog', { name: 'Chi tiết giao dịch' }).count(), 0);
     const touch = await browser.newContext({ locale: 'vi-VN', viewport: { width: 375, height: 812 }, hasTouch: true, isMobile: true, storageState: await context.storageState() });
     await touch.route('**/*', intercept);
+    touch.setDefaultTimeout(15000);
     const phone = await touch.newPage();
+    phone.on('pageerror', e => errors.push(e.message));
+    const measurements = [];
+    for (const width of [320, 375, 768, 1024, 1194]) {
+      await phone.setViewportSize({ width, height: 900 });
+      await phone.goto(base + '/login');
+      await phone.locator('#username').fill('demo');
+      await phone.locator('#password').fill('synthetic-password');
+      assert.ok(await phone.locator('#password').evaluate(n => parseFloat(getComputedStyle(n).fontSize) >= 16));
+      await phone.getByRole('button', {name:'Đăng nhập',exact:true}).click();
+      await phone.waitForURL('**/overview');
+      await phone.getByRole('navigation', {name:'Điều hướng nhanh'}).getByRole('link', {name:'Khách hàng',exact:true}).click();
+      await phone.getByRole('link', {name:`Xem công nợ của ${customer.name}`}).click();
+      await phone.waitForURL('**/customers/demo/debt');
+      await phone.locator('.ledger-total').waitFor();
+      assert.ok(await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
+      for (const name of ['Khách hàng', 'Công nợ còn lại']) {
+        const bounds = await phone.getByRole('region', {name, exact:true}).boundingBox();
+        assert.ok(bounds.x >= 0 && bounds.x + bounds.width <= width + 1, `${name} clipped at ${width}`);
+      }
+      measurements.push({width, ...(await phone.evaluate(() => ({tap:getComputedStyle(document.documentElement).getPropertyValue('--tap-min').trim(), total: getComputedStyle(document.querySelector('.ledger-total')).fontSize})))});
+      await phone.screenshot({path:path.join(output, `flow-touch-${width}.png`)});
+    }
+    console.log('Touch flow measurements:', measurements);
+    await phone.setViewportSize({width:375,height:812});
     await phone.goto(base + '/transactions');
     await phone.getByRole('button', { name: 'Tạo giao dịch', exact: true }).click();
     const amount = phone.locator('#tx-amount');

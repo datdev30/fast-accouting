@@ -39,16 +39,16 @@ export default function DebtHistoryEntry({ transaction: tx, typeName, onClick })
             </div>
 
             <div className="min-w-0 flex-1">
-                <div className="flex items-baseline justify-between gap-3">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                     <p className="min-w-0 font-semibold text-slate-900">
                         {typeName}
                         <span className="font-normal text-slate-500"> · {tx.interest_rate_snapshot}% · {months} tháng</span>
                     </p>
-                    <p className={clsx('shrink-0 font-mono font-bold tabular-nums', paid ? 'text-slate-500' : 'text-blue-700')}>
-                        {money(principal + interest)}
+                    <p className={clsx('max-w-full break-words font-mono font-bold tabular-nums', paid ? 'text-slate-500' : 'text-blue-700')}>
+                        <span className="mr-2 text-xs font-normal text-slate-500">Tổng cộng</span>{money(principal + interest)}
                     </p>
                 </div>
-                <div className="mt-1 flex items-center justify-between gap-3">
+                <div className="mt-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
                     <p className="min-w-0 font-mono text-[13px] tabular-nums text-slate-500">
                         Gốc {money(principal)} · Lãi {money(interest)}
                     </p>

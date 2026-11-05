@@ -157,7 +157,7 @@ Ma trận test tối thiểu:
 
 ### Quyết định
 - [x] Chốt web nguồn: `client`
-- [x] Chốt URL production: `https://dai-ly-cong-phu.vercel.app`
+- [x] Chốt URL production: `https://fast-accounting-client.vercel.app`
 - [x] Chốt tên app + icon (dùng lại icon của `client-tablet`)
 - [x] Chốt appId (`com.fastaccounting.webview`)
 

@@ -3,7 +3,7 @@
   "appName": "FastAccounting",
   "webDir": "www",
   "server": {
-    "url": "https://dai-ly-cong-phu.vercel.app",
+    "url": "https://fast-accounting-client.vercel.app",
     "androidScheme": "https",
     "errorPath": "index.html"
   },
